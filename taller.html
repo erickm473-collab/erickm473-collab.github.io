@@ -1554,7 +1554,7 @@
       const el = document.getElementById('pvTrabajosList');
       el.innerHTML = '<div style="font-size:.82rem; color:#64748b; text-align:center; padding:8px;">Cargando...</div>';
       try {
-        const snap = await db.collection('trabajos_vehiculo').where('vehiculoId','==',vehiculoId).get();
+        const snap = await fdb.collection('trabajos_vehiculo').where('vehiculoId','==',vehiculoId).get();
         if (snap.empty) {
           el.innerHTML = '<div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Sin trabajos registrados</div>';
           return;
@@ -1592,7 +1592,7 @@
       const btn = document.getElementById('pvTrabGuardarBtn');
       btn.disabled = true; btn.textContent = 'Guardando...';
       try {
-        await db.collection('trabajos_vehiculo').add({
+        await fdb.collection('trabajos_vehiculo').add({
           vehiculoId: _pvVehiculoId,
           tipo,
           descripcion: desc,
@@ -1615,7 +1615,7 @@
 
     async function deleteTrabajo(id) {
       if (!confirm('¿Eliminar este trabajo?')) return;
-      await db.collection('trabajos_vehiculo').doc(id).delete();
+      await fdb.collection('trabajos_vehiculo').doc(id).delete();
       await loadTrabajosVehiculo(_pvVehiculoId);
     }
 
@@ -1623,7 +1623,7 @@
       const el = document.getElementById('pvGastosList');
       el.innerHTML = '<div style="font-size:.82rem; color:#64748b; text-align:center; padding:8px;">Cargando...</div>';
       try {
-        const snap = await db.collection('gastos_vehiculo').where('vehiculoId','==',vehiculoId).get();
+        const snap = await fdb.collection('gastos_vehiculo').where('vehiculoId','==',vehiculoId).get();
         if (snap.empty) {
           el.innerHTML = '<div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Sin gastos registrados</div>';
           document.getElementById('pvGastosTotal').style.display = 'none';
@@ -1675,7 +1675,7 @@
       const btn = document.getElementById('pvGastoGuardarBtn');
       btn.disabled = true; btn.textContent = 'Guardando...';
       try {
-        await db.collection('gastos_vehiculo').add({
+        await fdb.collection('gastos_vehiculo').add({
           vehiculoId: _pvVehiculoId,
           categoria: cat,
           descripcion: desc,
@@ -1699,7 +1699,7 @@
 
     async function deleteGasto(id) {
       if (!confirm('¿Eliminar este gasto?')) return;
-      await db.collection('gastos_vehiculo').doc(id).delete();
+      await fdb.collection('gastos_vehiculo').doc(id).delete();
       await loadGastosVehiculo(_pvVehiculoId);
     }
     // ══════════════════════════════════════
