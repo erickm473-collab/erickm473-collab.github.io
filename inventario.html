@@ -1087,9 +1087,6 @@
       </div>
 
       <div class="sidebar-footer">
-        <button onclick="mostrarModalApiKey('partes-numero','partes')" style="width:100%; padding:10px 16px; background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.25); border-radius:8px; cursor:pointer; font-size:13px; margin-bottom:8px; font-weight:600;">
-          🤖 Configurar IA
-        </button>
         <button id="logout-btn">🚪 Cerrar sesión</button>
       </div>
     </aside>
@@ -2449,83 +2446,192 @@
       }
     })();
 
-    // ===== AI LOOKUP =====
+    // ===== BUSCADOR INTELIGENTE (sin configuración) =====
     const IA_FIELDS = {
       partes: { marca:'partes-marca', modelo:'partes-modelo', ano:'partes-ano', descripcion:'partes-descripcion' },
       buenas: { marca:'buenas-marca', modelo:'buenas-modelo', ano:'buenas-ano', descripcion:'buenas-descripcion' }
     };
 
+    // ── Base de datos local de patrones ──────────────────────────────
+    const PATRONES = [
+      // Intel CPUs
+      { r:/^BX80\d{7}/i,    marca:'Intel', tipo:'CPU', desc:'Procesador Intel (retail box)' },
+      { r:/^CM8\d{9}/i,     marca:'Intel', tipo:'CPU', desc:'Procesador Intel (OEM)' },
+      { r:/^SR[A-Z0-9]{3}$/i, marca:'Intel', tipo:'CPU', desc:'Procesador Intel (spec code)' },
+      // AMD CPUs
+      { r:/^100-100000\d{3}/i, marca:'AMD', tipo:'CPU', desc:'Procesador AMD Ryzen' },
+      { r:/^YD[A-Z0-9]{4}[A-Z]BAE/i, marca:'AMD', tipo:'CPU', desc:'Procesador AMD Ryzen (OEM)' },
+      { r:/^OS\d{4}[A-Z]/i, marca:'AMD', tipo:'CPU', desc:'Procesador AMD Opteron' },
+      // Samsung SSD/RAM
+      { r:/^MZ-[A-Z7][A-Z0-9]/i, marca:'Samsung', tipo:'SSD', desc:'SSD Samsung' },
+      { r:/^MZ7[A-Z0-9]/i,  marca:'Samsung', tipo:'SSD', desc:'SSD Samsung SATA' },
+      { r:/^MZNLN/i,        marca:'Samsung', tipo:'SSD', desc:'SSD Samsung M.2' },
+      { r:/^M3[78][12][A-Z0-9]{6}/i, marca:'Samsung', tipo:'RAM', desc:'Memoria RAM Samsung' },
+      // Western Digital
+      { r:/^WDS\d{3}[GT]/i, marca:'Western Digital', tipo:'SSD', desc:'SSD WD Blue/Green' },
+      { r:/^WDBA[A-Z0-9]/i, marca:'Western Digital', tipo:'HDD', desc:'Disco portátil WD' },
+      { r:/^WD[0-9][0-9][A-Z]{4}/i, marca:'Western Digital', tipo:'HDD', desc:'Disco duro WD' },
+      { r:/^WD[A-Z0-9]{8,}/i, marca:'Western Digital', tipo:'HDD/SSD', desc:'Almacenamiento WD' },
+      // Seagate
+      { r:/^ST[0-9]{4}DM/i, marca:'Seagate', tipo:'HDD', desc:'Disco duro Seagate BarraCuda' },
+      { r:/^ST[0-9]{4}LM/i, marca:'Seagate', tipo:'HDD', desc:'Disco duro Seagate laptop 2.5"' },
+      { r:/^ZA[0-9]/i,      marca:'Seagate', tipo:'SSD', desc:'SSD Seagate IronWolf/BarraCuda' },
+      { r:/^ST[0-9]{4}/i,   marca:'Seagate', tipo:'HDD', desc:'Disco duro Seagate' },
+      // Kingston RAM
+      { r:/^KVR\d{2}[A-Z]\d{2}[A-Z]\/\d/i, marca:'Kingston', tipo:'RAM', desc:'RAM Kingston ValueRAM' },
+      { r:/^KF[0-9]{3}C\d{2}/i, marca:'Kingston', tipo:'RAM', desc:'RAM Kingston FURY Beast' },
+      { r:/^KHX\d/i,        marca:'Kingston', tipo:'RAM', desc:'RAM Kingston HyperX' },
+      { r:/^SA[0-9]{3}[A-Z]\//i, marca:'Kingston', tipo:'SSD', desc:'SSD Kingston A-series' },
+      { r:/^SKC[0-9]/i,     marca:'Kingston', tipo:'SSD', desc:'SSD Kingston Canvas' },
+      // Crucial RAM/SSD
+      { r:/^CT[0-9]+G4[A-Z]F[A-Z0-9]/i, marca:'Crucial', tipo:'RAM', desc:'RAM Crucial DDR4' },
+      { r:/^CT[0-9]+G3[A-Z]F[A-Z0-9]/i, marca:'Crucial', tipo:'RAM', desc:'RAM Crucial DDR3' },
+      { r:/^CT[0-9]+BF[0-9]/i, marca:'Crucial', tipo:'SSD', desc:'SSD Crucial BX/MX SATA' },
+      { r:/^CT[0-9]+P[0-9]/i,  marca:'Crucial', tipo:'SSD', desc:'SSD Crucial P-series NVMe' },
+      { r:/^CT[0-9]+[A-Z]/i,   marca:'Crucial', tipo:'RAM/SSD', desc:'Componente Crucial' },
+      // Corsair RAM/PSU
+      { r:/^CM[KS][0-9]{2}[A-Z]X[0-9]/i, marca:'Corsair', tipo:'RAM', desc:'RAM Corsair Vengeance/Dominator' },
+      { r:/^RM[0-9]{3}x?$/i,  marca:'Corsair', tipo:'Fuente de Poder', desc:'Fuente Corsair RMx' },
+      { r:/^HX[0-9]{3}i?$/i,  marca:'Corsair', tipo:'Fuente de Poder', desc:'Fuente Corsair HXi' },
+      { r:/^SF[0-9]{3}/i,     marca:'Corsair', tipo:'Fuente de Poder', desc:'Fuente Corsair SFX' },
+      { r:/^TX-M[0-9]/i,      marca:'Corsair', tipo:'Fuente de Poder', desc:'Fuente Corsair TXm' },
+      // G.Skill RAM
+      { r:/^F[0-9]+-[0-9]+C[0-9]+/i, marca:'G.Skill', tipo:'RAM', desc:'RAM G.Skill Ripjaws/Trident' },
+      // ASUS
+      { r:/^ROG[- ]/i,       marca:'ASUS', tipo:'Motherboard/GPU', desc:'ASUS ROG' },
+      { r:/^TUF[- ][A-Z]/i,  marca:'ASUS', tipo:'Motherboard/GPU', desc:'ASUS TUF Gaming' },
+      { r:/^PRIME[- ]/i,     marca:'ASUS', tipo:'Motherboard', desc:'Motherboard ASUS Prime' },
+      { r:/^PROART[- ]/i,    marca:'ASUS', tipo:'Motherboard/GPU', desc:'ASUS ProArt' },
+      // MSI
+      { r:/^MAG[ -][A-Z]/i,  marca:'MSI', tipo:'Motherboard/GPU', desc:'MSI MAG' },
+      { r:/^MEG[ -][A-Z]/i,  marca:'MSI', tipo:'Motherboard', desc:'Motherboard MSI MEG' },
+      { r:/^MPG[ -][A-Z]/i,  marca:'MSI', tipo:'Motherboard/GPU', desc:'MSI MPG' },
+      { r:/^MS-[0-9]{4}/i,   marca:'MSI', tipo:'Motherboard', desc:'Motherboard MSI' },
+      // Gigabyte
+      { r:/^AORUS/i,         marca:'Gigabyte', tipo:'Motherboard/GPU', desc:'Gigabyte AORUS' },
+      { r:/^GA-[A-Z0-9]/i,   marca:'Gigabyte', tipo:'Motherboard', desc:'Motherboard Gigabyte' },
+      // EVGA
+      { r:/^[0-9]{2}-[A-Z]{3}-[0-9]{4}/i, marca:'EVGA', tipo:'GPU/Fuente de Poder', desc:'Componente EVGA' },
+      // Micron RAM
+      { r:/^MT[0-9]{2}JS[0-9]/i, marca:'Micron', tipo:'RAM', desc:'RAM Micron' },
+      { r:/^8[A-Z]{3}[0-9]{2}/i, marca:'Micron', tipo:'RAM', desc:'Módulo RAM Micron' },
+      // Hynix RAM
+      { r:/^HMA[0-9]/i,     marca:'SK Hynix', tipo:'RAM', desc:'RAM SK Hynix' },
+      { r:/^HMT[0-9]/i,     marca:'SK Hynix', tipo:'RAM', desc:'RAM SK Hynix DDR3' },
+      // TOSHIBA/Kioxia SSD
+      { r:/^KBG[0-9]/i,     marca:'Kioxia', tipo:'SSD', desc:'SSD Kioxia NVMe M.2' },
+      { r:/^THNS[A-Z0-9]/i, marca:'Toshiba', tipo:'SSD', desc:'SSD Toshiba' },
+      // Intel SSD
+      { r:/^SSDPE[A-Z0-9]/i, marca:'Intel', tipo:'SSD', desc:'SSD Intel Optane/Serie P' },
+      { r:/^SSDSC[A-Z0-9]/i, marca:'Intel', tipo:'SSD', desc:'SSD Intel SATA' },
+      // HP
+      { r:/^(HP|HPE)[- ][A-Z0-9]/i, marca:'HP', tipo:'Otro', desc:'Componente HP' },
+      { r:/^EliteBook/i,    marca:'HP', tipo:'Laptop', desc:'Laptop HP EliteBook' },
+      { r:/^ProBook/i,      marca:'HP', tipo:'Laptop', desc:'Laptop HP ProBook' },
+      { r:/^Pavilion/i,     marca:'HP', tipo:'Laptop', desc:'Laptop HP Pavilion' },
+      { r:/^EliteDesk/i,    marca:'HP', tipo:'PC de escritorio', desc:'PC HP EliteDesk' },
+      // Dell
+      { r:/^Latitude/i,     marca:'Dell', tipo:'Laptop', desc:'Laptop Dell Latitude' },
+      { r:/^Inspiron/i,     marca:'Dell', tipo:'Laptop', desc:'Laptop Dell Inspiron' },
+      { r:/^XPS[- ]/i,      marca:'Dell', tipo:'Laptop', desc:'Laptop Dell XPS' },
+      { r:/^OptiPlex/i,     marca:'Dell', tipo:'PC de escritorio', desc:'PC Dell OptiPlex' },
+      { r:/^Precision/i,    marca:'Dell', tipo:'Workstation', desc:'Workstation Dell Precision' },
+      // Lenovo
+      { r:/^ThinkPad/i,     marca:'Lenovo', tipo:'Laptop', desc:'Laptop Lenovo ThinkPad' },
+      { r:/^IdeaPad/i,      marca:'Lenovo', tipo:'Laptop', desc:'Laptop Lenovo IdeaPad' },
+      { r:/^Legion/i,       marca:'Lenovo', tipo:'Laptop', desc:'Laptop Lenovo Legion Gaming' },
+      { r:/^ThinkCentre/i,  marca:'Lenovo', tipo:'PC de escritorio', desc:'PC Lenovo ThinkCentre' },
+      // Apple
+      { r:/^A[12][0-9]{3}$/i, marca:'Apple', tipo:'Otro', desc:'Componente Apple (Model number)' },
+      { r:/^MacBook/i,      marca:'Apple', tipo:'Laptop', desc:'Laptop Apple MacBook' },
+      // Motherboard chipsets genéricos
+      { r:/^[BZH][0-9]{3}[- ]?[A-Z]/i, marca:'', tipo:'Motherboard', desc:'Motherboard (chipset identificado)' },
+      // GPU genéricas
+      { r:/^(GTX|RTX)[- ]?[0-9]{3,4}/i, marca:'NVIDIA', tipo:'GPU', desc:'Tarjeta gráfica NVIDIA GeForce' },
+      { r:/^(RX|HD)[- ]?[0-9]{3,4}/i,   marca:'AMD', tipo:'GPU', desc:'Tarjeta gráfica AMD Radeon' },
+      // Fuentes genéricas
+      { r:/^(ATX|SFX)[0-9]/i, marca:'', tipo:'Fuente de Poder', desc:'Fuente de poder' },
+      // Baterías laptop
+      { r:/^[A-Z]{2}[0-9]{2}[A-Z]{2}$/i, marca:'', tipo:'Batería', desc:'Batería de laptop' },
+      { r:/^L[0-9]{2}[A-Z][0-9]{2}[A-Z]/i, marca:'Lenovo', tipo:'Batería', desc:'Batería Lenovo' },
+    ];
+
+    // ── Normalizar texto del producto UPC ───────────────────────────
+    function inferTipo(texto) {
+      const t = texto.toLowerCase();
+      if (t.includes('processor') || t.includes('cpu') || t.includes('core i') || t.includes('ryzen')) return 'CPU';
+      if (t.includes('ssd') || t.includes('solid state')) return 'SSD';
+      if (t.includes('hard drive') || t.includes('hdd') || t.includes('disco duro')) return 'HDD';
+      if (t.includes('memory') || t.includes('ram') || t.includes('ddr')) return 'RAM';
+      if (t.includes('graphics') || t.includes('gpu') || t.includes('video card')) return 'GPU';
+      if (t.includes('motherboard') || t.includes('mainboard')) return 'Motherboard';
+      if (t.includes('power supply') || t.includes('psu') || t.includes('fuente')) return 'Fuente de Poder';
+      if (t.includes('laptop') || t.includes('notebook')) return 'Laptop';
+      if (t.includes('battery') || t.includes('bateria') || t.includes('batería')) return 'Batería';
+      if (t.includes('keyboard') || t.includes('teclado')) return 'Teclado';
+      if (t.includes('mouse') || t.includes('ratón')) return 'Mouse';
+      if (t.includes('monitor') || t.includes('screen') || t.includes('pantalla')) return 'Pantalla';
+      return 'Otro';
+    }
+
+    // ── Búsqueda UPC gratuita ────────────────────────────────────────
+    async function lookupUPC(codigo) {
+      // Solo intentar si parece un código EAN/UPC (numérico 8-14 dígitos)
+      if (!/^\d{8,14}$/.test(codigo)) return null;
+      try {
+        const r = await fetch(`https://api.upcitemdb.com/prod/trial/lookup?upc=${codigo}`, {
+          signal: AbortSignal.timeout(5000)
+        });
+        if (!r.ok) return null;
+        const d = await r.json();
+        const item = d.items?.[0];
+        if (!item) return null;
+        return {
+          marca:       item.brand || '',
+          modelo:      item.model || (item.title ? item.title.substring(0, 60) : ''),
+          descripcion: (item.description || item.title || '').substring(0, 100),
+          tipo:        inferTipo(item.category || item.title || ''),
+          fuente:      'UPC'
+        };
+      } catch { return null; }
+    }
+
+    // ── Motor principal ──────────────────────────────────────────────
     async function buscarConIA(inputId, prefijo) {
       const codigo = document.getElementById(inputId)?.value?.trim();
       if (!codigo) { alert('Primero ingresa o escanea un número de parte.'); return; }
 
-      let apiKey = localStorage.getItem('inv_ai_key');
-      if (!apiKey) {
-        mostrarModalApiKey(inputId, prefijo);
-        return;
-      }
-      _ejecutarBusquedaIA(codigo, prefijo, apiKey);
-    }
-
-    async function _ejecutarBusquedaIA(codigo, prefijo, apiKey) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
       cardEl.innerHTML = `
-        <div style="margin-top:10px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.3); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;">
-          <div style="width:20px;height:20px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
-          <span style="font-size:.83rem; color:#a5b4fc;">Consultando IA para <strong>${codigo}</strong>…</span>
+        <div style="margin-top:10px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;">
+          <div style="width:18px;height:18px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
+          <span style="font-size:.83rem;color:#a5b4fc;">Buscando <strong>${codigo}</strong>…</span>
         </div>`;
 
-      try {
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 400,
-            messages: [{
-              role: 'user',
-              content: `Eres una base de datos de componentes de computadoras y electrónica. Identifica este número de parte o código de barras: "${codigo}"
-
-Responde ÚNICAMENTE con un objeto JSON válido, sin markdown ni explicación:
-{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
-
-Reglas:
-- marca: fabricante (Intel, AMD, Samsung, Dell, HP, Lenovo, Seagate, WD, Kingston, Crucial, NVIDIA, etc.) o ""
-- modelo: nombre/número de modelo específico o ""
-- ano: año de lanzamiento como número o null
-- tipo: uno de estos valores exactos: CPU, RAM, SSD, HDD, GPU, Motherboard, Fuente de Poder, Pantalla, Teclado, Mouse, Batería, Cargador, Otro
-- descripcion: descripción breve en español máx 100 caracteres, o ""
-Si el código es completamente irreconocible devuelve campos vacíos.`
-            }]
-          })
-        });
-
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          if (resp.status === 401) throw new Error('API key inválida. Verifica tu clave en ⚙️.');
-          throw new Error(err?.error?.message || `Error ${resp.status}`);
+      // 1. Patrón local (instantáneo)
+      const c = codigo.toUpperCase().trim();
+      let local = {};
+      for (const p of PATRONES) {
+        if (p.r.test(c) || p.r.test(codigo)) {
+          local = { marca: p.marca, tipo: p.tipo, descripcion: p.desc, fuente: 'Local' };
+          break;
         }
-
-        const data = await resp.json();
-        const raw = data.content?.[0]?.text || '{}';
-        let info;
-        try {
-          info = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
-        } catch { info = {}; }
-
-        mostrarTarjetaIA(info, prefijo, codigo);
-      } catch(e) {
-        cardEl.innerHTML = `
-          <div style="margin-top:10px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:10px 12px; font-size:.82rem; color:#fca5a5;">
-            ❌ ${e.message}
-            ${e.message.includes('API key') ? `<button onclick="localStorage.removeItem('inv_ai_key');mostrarModalApiKey('${prefijo}-numero','${prefijo}')" style="margin-left:8px;background:rgba(99,102,241,.2);color:#a5b4fc;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.78rem;">Cambiar clave</button>` : ''}
-          </div>`;
       }
+
+      // 2. UPC lookup gratuito en paralelo
+      const upcPromise = lookupUPC(codigo);
+      const upcResult  = await upcPromise;
+
+      // Fusionar: UPC gana en modelo/desc si lo tiene, local aporta tipo/marca si falta
+      const info = {
+        marca:       upcResult?.marca       || local.marca       || '',
+        modelo:      upcResult?.modelo      || '',
+        tipo:        upcResult?.tipo        || local.tipo        || '',
+        descripcion: upcResult?.descripcion || local.descripcion || '',
+        fuente:      upcResult ? 'Catálogo en línea' : (local.marca ? 'Base local' : ''),
+      };
+
+      mostrarTarjetaIA(info, prefijo, codigo);
     }
 
     function mostrarTarjetaIA(info, prefijo, codigo) {
@@ -2535,40 +2641,43 @@ Si el código es completamente irreconocible devuelve campos vacíos.`
 
       if (!hayInfo) {
         cardEl.innerHTML = `
-          <div style="margin-top:10px; background:rgba(100,116,139,.1); border:1px solid rgba(100,116,139,.2); border-radius:10px; padding:10px 12px; font-size:.82rem; color:#94a3b8;">
+          <div style="margin-top:10px;background:rgba(100,116,139,.1);border:1px solid rgba(100,116,139,.2);border-radius:10px;padding:10px 12px;font-size:.82rem;color:#94a3b8;">
             🔍 No se encontró información para <strong>${codigo}</strong>. Llena los campos manualmente.
           </div>`;
         return;
       }
 
       const rows = [
-        { key:'marca',       label:'Marca',       val: info.marca,       id: fields.marca },
-        { key:'modelo',      label:'Modelo',      val: info.modelo,      id: fields.modelo },
-        { key:'ano',         label:'Año',         val: info.ano,         id: fields.ano },
-        { key:'descripcion', label:'Descripción', val: info.descripcion, id: fields.descripcion },
+        { label:'Marca',       val: info.marca,       id: fields.marca },
+        { label:'Modelo',      val: info.modelo,      id: fields.modelo },
+        { label:'Descripción', val: info.descripcion, id: fields.descripcion },
       ].filter(r => r.val);
 
       const checkboxes = rows.map(r => `
-        <label style="display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer;">
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;">
           <input type="checkbox" data-field="${r.id}" data-val="${String(r.val).replace(/"/g,'&quot;')}" checked
-            style="margin-top:3px; accent-color:#6366f1; width:15px; height:15px; flex-shrink:0;">
-          <span style="font-size:.82rem; color:#cbd5e1; flex:1;">
-            <span style="color:#94a3b8; font-size:.72rem; font-weight:700; text-transform:uppercase; display:block; margin-bottom:1px;">${r.label}</span>
+            style="margin-top:3px;accent-color:#6366f1;width:15px;height:15px;flex-shrink:0;">
+          <span style="font-size:.82rem;color:#cbd5e1;flex:1;">
+            <span style="color:#94a3b8;font-size:.72rem;font-weight:700;text-transform:uppercase;display:block;margin-bottom:1px;">${r.label}</span>
             ${String(r.val)}
           </span>
         </label>`).join('');
 
+      const fuenteColor = info.fuente === 'Catálogo en línea' ? '#34d399' : info.fuente === 'Base local' ? '#a5b4fc' : '#94a3b8';
+
       cardEl.innerHTML = `
-        <div id="ia-result-card-${prefijo}" style="margin-top:10px; background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.35); border-radius:12px; padding:12px 14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div style="font-size:.78rem; font-weight:800; color:#a5b4fc; text-transform:uppercase; letter-spacing:.5px;">
-              🤖 Sugerencia IA ${info.tipo ? `· <span style="background:rgba(99,102,241,.25);padding:1px 8px;border-radius:10px;">${info.tipo}</span>` : ''}
+        <div id="ia-result-card-${prefijo}" style="margin-top:10px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:12px 14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div style="font-size:.75rem;font-weight:800;color:#a5b4fc;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:6px;">
+              🤖 Resultado
+              ${info.tipo ? `<span style="background:rgba(99,102,241,.25);padding:1px 8px;border-radius:10px;">${info.tipo}</span>` : ''}
+              ${info.fuente ? `<span style="color:${fuenteColor};font-size:.68rem;">· ${info.fuente}</span>` : ''}
             </div>
             <button onclick="document.getElementById('ia-card-${prefijo}').innerHTML=''" style="background:none;border:none;color:#475569;cursor:pointer;font-size:1rem;">✕</button>
           </div>
           <div>${checkboxes}</div>
-          <div style="display:flex; gap:8px; margin-top:10px;">
-            <button onclick="aplicarCamposIA('${prefijo}')" style="flex:1; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px; font-size:.85rem; font-weight:700; cursor:pointer;">✅ Aplicar campos seleccionados</button>
+          <div style="margin-top:10px;">
+            <button onclick="aplicarCamposIA('${prefijo}')" style="width:100%;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:10px;font-size:.88rem;font-weight:700;cursor:pointer;">✅ Aplicar campos seleccionados</button>
           </div>
         </div>`;
     }
@@ -2581,37 +2690,14 @@ Si el código es completamente irreconocible devuelve campos vacíos.`
         if (el) {
           el.value = cb.dataset.val;
           el.dispatchEvent(new Event('input', { bubbles: true }));
-          // Flash animation
           el.style.transition = 'background .3s';
           el.style.background = 'rgba(99,102,241,.25)';
           setTimeout(() => { el.style.background = ''; }, 800);
         }
       });
       document.getElementById(`ia-card-${prefijo}`).innerHTML =
-        `<div style="margin-top:6px; font-size:.78rem; color:#34d399; padding:4px 0;">✅ Campos aplicados correctamente</div>`;
+        `<div style="margin-top:6px;font-size:.78rem;color:#34d399;padding:4px 0;">✅ Campos aplicados</div>`;
       setTimeout(() => { const c = document.getElementById(`ia-card-${prefijo}`); if(c) c.innerHTML=''; }, 2500);
-    }
-
-    function mostrarModalApiKey(inputId, prefijo) {
-      document.getElementById('api-key-modal').style.display = 'flex';
-      document.getElementById('api-key-modal').dataset.inputId = inputId;
-      document.getElementById('api-key-modal').dataset.prefijo = prefijo;
-    }
-
-    function cerrarModalApiKey() {
-      document.getElementById('api-key-modal').style.display = 'none';
-    }
-
-    function guardarApiKey() {
-      const key = document.getElementById('api-key-input').value.trim();
-      if (!key.startsWith('sk-ant-')) { alert('La clave debe comenzar con sk-ant-'); return; }
-      localStorage.setItem('inv_ai_key', key);
-      const modal = document.getElementById('api-key-modal');
-      const inputId = modal.dataset.inputId;
-      const prefijo = modal.dataset.prefijo;
-      cerrarModalApiKey();
-      const codigo = document.getElementById(inputId)?.value?.trim();
-      if (codigo) _ejecutarBusquedaIA(codigo, prefijo, key);
     }
 
     // ===== BARCODE SCANNER =====
@@ -2720,33 +2806,6 @@ Si el código es completamente irreconocible devuelve campos vacíos.`
       if (_scanDetector) escanearLoop();
     }
   </script>
-
-  <!-- API KEY MODAL -->
-  <div id="api-key-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:10500; align-items:center; justify-content:center; padding:20px;">
-    <div style="background:#1e293b; border:1px solid rgba(99,102,241,.4); border-radius:16px; padding:28px; width:100%; max-width:420px; box-shadow:0 24px 60px rgba(0,0,0,.6);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-        <div style="font-size:1.1rem; font-weight:800; color:#a5b4fc;">🤖 Configurar IA</div>
-        <button onclick="cerrarModalApiKey()" style="background:rgba(255,255,255,.08); border:none; color:#94a3b8; border-radius:8px; padding:4px 10px; cursor:pointer;">✕</button>
-      </div>
-      <p style="font-size:.85rem; color:#94a3b8; line-height:1.6; margin-bottom:16px;">
-        Para usar el buscador con IA necesitas una clave de la API de Anthropic (Claude). La clave se guarda solo en este dispositivo.
-      </p>
-      <div style="background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:12px; margin-bottom:16px; font-size:.8rem; color:#a5b4fc;">
-        📌 Obtén tu clave gratis en: <strong>console.anthropic.com</strong> → API Keys
-      </div>
-      <label style="font-size:.78rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:6px;">Clave API (sk-ant-...)</label>
-      <input id="api-key-input" type="password" placeholder="sk-ant-api03-..."
-        style="width:100%; padding:11px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.88rem; margin-bottom:16px;"
-        onkeydown="if(event.key==='Enter') guardarApiKey()">
-      <div style="display:flex; gap:10px;">
-        <button onclick="cerrarModalApiKey()" style="flex:1; padding:11px; background:rgba(255,255,255,.06); color:#94a3b8; border:none; border-radius:8px; cursor:pointer; font-size:.88rem;">Cancelar</button>
-        <button onclick="guardarApiKey()" style="flex:2; padding:11px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:.88rem;">Guardar y buscar</button>
-      </div>
-      <div style="margin-top:12px; font-size:.75rem; color:#475569; text-align:center;">
-        🔒 La clave se guarda localmente en tu dispositivo y nunca se envía a nuestros servidores.
-      </div>
-    </div>
-  </div>
 
   <!-- SCANNER OVERLAY -->
   <div id="scanner-overlay" style="display:none; position:fixed; inset:0; background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:flex-start;">
