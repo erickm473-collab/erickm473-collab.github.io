@@ -1011,6 +1011,37 @@
       .flex-container {
         position: relative;
       }
+
+      #hamburger-btn {
+        display: flex !important;
+      }
+    }
+
+    #hamburger-btn {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(245,158,11,.15);
+      border: 1px solid rgba(245,158,11,.3);
+      color: #f59e0b;
+      border-radius: 8px;
+      width: 40px;
+      height: 40px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    #sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 940;
+    }
+
+    #sidebar-backdrop.visible {
+      display: block;
     }
   </style>
 </head>
@@ -1032,6 +1063,9 @@
       <div id="login-error"></div>
     </div>
   </div>
+
+  <!-- SIDEBAR BACKDROP -->
+  <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
   <!-- MAIN APP -->
   <div class="main-wrapper">
@@ -1060,7 +1094,10 @@
       <!-- TOP BAR -->
       <div style="width: 100%; display: flex; flex-direction: column;">
         <div id="topbar">
-          <div id="topbar-title">Gestión de Inventario</div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+            <div id="topbar-title">Gestión de Inventario</div>
+          </div>
           <div id="user-info">
             <span id="user-name">Usuario</span>
           </div>
@@ -1443,6 +1480,25 @@
       return null;
     }
 
+    // ===== SIDEBAR MOBILE TOGGLE =====
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebar-backdrop');
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        sidebar.classList.remove('open');
+        backdrop.classList.remove('visible');
+      } else {
+        sidebar.classList.add('open');
+        backdrop.classList.add('visible');
+      }
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebar-backdrop').classList.remove('visible');
+    }
+
     function showLoginOverlay() {
       document.getElementById('login-overlay').classList.remove('hidden');
       document.querySelector('.main-wrapper').classList.remove('visible');
@@ -1563,6 +1619,9 @@
 
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById(tab + '-tab').classList.add('active');
+
+        // Cerrar sidebar en móvil al seleccionar sección
+        closeSidebar();
       });
     });
 
