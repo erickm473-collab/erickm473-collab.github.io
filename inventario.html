@@ -3281,7 +3281,12 @@
       { p:/^0505|^0506/i, marca:'Dodge', modelos:'Charger / Magnum / Durango / RAM 1500', motor:'5.7L HEMI V8', tipo:'PCM', fab:'Bosch', anos:'2006-2012', oem:'' },
       { p:/^0503|^0504/i, marca:'Dodge', modelos:'Dakota / Durango / RAM 1500',    motor:'4.7L V8',                       tipo:'PCM', fab:'Delphi',  anos:'2002-2008', oem:'' },
       { p:/^0489|^0490/i, marca:'Dodge', modelos:'Neon / Stratus / Sebring',       motor:'2.4L DOHC',                     tipo:'PCM', fab:'Delphi',  anos:'1999-2004', oem:'' },
-      { p:/^056/i,        marca:'Dodge', modelos:'(BCM Chrysler/Dodge/Jeep)',       motor:'',                              tipo:'BCM', fab:'Continental', anos:'',     oem:'' },
+      // BCM / CTM Mopar: números que empiezan con 56xxxxx (sin cero al frente)
+      // Ejemplos: 56044498AF, 56045183AD, 56045448AC (Dodge RAM 1998-2005 CTM/BCM)
+      { p:/^560[0-9]{5}/i,marca:'Dodge', modelos:'RAM 1500 / RAM 2500 / RAM 3500 / Durango / Dakota', motor:'',           tipo:'BCM/CTM', fab:'Mopar', anos:'1998-2006', oem:'' },
+      // BCM Mopar formato con cero: 056xxxxx
+      { p:/^056[0-9]/i,   marca:'Dodge', modelos:'(BCM Chrysler/Dodge/Jeep)',       motor:'',                              tipo:'BCM', fab:'Continental', anos:'',     oem:'' },
+      // TCM Mopar: 068xxxxx
       { p:/^068/i,        marca:'Dodge', modelos:'(TCM Chrysler/Dodge/Jeep)',       motor:'',                              tipo:'TCM', fab:'Chrysler', anos:'',        oem:'' },
       // ═══════════════════════════════════════════════════════════════
       // CHEVROLET / GM
@@ -3350,7 +3355,8 @@
       let limpio = codigo.trim().toUpperCase();
 
       // ── Chrysler/Dodge/Jeep/RAM: quitar prefijo P ──────────────────
-      if (/^P0[456]\d{7}[A-Z]{0,2}$/.test(limpio)) limpio = limpio.slice(1);
+      // Formatos Mopar: P05xxxxxxAA (PCM), P56xxxxxxAF (BCM/CTM), P04xxxxxxAA, P68xxxxxxAA (TCM)
+      if (/^P[0-9][0-9]/.test(limpio)) limpio = limpio.slice(1);
 
       // ── Nissan/Infiniti: quitar prefijo de 2 letras de planta ──────
       // XYMEC63-130... → MEC63-130...   DB MEC83-xxx → MEC83-xxx
@@ -3478,7 +3484,10 @@ RANGOS OEM CHRYSLER POR NÚMERO:
   - 0503xxxx / 0504xxxx = PCM 4.7L V8 (2002-2008)
   - 0500xxxx = PCM 3.8L o 2.4L (2000-2005)
   - 0489xxxx / 0490xxxx = PCM Neon/Stratus/Sebring 2.4L (1999-2004)
-  - 056xxxxx = BCM (Body Control Module) Chrysler
+  - 56xxxxxxAF (8 dígitos empezando con 56, sin cero al frente) = BCM / CTM (Central Timer Module) Dodge RAM 1998-2006
+         EJEMPLOS: 56044498AF, 56045183AD, 56045448AC = CTM/BCM para Dodge RAM 1500/2500/3500 (~1998-2006)
+         ⚠️ NO confundir con PCM: el BCM/CTM no tiene motor específico y no controla el tren motriz
+  - 056xxxxx = BCM (Body Control Module) Chrysler formato alternativo
   - 068xxxxx = TCM (Transmission Control Module) Chrysler
 
 CHEVROLET / GM:
