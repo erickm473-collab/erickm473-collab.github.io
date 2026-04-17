@@ -1161,18 +1161,55 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Marca</label>
-                      <input type="text" id="partes-marca" placeholder="ej: Intel">
+                      <label>Tipo de Módulo</label>
+                      <select id="partes-tipo-modulo">
+                        <option value="">Seleccionar...</option>
+                        <option value="ECU">ECU</option>
+                        <option value="TCM">TCM</option>
+                        <option value="BCM">BCM</option>
+                        <option value="PCM">PCM</option>
+                        <option value="ABS">ABS</option>
+                        <option value="Airbag">Airbag</option>
+                        <option value="Cluster">Cluster</option>
+                        <option value="Inmovilizador">Inmovilizador</option>
+                        <option value="Radio">Radio</option>
+                        <option value="Otro">Otro</option>
+                      </select>
                     </div>
 
                     <div class="form-group">
-                      <label>Modelo</label>
-                      <input type="text" id="partes-modelo" placeholder="ej: i7-8700K">
+                      <label>Marca del Vehículo</label>
+                      <input type="text" id="partes-marca" placeholder="ej: Nissan">
                     </div>
 
                     <div class="form-group">
-                      <label>Año</label>
-                      <input type="number" id="partes-ano" placeholder="2024">
+                      <label>Modelo del Vehículo</label>
+                      <input type="text" id="partes-modelo" placeholder="ej: Murano">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Año del Vehículo</label>
+                      <input type="number" id="partes-ano" placeholder="2006">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Motor</label>
+                      <input type="text" id="partes-motor" placeholder="ej: 3.5L VQ35DE">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Fabricante del Módulo</label>
+                      <input type="text" id="partes-fabricante-modulo" placeholder="ej: Hitachi, Bosch, Denso">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Número OEM</label>
+                      <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Número de Serie</label>
+                      <input type="text" id="partes-numero-serie" placeholder="ej: DB631423710">
                     </div>
 
                     <div class="form-group form-full">
@@ -1293,18 +1330,55 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Marca</label>
-                      <input type="text" id="buenas-marca" placeholder="ej: Dell">
+                      <label>Tipo de Módulo</label>
+                      <select id="buenas-tipo-modulo">
+                        <option value="">Seleccionar...</option>
+                        <option value="ECU">ECU</option>
+                        <option value="TCM">TCM</option>
+                        <option value="BCM">BCM</option>
+                        <option value="PCM">PCM</option>
+                        <option value="ABS">ABS</option>
+                        <option value="Airbag">Airbag</option>
+                        <option value="Cluster">Cluster</option>
+                        <option value="Inmovilizador">Inmovilizador</option>
+                        <option value="Radio">Radio</option>
+                        <option value="Otro">Otro</option>
+                      </select>
                     </div>
 
                     <div class="form-group">
-                      <label>Modelo</label>
-                      <input type="text" id="buenas-modelo" placeholder="ej: OptiPlex 7090">
+                      <label>Marca del Vehículo</label>
+                      <input type="text" id="buenas-marca" placeholder="ej: Nissan">
                     </div>
 
                     <div class="form-group">
-                      <label>Año</label>
-                      <input type="number" id="buenas-ano" placeholder="2024">
+                      <label>Modelo del Vehículo</label>
+                      <input type="text" id="buenas-modelo" placeholder="ej: Murano">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Año del Vehículo</label>
+                      <input type="number" id="buenas-ano" placeholder="2006">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Motor</label>
+                      <input type="text" id="buenas-motor" placeholder="ej: 3.5L VQ35DE">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Fabricante del Módulo</label>
+                      <input type="text" id="buenas-fabricante-modulo" placeholder="ej: Hitachi, Bosch, Denso">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Número OEM</label>
+                      <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Número de Serie</label>
+                      <input type="text" id="buenas-numero-serie" placeholder="ej: DB631423710">
                     </div>
 
                     <div class="form-group form-full">
@@ -1755,6 +1829,11 @@
         const marca = document.getElementById('partes-marca').value.trim();
         const modelo = document.getElementById('partes-modelo').value.trim();
         const ano = parseInt(document.getElementById('partes-ano').value) || null;
+        const tipoModulo = document.getElementById('partes-tipo-modulo').value;
+        const motor = document.getElementById('partes-motor').value.trim();
+        const fabricanteModulo = document.getElementById('partes-fabricante-modulo').value.trim();
+        const numeroOEM = document.getElementById('partes-numero-oem').value.trim();
+        const numeroSerie = document.getElementById('partes-numero-serie').value.trim();
         const descripcion = document.getElementById('partes-descripcion').value.trim();
         const precio = parseFloat(document.getElementById('partes-precio').value) || 0;
         const cantidad = parseInt(document.getElementById('partes-cantidad').value) || 0;
@@ -1786,6 +1865,11 @@
           marca,
           modelo,
           ano,
+          tipoModulo,
+          motor,
+          fabricanteModulo,
+          numeroOEM,
+          numeroSerie,
           descripcion,
           precio,
           cantidad,
@@ -1860,9 +1944,14 @@
       const data = doc.data();
 
       document.getElementById('partes-numero').value = data.numeroParte || '';
+      document.getElementById('partes-tipo-modulo').value = data.tipoModulo || '';
       document.getElementById('partes-marca').value = data.marca || '';
       document.getElementById('partes-modelo').value = data.modelo || '';
       document.getElementById('partes-ano').value = data.ano || '';
+      document.getElementById('partes-motor').value = data.motor || '';
+      document.getElementById('partes-fabricante-modulo').value = data.fabricanteModulo || '';
+      document.getElementById('partes-numero-oem').value = data.numeroOEM || '';
+      document.getElementById('partes-numero-serie').value = data.numeroSerie || '';
       document.getElementById('partes-descripcion').value = data.descripcion || '';
       document.getElementById('partes-precio').value = data.precio || '';
       document.getElementById('partes-cantidad').value = data.cantidad || 1;
@@ -1913,6 +2002,11 @@
         const marca = document.getElementById('buenas-marca').value.trim();
         const modelo = document.getElementById('buenas-modelo').value.trim();
         const ano = parseInt(document.getElementById('buenas-ano').value) || null;
+        const tipoModulo = document.getElementById('buenas-tipo-modulo').value;
+        const motor = document.getElementById('buenas-motor').value.trim();
+        const fabricanteModulo = document.getElementById('buenas-fabricante-modulo').value.trim();
+        const numeroOEM = document.getElementById('buenas-numero-oem').value.trim();
+        const numeroSerie = document.getElementById('buenas-numero-serie').value.trim();
         const descripcion = document.getElementById('buenas-descripcion').value.trim();
         const precio = parseFloat(document.getElementById('buenas-precio').value) || 0;
         const cantidad = parseInt(document.getElementById('buenas-cantidad').value) || 0;
@@ -1944,6 +2038,11 @@
           marca,
           modelo,
           ano,
+          tipoModulo,
+          motor,
+          fabricanteModulo,
+          numeroOEM,
+          numeroSerie,
           descripcion,
           precio,
           cantidad,
@@ -2018,9 +2117,14 @@
       const data = doc.data();
 
       document.getElementById('buenas-numero').value = data.numeroParte || '';
+      document.getElementById('buenas-tipo-modulo').value = data.tipoModulo || '';
       document.getElementById('buenas-marca').value = data.marca || '';
       document.getElementById('buenas-modelo').value = data.modelo || '';
       document.getElementById('buenas-ano').value = data.ano || '';
+      document.getElementById('buenas-motor').value = data.motor || '';
+      document.getElementById('buenas-fabricante-modulo').value = data.fabricanteModulo || '';
+      document.getElementById('buenas-numero-oem').value = data.numeroOEM || '';
+      document.getElementById('buenas-numero-serie').value = data.numeroSerie || '';
       document.getElementById('buenas-descripcion').value = data.descripcion || '';
       document.getElementById('buenas-precio').value = data.precio || '';
       document.getElementById('buenas-cantidad').value = data.cantidad || 1;
@@ -2095,9 +2199,9 @@
         tr.innerHTML = `
           <td><img src="${photoSrc}" class="table-thumbnail" data-parte-id="${parte.id}"></td>
           <td>${parte.numeroParte}</td>
-          <td>${parte.marca} ${parte.modelo}</td>
+          <td>${parte.marca} ${parte.modelo}${parte.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${parte.tipoModulo}</span>` : ''}</td>
           <td>${parte.ano || '-'}</td>
-          <td>L. ${parte.precio.toFixed(2)}</td>
+          <td>L. ${(parte.precio||0).toFixed(2)}</td>
           <td>${parte.cantidad}</td>
           <td>${parte.estante}</td>
           <td><span style="color: ${parte.estado === 'Disponible' ? '#10b981' : parte.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${parte.estado}</span></td>
@@ -2125,21 +2229,26 @@
             <div class="profile-label">N° Parte</div>
             <div class="profile-value">${data.numeroParte}</div>
           </div>
+          ${data.tipoModulo ? `<div class="profile-field"><div class="profile-label">Tipo de Módulo</div><div class="profile-value" style="background:rgba(99,102,241,.15);padding:3px 10px;border-radius:20px;display:inline-block;font-weight:700;">${data.tipoModulo}</div></div>` : ''}
           <div class="profile-field">
-            <div class="profile-label">Marca</div>
+            <div class="profile-label">Marca del Vehículo</div>
             <div class="profile-value">${data.marca || '-'}</div>
           </div>
           <div class="profile-field">
-            <div class="profile-label">Modelo</div>
+            <div class="profile-label">Modelo del Vehículo</div>
             <div class="profile-value">${data.modelo || '-'}</div>
           </div>
           <div class="profile-field">
             <div class="profile-label">Año</div>
             <div class="profile-value">${data.ano || '-'}</div>
           </div>
+          ${data.motor ? `<div class="profile-field"><div class="profile-label">Motor</div><div class="profile-value">${data.motor}</div></div>` : ''}
+          ${data.fabricanteModulo ? `<div class="profile-field"><div class="profile-label">Fabricante del Módulo</div><div class="profile-value">${data.fabricanteModulo}</div></div>` : ''}
+          ${data.numeroOEM ? `<div class="profile-field"><div class="profile-label">Número OEM</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroOEM}</div></div>` : ''}
+          ${data.numeroSerie ? `<div class="profile-field"><div class="profile-label">Número de Serie</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroSerie}</div></div>` : ''}
           <div class="profile-field">
             <div class="profile-label">Precio</div>
-            <div class="profile-value">L. ${data.precio.toFixed(2)}</div>
+            <div class="profile-value">L. ${(data.precio||0).toFixed(2)}</div>
           </div>
           <div class="profile-field">
             <div class="profile-label">Cantidad</div>
@@ -2176,7 +2285,7 @@
         ` : ''}
       `;
 
-      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca}`;
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca} ${data.modelo||''}`;
       document.getElementById('profile-overlay').classList.add('show');
     };
 
@@ -2224,9 +2333,9 @@
         tr.innerHTML = `
           <td><img src="${photoSrc}" class="table-thumbnail" data-buena-id="${buena.id}"></td>
           <td>${buena.numeroParte}</td>
-          <td>${buena.marca} ${buena.modelo}</td>
+          <td>${buena.marca} ${buena.modelo}${buena.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${buena.tipoModulo}</span>` : ''}</td>
           <td>${buena.ano || '-'}</td>
-          <td>L. ${buena.precio.toFixed(2)}</td>
+          <td>L. ${(buena.precio||0).toFixed(2)}</td>
           <td>${buena.cantidad}</td>
           <td>${buena.estante}</td>
           <td><span style="color: ${buena.estado === 'Disponible' ? '#10b981' : buena.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${buena.estado}</span></td>
@@ -2254,21 +2363,26 @@
             <div class="profile-label">N° Computadora</div>
             <div class="profile-value">${data.numeroParte}</div>
           </div>
+          ${data.tipoModulo ? `<div class="profile-field"><div class="profile-label">Tipo de Módulo</div><div class="profile-value" style="background:rgba(99,102,241,.15);padding:3px 10px;border-radius:20px;display:inline-block;font-weight:700;">${data.tipoModulo}</div></div>` : ''}
           <div class="profile-field">
-            <div class="profile-label">Marca</div>
+            <div class="profile-label">Marca del Vehículo</div>
             <div class="profile-value">${data.marca || '-'}</div>
           </div>
           <div class="profile-field">
-            <div class="profile-label">Modelo</div>
+            <div class="profile-label">Modelo del Vehículo</div>
             <div class="profile-value">${data.modelo || '-'}</div>
           </div>
           <div class="profile-field">
             <div class="profile-label">Año</div>
             <div class="profile-value">${data.ano || '-'}</div>
           </div>
+          ${data.motor ? `<div class="profile-field"><div class="profile-label">Motor</div><div class="profile-value">${data.motor}</div></div>` : ''}
+          ${data.fabricanteModulo ? `<div class="profile-field"><div class="profile-label">Fabricante del Módulo</div><div class="profile-value">${data.fabricanteModulo}</div></div>` : ''}
+          ${data.numeroOEM ? `<div class="profile-field"><div class="profile-label">Número OEM</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroOEM}</div></div>` : ''}
+          ${data.numeroSerie ? `<div class="profile-field"><div class="profile-label">Número de Serie</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroSerie}</div></div>` : ''}
           <div class="profile-field">
             <div class="profile-label">Precio</div>
-            <div class="profile-value">L. ${data.precio.toFixed(2)}</div>
+            <div class="profile-value">L. ${(data.precio||0).toFixed(2)}</div>
           </div>
           <div class="profile-field">
             <div class="profile-label">Cantidad</div>
@@ -2305,7 +2419,7 @@
         ` : ''}
       `;
 
-      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca}`;
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca} ${data.modelo||''}`;
       document.getElementById('profile-overlay').classList.add('show');
     };
 
@@ -2448,8 +2562,18 @@
 
     // ===== BUSCADOR INTELIGENTE (sin configuración) =====
     const IA_FIELDS = {
-      partes: { marca:'partes-marca', modelo:'partes-modelo', ano:'partes-ano', descripcion:'partes-descripcion' },
-      buenas: { marca:'buenas-marca', modelo:'buenas-modelo', ano:'buenas-ano', descripcion:'buenas-descripcion' }
+      partes: {
+        marca:'partes-marca', modelo:'partes-modelo', ano:'partes-ano',
+        tipo:'partes-tipo-modulo', motor:'partes-motor',
+        fabricante:'partes-fabricante-modulo', numeroOEM:'partes-numero-oem',
+        numeroSerie:'partes-numero-serie', descripcion:'partes-descripcion'
+      },
+      buenas: {
+        marca:'buenas-marca', modelo:'buenas-modelo', ano:'buenas-ano',
+        tipo:'buenas-tipo-modulo', motor:'buenas-motor',
+        fabricante:'buenas-fabricante-modulo', numeroOEM:'buenas-numero-oem',
+        numeroSerie:'buenas-numero-serie', descripcion:'buenas-descripcion'
+      }
     };
 
     // ── Base de datos local de patrones ──────────────────────────────
@@ -2663,22 +2787,26 @@
             content: `Eres un experto en módulos electrónicos automotrices (ECU, TCM, BCM, PCM, ABS, Airbag, etc.). Analiza este número de parte de computadora de auto: "${texto}"
 
 CONTEXTO: Los números de parte automotrices mezclan el código de módulo con el número de serie. Por ejemplo:
-- "DBMEC83-712A10000DB631" → módulo MEC83 = ECU/PCM Nissan Quest 2007-2009 3.5L V6
-- "MEC83-051" → ECU Nissan Quest 2007 VQ35DE
-- "28384-ZQ00A" → módulo Nissan (el primer segmento antes del guion es el código de módulo)
+- "DBMEC83-712A10000DB631423710" → módulo MEC83 = ECU/PCM Nissan Murano 2006 3.5L VQ35DE, fabricante Hitachi, OEM Nissan: 23710-CC20C, serie: DB631423710
+- "MEC83-051" → ECU Nissan Quest 2007 VQ35DE, fabricante Hitachi
+- "28384-ZQ00A" → módulo Nissan
 - "SH7058" → prefijo Hitachi/Renesas para ECUs Nissan/Infiniti
-Identifica marca del VEHÍCULO (no del fabricante del módulo), modelo del vehículo, año y tipo de módulo.
+
+DEBES extraer TODOS estos datos del número de parte:
+1. marca: VEHÍCULO (Nissan, Toyota, Honda, Ford, Chevrolet, etc.)
+2. modelo: modelo del vehículo SIN motor (ej: "Murano", "Quest", "Altima")
+3. ano: año del vehículo
+4. tipo: ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
+5. motor: código del motor (ej: "3.5L VQ35DE", "2.5L QR25DE", "1.8L MR18DE")
+6. fabricante: fabricante del MÓDULO electrónico (Hitachi, Bosch, Denso, Siemens, Delphi, Continental, Mitsubishi Electric, etc.)
+7. numeroOEM: número de parte OEM oficial del fabricante del vehículo (ej: "23710-CC20C")
+8. numeroSerie: número de serie interno del módulo (ej: "DB631423710") — suele ser el segmento alfanumérico largo al final del código
+9. descripcion: descripción corta en español máx 90 chars (ej: "ECU Nissan Murano 2006 3.5L VQ35DE")
 
 Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra):
-{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
+{"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
 
-Reglas:
-- marca: marca del VEHÍCULO (Nissan, Toyota, Honda, Ford, Chevrolet, Dodge, Hyundai, Kia, Mazda, Mitsubishi, Subaru, Volkswagen, BMW, Mercedes, Audi, Infiniti, Acura, Lexus, etc.)
-- modelo: modelo del vehículo + motor si se conoce (ej: "Quest 3.5L V6 VQ35DE", "Altima 2.5L", "Sentra 1.8L")
-- ano: año del vehículo como número (o el año más probable del rango, ej: 2008), o null
-- tipo: uno de estos exactamente → ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
-- descripcion: descripción en español máx 90 caracteres (ej: "Módulo ECU/PCM Nissan Quest 2007-2009 3.5L V6 VQ35DE")
-Si no reconoces el número exacto, usa el prefijo del modelo para inferir marca y tipo.`
+Si no conoces algún dato con certeza, devuelve "" o null para ese campo. Nunca inventes datos.`
           }]
         })
       });
@@ -2708,7 +2836,7 @@ Si no reconoces el número exacto, usa el prefijo del modelo para inferir marca 
         let info = await llamarClaude(completo, apiKey);
 
         // 2do intento: solo el segmento de modelo si el completo no dio resultados
-        const hayInfo = info.marca || info.modelo || info.tipo;
+        const hayInfo = info.marca || info.modelo || info.tipo || info.motor || info.fabricante || info.numeroOEM;
         if (!hayInfo && modelo !== completo) {
           cardEl.querySelector('span').textContent = `Probando con modelo "${modelo}"…`;
           info = await llamarClaude(modelo, apiKey);
@@ -2729,7 +2857,7 @@ Si no reconoces el número exacto, usa el prefijo del modelo para inferir marca 
     function mostrarTarjetaIA(info, prefijo, codigo) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
       const fields = IA_FIELDS[prefijo];
-      const hayInfo = info.marca || info.modelo || info.tipo || info.descripcion;
+      const hayInfo = info.marca || info.modelo || info.tipo || info.motor || info.fabricante || info.numeroOEM || info.numeroSerie || info.descripcion;
 
       if (!hayInfo) {
         cardEl.innerHTML = `
@@ -2740,10 +2868,15 @@ Si no reconoces el número exacto, usa el prefijo del modelo para inferir marca 
       }
 
       const rows = [
-        { label:'Marca',       val: info.marca,       id: fields.marca },
-        { label:'Modelo',      val: info.modelo,      id: fields.modelo },
-        { label:'Año',         val: info.ano,         id: fields.ano },
-        { label:'Descripción', val: info.descripcion, id: fields.descripcion },
+        { label:'Tipo de Módulo',      val: info.tipo,         id: fields.tipo },
+        { label:'Marca del Vehículo',  val: info.marca,        id: fields.marca },
+        { label:'Modelo del Vehículo', val: info.modelo,       id: fields.modelo },
+        { label:'Año',                 val: info.ano,          id: fields.ano },
+        { label:'Motor',               val: info.motor,        id: fields.motor },
+        { label:'Fabricante Módulo',   val: info.fabricante,   id: fields.fabricante },
+        { label:'Número OEM',          val: info.numeroOEM,    id: fields.numeroOEM },
+        { label:'Número de Serie',     val: info.numeroSerie,  id: fields.numeroSerie },
+        { label:'Descripción',         val: info.descripcion,  id: fields.descripcion },
       ].filter(r => r.val !== null && r.val !== undefined && r.val !== '');
 
       const checkboxes = rows.map(r => `
