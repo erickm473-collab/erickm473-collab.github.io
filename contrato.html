@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Contrato de Ingreso — YONKER EL TRIANGULO</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; color: #1e293b; line-height: 1.6; }
+    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+    /* Screens — default hidden, JS shows them */
+    #loadingScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    #mainScreen    { display: none; }
+    #successScreen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 40px 16px; }
+    #alreadySignedScreen { display: none; text-align: center; padding: 40px 16px; }
+    #errorScreen   { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 40px 16px; }
+
+    .spinner { width: 48px; height: 48px; border: 4px solid #e2e8f0; border-top: 4px solid #1e3a5f; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { margin-top: 16px; color: #64748b; font-size: 14px; }
+
+    .header { background: #1e3a5f; color: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; text-align: center; }
+    .header-logo { font-size: 28px; margin-bottom: 8px; }
+    .header-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .header-subtitle { font-size: 13px; opacity: 0.9; }
+
+    h1 { font-size: 18px; color: #1e293b; margin: 24px 0 20px; text-align: center; font-weight: 700; }
+
+    .vehicle-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+    .vehicle-card-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    .vehicle-card-row:last-child { border-bottom: none; }
+    .vehicle-label { font-weight: 600; color: #64748b; }
+    .vehicle-value { color: #1e293b; font-weight: 500; }
+
+    .contract-date { text-align: center; font-size: 14px; color: #64748b; margin-bottom: 24px; font-style: italic; }
+
+    .terms-section { margin-bottom: 24px; }
+    .terms-title { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .terms-intro { font-size: 13px; color: #475569; margin-bottom: 16px; line-height: 1.7; }
+    .terms-item { margin-bottom: 16px; padding-left: 8px; font-size: 13px; }
+    .terms-item-number { font-weight: 700; color: #1e3a5f; }
+    .terms-item-title { font-weight: 600; color: #1e293b; }
+    .terms-item-content { display: block; margin-top: 4px; color: #475569; line-height: 1.7; }
+
+    .signature-section { margin-top: 32px; border-top: 2px solid #e2e8f0; padding-top: 24px; }
+    .sig-instruction { font-size: 14px; color: #475569; margin-bottom: 12px; font-weight: 500; }
+
+    #sigCanvas {
+      display: block;
+      width: 100%;
+      height: 160px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 6px;
+      background: white;
+      cursor: crosshair;
+      margin-bottom: 12px;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    #sigCanvas.active-draw { border-color: #1e3a5f; border-style: solid; }
+
+    .sig-controls { display: flex; gap: 8px; margin-bottom: 20px; }
+    .btn-clear { flex: 1; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 6px; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 16px; color: #1e293b; -webkit-appearance: none; }
+    .form-group input:focus { outline: none; border-color: #1e3a5f; box-shadow: 0 0 0 3px rgba(30,58,95,.1); }
+
+    .btn-submit { width: 100%; background: #16a34a; color: white; border: none; padding: 16px; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; margin-top: 12px; -webkit-appearance: none; }
+    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    .error-msg { background: #fee2e2; color: #991b1b; padding: 12px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; border-left: 4px solid #dc2626; }
+    .error-msg.show { display: block; }
+
+    /* Success */
+    .big-icon { font-size: 64px; margin-bottom: 20px; animation: pop 0.4s; }
+    @keyframes pop { 0%{transform:scale(0)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    .success-title { font-size: 24px; font-weight: 700; color: #16a34a; margin-bottom: 8px; }
+    .success-msg { font-size: 16px; color: #475569; margin-bottom: 20px; }
+    .sign-details { background: #f8fafc; padding: 16px; border-radius: 6px; margin: 16px 0; text-align: left; width: 100%; max-width: 400px; }
+    .sign-details p { font-size: 13px; color: #475569; margin: 6px 0; }
+    .sign-details strong { color: #1e293b; }
+    .sig-preview { border: 1px solid #e2e8f0; border-radius: 6px; max-width: 100%; margin: 12px 0; }
+    .close-note { font-size: 14px; color: #64748b; margin-top: 20px; }
+
+    /* Already signed */
+    .already-icon { font-size: 48px; margin-bottom: 16px; }
+    .already-title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+    .already-msg { font-size: 14px; color: #475569; margin-bottom: 20px; }
+
+    /* Error */
+    .error-icon { font-size: 64px; margin-bottom: 20px; }
+    .error-title { font-size: 20px; font-weight: 700; color: #991b1b; margin-bottom: 8px; }
+    .error-text { font-size: 14px; color: #475569; }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando contrato...</div>
+</div>
+
+<!-- MAIN FORM -->
+<div id="mainScreen">
+  <div class="container">
+    <div class="header">
+      <div class="header-logo">🔧</div>
+      <div class="header-title">YONKER EL TRIANGULO</div>
+      <div class="header-subtitle">Taller Mecánico</div>
+    </div>
+
+    <h1>CONTRATO DE INGRESO DE VEHÍCULO</h1>
+
+    <div class="vehicle-card">
+      <div class="vehicle-card-row">
+        <span class="vehicle-label">Placa:</span>
+        <span class="vehicle-value" id="vPlaca">—</span>
+      </div>
+      <div class="vehicle-card-row">
+        <span class="vehicle-label">Marca:</span>
+        <span class="vehicle-value" id="vMarca">—</span>
+      </div>
+      <div class="vehicle-card-row">
+        <span class="vehicle-label">Modelo:</span>
+        <span class="vehicle-value" id="vModelo">—</span>
+      </div>
+      <div class="vehicle-card-row">
+        <span class="vehicle-label">Año:</span>
+        <span class="vehicle-value" id="vAnio">—</span>
+      </div>
+      <div class="vehicle-card-row">
+        <span class="vehicle-label">Color:</span>
+        <span class="vehicle-value" id="vColor">—</span>
+      </div>
+    </div>
+
+    <div class="contract-date" id="contractDate"></div>
+
+    <div class="terms-section">
+      <h2 class="terms-title">Términos y Condiciones de Servicio</h2>
+      <p class="terms-intro">Al firmar el presente documento, el cliente declara haber leído, entendido y aceptado las siguientes condiciones:</p>
+      <div>
+        <div class="terms-item">
+          <span class="terms-item-number">1. </span>
+          <span class="terms-item-title">COSTO DE DIAGNÓSTICO NO REEMBOLSABLE</span>
+          <span class="terms-item-content">El costo del diagnóstico del vehículo es completamente no reembolsable, independientemente de que el cliente decida o no proceder con el servicio de reparación una vez realizado el diagnóstico.</span>
+        </div>
+        <div class="terms-item">
+          <span class="terms-item-number">2. </span>
+          <span class="terms-item-title">OBJETOS DE VALOR — RESPONSABILIDAD DEL CLIENTE</span>
+          <span class="terms-item-content">YONKER EL TRIANGULO Taller Mecánico no se hace responsable por objetos olvidados dentro del vehículo. El cliente debe retirar todos sus objetos de valor (documentos, efectivo, artículos electrónicos u otros) antes de dejar el vehículo en el taller.</span>
+        </div>
+        <div class="terms-item">
+          <span class="terms-item-number">3. </span>
+          <span class="terms-item-title">NO SE ACEPTAN PIEZAS EXTERNAS</span>
+          <span class="terms-item-content">No se aceptan piezas o repuestos traídos por el cliente desde fuera del taller. Todas las piezas utilizadas en las reparaciones serán suministradas por YONKER EL TRIANGULO, garantizando así la calidad y procedencia de los materiales.</span>
+        </div>
+        <div class="terms-item">
+          <span class="terms-item-number">4. </span>
+          <span class="terms-item-title">RETIRO DEL VEHÍCULO — CARGOS POR ALMACENAMIENTO</span>
+          <span class="terms-item-content">Una vez finalizado el servicio y notificado el cliente, el vehículo deberá ser retirado dentro de las 24 horas siguientes. Transcurrido este plazo, se cobrarán cargos de almacenamiento de Lps. 150.00 por día y Lps. 150.00 adicionales por noche.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="signature-section">
+      <p class="sig-instruction">✍️ Firme a continuación con su dedo para aceptar los términos:</p>
+      <canvas id="sigCanvas"></canvas>
+      <div class="sig-controls">
+        <button class="btn-clear" id="clearBtn">🔄 Borrar y volver a firmar</button>
+      </div>
+
+      <div class="error-msg" id="errorMsg"></div>
+
+      <div class="form-group">
+        <label>Nombre completo del cliente *</label>
+        <input type="text" id="clienteName" placeholder="Ej: Juan Pérez" autocomplete="name">
+      </div>
+
+      <button class="btn-submit" id="submitBtn">✅ FIRMAR Y ACEPTAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUCCESS -->
+<div id="successScreen">
+  <div class="big-icon">✅</div>
+  <div class="success-title">¡Documento Firmado!</div>
+  <div class="success-msg" id="successMsg"></div>
+  <img id="signatureImg" class="sig-preview" alt="Firma">
+  <div class="sign-details">
+    <p><strong>Cliente:</strong> <span id="successClientName"></span></p>
+    <p><strong>Fecha y Hora:</strong> <span id="successDateTime"></span></p>
+  </div>
+  <div class="close-note">Puede cerrar esta ventana. El taller ya recibió su firma. 👍</div>
+</div>
+
+<!-- ALREADY SIGNED -->
+<div id="alreadySignedScreen">
+  <div class="container" style="text-align:center; padding-top:60px;">
+    <div class="already-icon">✅</div>
+    <div class="already-title">Documento ya firmado</div>
+    <div class="already-msg" id="alreadyMsg"></div>
+    <img id="prevSigImg" class="sig-preview" alt="Firma anterior">
+    <div class="sign-details" style="margin:0 auto; max-width:400px;">
+      <p><strong>Cliente:</strong> <span id="prevClientName"></span></p>
+      <p><strong>Fecha:</strong> <span id="prevDateTime"></span></p>
+    </div>
+    <div class="close-note">Puede cerrar esta ventana.</div>
+  </div>
+</div>
+
+<!-- ERROR -->
+<div id="errorScreen">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title">Contrato no encontrado</div>
+  <div class="error-text">No pudimos encontrar el vehículo. Por favor contacte al taller para obtener un nuevo enlace.</div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyBW_BIFxoAjsppToJ-MyC8F4_LaoA6dVJM",
+    authDomain: "taller-mecanico-erick.firebaseapp.com",
+    projectId: "taller-mecanico-erick",
+    storageBucket: "taller-mecanico-erick.firebasestorage.app",
+    messagingSenderId: "925938033085",
+    appId: "1:925938033085:web:fb9f085c290067a22c32d4"
+  };
+
+  let fdb, vehiculoData, vehiculoId;
+  let hasSigned = false; // simple flag — no pixel scanning
+
+  firebase.initializeApp(firebaseConfig);
+  fdb = firebase.firestore();
+
+  // ── Helpers ──────────────────────────────────────────
+  function show(id, flex) {
+    document.getElementById(id).style.display = flex ? 'flex' : 'block';
+  }
+  function hide(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function clearError() {
+    document.getElementById('errorMsg').classList.remove('show');
+  }
+
+  // ── Date ─────────────────────────────────────────────
+  function setContractDate() {
+    const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const now = new Date();
+    document.getElementById('contractDate').textContent =
+      `Tegucigalpa, Honduras, ${now.getDate()} de ${months[now.getMonth()]} de ${now.getFullYear()}`;
+  }
+
+  function nowStr() {
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // ── Canvas signature ──────────────────────────────────
+  function setupCanvas() {
+    const canvas = document.getElementById('sigCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Size canvas to actual CSS pixels (simple, no DPI scaling to avoid freezes)
+    function resizeCanvas() {
+      const w = canvas.offsetWidth;
+      const h = 160;
+      canvas.width = w;
+      canvas.height = h;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      hasSigned = false;
+    }
+    resizeCanvas();
+
+    let drawing = false, lx = 0, ly = 0;
+
+    function pos(e) {
+      const r = canvas.getBoundingClientRect();
+      const src = e.touches ? e.touches[0] : e;
+      return { x: src.clientX - r.left, y: src.clientY - r.top };
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      drawing = true;
+      const p = pos(e);
+      lx = p.x; ly = p.y;
+      canvas.classList.add('active-draw');
+    }
+
+    function moveDraw(e) {
+      e.preventDefault();
+      if (!drawing) return;
+      const p = pos(e);
+      ctx.beginPath();
+      ctx.moveTo(lx, ly);
+      ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      lx = p.x; ly = p.y;
+      hasSigned = true;
+    }
+
+    function endDraw() { drawing = false; }
+
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', moveDraw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove', moveDraw, { passive: false });
+    canvas.addEventListener('touchend', endDraw);
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      hasSigned = false;
+      canvas.classList.remove('active-draw');
+      clearError();
+    });
+
+    return canvas;
+  }
+
+  // ── Submit ────────────────────────────────────────────
+  async function submitSignature(canvas) {
+    if (!hasSigned) {
+      showError('Por favor, dibuje su firma en el cuadro de arriba');
+      return;
+    }
+    const name = document.getElementById('clienteName').value.trim();
+    if (!name) {
+      showError('Por favor, ingrese su nombre completo');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    clearError();
+
+    try {
+      const dateStr = nowStr();
+      const sigImage = canvas.toDataURL('image/png');
+
+      await fdb.collection('firmas').add({
+        vehiculoId,
+        placa: vehiculoData.placa,
+        marca: vehiculoData.marca,
+        modelo: vehiculoData.modelo,
+        clienteNombre: name,
+        firma: sigImage,
+        firmado: true,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        fechaTexto: dateStr
+      });
+
+      await fdb.collection('vehiculos').doc(vehiculoId).update({
+        firmaEstado: 'firmado',
+        firmaFecha: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Show success
+      hide('mainScreen');
+      document.getElementById('successMsg').textContent = `Gracias, ${name}. Su firma fue registrada exitosamente.`;
+      document.getElementById('successClientName').textContent = name;
+      document.getElementById('successDateTime').textContent = dateStr;
+      document.getElementById('signatureImg').src = sigImage;
+      show('successScreen', true);
+    } catch (err) {
+      console.error(err);
+      showError('Error al guardar la firma. Por favor intente nuevamente.');
+      btn.disabled = false;
+      btn.textContent = '✅ FIRMAR Y ACEPTAR';
+    }
+  }
+
+  // ── Load page ─────────────────────────────────────────
+  async function loadPage() {
+    vehiculoId = new URLSearchParams(window.location.search).get('id');
+    if (!vehiculoId) { hide('loadingScreen'); show('errorScreen', true); return; }
+
+    try {
+      // Check already signed
+      const firmaSnap = await fdb.collection('firmas')
+        .where('vehiculoId', '==', vehiculoId)
+        .where('firmado', '==', true)
+        .limit(1).get();
+
+      if (!firmaSnap.empty) {
+        const f = firmaSnap.docs[0].data();
+        hide('loadingScreen');
+        document.getElementById('alreadyMsg').textContent = `Este documento ya fue firmado el ${f.fechaTexto}`;
+        document.getElementById('prevClientName').textContent = f.clienteNombre;
+        document.getElementById('prevDateTime').textContent = f.fechaTexto;
+        document.getElementById('prevSigImg').src = f.firma;
+        show('alreadySignedScreen', false);
+        return;
+      }
+
+      // Load vehicle
+      const vSnap = await fdb.collection('vehiculos').doc(vehiculoId).get();
+      if (!vSnap.exists) { hide('loadingScreen'); show('errorScreen', true); return; }
+
+      vehiculoData = vSnap.data();
+      document.getElementById('vPlaca').textContent  = vehiculoData.placa  || '—';
+      document.getElementById('vMarca').textContent  = vehiculoData.marca  || '—';
+      document.getElementById('vModelo').textContent = vehiculoData.modelo || '—';
+      document.getElementById('vAnio').textContent   = vehiculoData.anio   || '—';
+      document.getElementById('vColor').textContent  = vehiculoData.color  || '—';
+
+      setContractDate();
+
+      hide('loadingScreen');
+      show('mainScreen', false);
+
+      // Setup canvas AFTER the screen is visible so offsetWidth works
+      const canvas = setupCanvas();
+
+      document.getElementById('submitBtn').addEventListener('click', () => {
+        submitSignature(canvas);
+      });
+
+    } catch (err) {
+      console.error(err);
+      hide('loadingScreen');
+      show('errorScreen', true);
+    }
+  }
+
+  loadPage();
+</script>
+</body>
+</html>

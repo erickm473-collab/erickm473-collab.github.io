@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YONKER EL TRIANGULO</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+    .logo{text-align:center;margin-bottom:48px;}
+    .logo h1{font-size:2rem;font-weight:900;color:#fff;letter-spacing:1px;}
+    .logo span{color:#f59e0b;}
+    .logo p{color:#64748b;font-size:.9rem;margin-top:6px;letter-spacing:2px;text-transform:uppercase;}
+    .cards{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;width:100%;max-width:1060px;}
+    .card{flex:1;min-width:280px;max-width:320px;border-radius:20px;overflow:hidden;text-decoration:none;transition:transform .2s,box-shadow .2s;cursor:pointer;}
+    .card:hover{transform:translateY(-6px);box-shadow:0 20px 60px rgba(0,0,0,.4);}
+    .card-taller{background:linear-gradient(135deg,#1e3a5f,#1d4ed8);}
+    .card-repuestos{background:linear-gradient(135deg,#064e3b,#059669);}
+    .card-computadoras{background:linear-gradient(135deg,#4c1d95,#7c3aed);}
+    .card-inner{padding:36px 28px;}
+    .card-icon{font-size:3rem;margin-bottom:16px;}
+    .card h2{font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:6px;}
+    .card p{color:rgba(255,255,255,.7);font-size:.88rem;line-height:1.5;}
+    .card-badge{display:inline-block;margin-top:20px;background:rgba(255,255,255,.15);color:#fff;border-radius:30px;padding:8px 20px;font-size:.82rem;font-weight:600;backdrop-filter:blur(4px);}
+    .card-taller .card-badge{background:rgba(245,158,11,.25);color:#fcd34d;}
+    .card-repuestos .card-badge{background:rgba(132,204,22,.25);color:#bef264;}
+    .card-computadoras .card-badge{background:rgba(167,139,250,.25);color:#ddd6fe;}
+    .footer{margin-top:48px;color:#334155;font-size:.78rem;text-align:center;}
+    @media(max-width:600px){
+      .logo h1{font-size:1.5rem;}
+      .cards{flex-direction:column;align-items:center;}
+      .card{max-width:100%;}
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">
+    <h1>YONKER <span>EL TRIANGULO</span></h1>
+    <p>Sistema de Gestión</p>
+  </div>
+
+  <div class="cards">
+    <a class="card card-taller" href="taller.html">
+      <div class="card-inner">
+        <div class="card-icon">🔧</div>
+        <h2>Taller Mecánico</h2>
+        <p>Gestión de vehículos, órdenes de trabajo, clientes e inventario del taller.</p>
+        <div class="card-badge">Entrar al Taller →</div>
+      </div>
+    </a>
+
+    <a class="card card-repuestos" href="repuestos.html">
+      <div class="card-inner">
+        <div class="card-icon">📦</div>
+        <h2>Repuestos</h2>
+        <p>Catálogo de repuestos, ventas, clientes y proveedores de la tienda.</p>
+        <div class="card-badge">Entrar a Repuestos →</div>
+      </div>
+    </a>
+
+    <a class="card card-computadoras" href="computadoras.html">
+      <div class="card-inner">
+        <div class="card-icon">💻</div>
+        <h2>Reparación de Computadoras</h2>
+        <p>Gestión de ingresos de ECU, TCM, BCM y módulos electrónicos.</p>
+        <div class="card-badge">Entrar a Computadoras →</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="footer">YONKER EL TRIANGULO &copy; 2026 — Sistema de Gestión en la Nube</div>
+</body>
+</html>

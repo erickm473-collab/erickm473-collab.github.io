@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YONKER EL TRIANGULO — Reparación de Computadoras</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f9fafb; color: #1f2937; }
+    .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); display: flex; align-items: center; justify-content: center; z-index: 3000; }
+    .login-overlay.login-hidden { display: none; }
+    .login-box { background: white; border-radius: 12px; padding: 40px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .login-box h1 { font-size: 24px; color: #1f2937; margin-bottom: 4px; }
+    .login-box .subtitle { color: #7c3aed; font-size: 14px; margin-bottom: 30px; }
+    .login-form { display: flex; flex-direction: column; gap: 12px; }
+    .login-form input { padding: 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 14px; }
+    .login-form input:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
+    .login-form button { padding: 12px; background: #7c3aed; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+    .login-form button:hover { background: #6d28d9; }
+    .login-error { color: #dc2626; font-size: 13px; padding: 10px; background: #fee2e2; border-radius: 4px; }
+    .login-error.login-hidden { display: none; }
+
+    .container { display: flex; height: 100vh; background: #f9fafb; }
+    .sidebar { width: 260px; background: #1e1b4b; color: white; display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar-header h1 { font-size: 16px; margin-bottom: 4px; }
+    .sidebar-header .subtitle { font-size: 12px; color: #a0aec0; }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 16px 8px; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; border-radius: 6px; transition: all 0.2s; color: #cbd5e1; font-size: 14px; }
+    .nav-item:hover { background: rgba(255,255,255,0.1); }
+    .nav-item.active { background: #7c3aed; color: white; }
+    .nav-icon { font-size: 18px; min-width: 24px; }
+    .sidebar-footer { padding: 16px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; gap: 12px; }
+    .connection-status { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5e1; }
+    .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .sidebar-footer button { padding: 8px 12px; background: transparent; border: 1px solid #cbd5e1; color: #cbd5e1; border-radius: 4px; font-size: 12px; cursor: pointer; }
+    .sidebar-footer button:hover { border-color: white; color: white; }
+
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: white; border-bottom: 1px solid #e5e7eb; }
+    .topbar-left { display: flex; align-items: center; gap: 16px; }
+    .hamburger-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; }
+    .topbar-title { font-size: 20px; font-weight: 600; color: #1f2937; }
+    .topbar-right { display: flex; align-items: center; gap: 24px; }
+    .sidebar-date { font-size: 13px; color: #6b7280; }
+    .user-info { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+    .user-badge { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+
+    #app-switcher { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 8px; background: white; padding: 12px 16px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 500; }
+    #app-switcher button { padding: 8px 12px; border: none; border-radius: 12px; background: #f3f4f6; color: #1f2937; cursor: pointer; font-size: 12px; font-weight: 500; }
+    #app-switcher button:hover { background: #e5e7eb; }
+    #app-switcher button.active { background: #7c3aed; color: white; }
+
+    .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .section-header h2 { font-size: 24px; font-weight: 600; color: #1f2937; }
+    .section-header button { padding: 10px 20px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .section-header button:hover { background: #6d28d9; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stat-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .stat-label { font-size: 13px; color: #6b7280; font-weight: 500; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #1f2937; margin: 8px 0; }
+    .stat-trend { font-size: 12px; color: #10b981; }
+
+    .data-table { background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .data-table table { width: 100%; border-collapse: collapse; }
+    .data-table th { background: #f9fafb; padding: 12px; text-align: left; font-size: 13px; font-weight: 600; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+    .data-table td { padding: 12px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tbody tr:hover { background: #f9fafb; }
+
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+    .badge-en-diagnostico { background: #dbeafe; color: #1e40af; }
+    .badge-en-reparacion { background: #fef08a; color: #854d0e; }
+    .badge-listo { background: #dcfce7; color: #166534; }
+    .badge-entregado { background: #f0fdf4; color: #15803d; }
+    .action-buttons { display: flex; gap: 6px; }
+    .action-btn { padding: 6px 8px; background: #f3f4f6; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .action-btn:hover { background: #e5e7eb; }
+    .action-btn.delete { color: #dc2626; }
+    .action-btn.delete:hover { background: #fee2e2; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 95%; max-height: 90vh; overflow-y: auto; }
+    .modal-header { font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1); }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-row.full { grid-template-columns: 1fr; }
+
+    .radio-group { margin-top: 8px; display: flex; gap: 12px; flex-wrap: wrap; }
+    .radio-item { display: flex; align-items: center; gap: 6px; }
+    .radio-item input[type="radio"] { cursor: pointer; }
+
+    .toggle-group { display: flex; gap: 12px; margin-top: 8px; }
+    .toggle-btn { flex: 1; padding: 16px; border: 2px solid #d1d5db; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+    .toggle-btn:hover { border-color: #7c3aed; }
+    .toggle-btn.active { background: #7c3aed; color: white; border-color: #7c3aed; }
+
+    .photo-upload { display: flex; gap: 8px; margin-top: 8px; }
+    .photo-input { display: none; }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; margin-top: 8px; }
+    .photo-item { position: relative; width: 80px; height: 80px; border-radius: 6px; overflow: hidden; cursor: pointer; background: #f3f4f6; }
+    .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-item .remove-btn { position: absolute; top: 2px; right: 2px; background: #dc2626; color: white; border: none; border-radius: 3px; width: 20px; height: 20px; padding: 0; cursor: pointer; font-size: 12px; }
+    .upload-btn { padding: 8px 12px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .upload-btn:hover { background: #e5e7eb; }
+
+    .modal-footer { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+    .modal-footer button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 14px; }
+    .btn-primary { background: #7c3aed; color: white; }
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-secondary { background: #f3f4f6; color: #1f2937; }
+    .btn-secondary:hover { background: #e5e7eb; }
+
+    .lightbox { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; align-items: center; justify-content: center; }
+    .lightbox.active { display: flex; }
+    .lightbox-content { position: relative; max-width: 90vw; max-height: 90vh; }
+    .lightbox-img { max-width: 100%; max-height: 100%; }
+    .lightbox-nav { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.5); color: white; border: none; padding: 12px 16px; cursor: pointer; font-size: 24px; }
+    .lightbox-prev { left: 10px; }
+    .lightbox-next { right: 10px; }
+    .lightbox-close { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.5); color: white; border: none; width: 40px; height: 40px; border-radius: 4px; cursor: pointer; font-size: 24px; }
+    .lightbox-dots { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+    .lightbox-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.5); cursor: pointer; }
+    .lightbox-dot.active { background: white; }
+
+    .profile-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0f172a; z-index: 1500; overflow-y: auto; color: white; }
+    .profile-screen.active { display: block; }
+    .profile-header { padding: 24px; background: #1e1b4b; display: flex; justify-content: space-between; align-items: center; }
+    .profile-header button { padding: 8px 16px; background: #7c3aed; color: white; border: none; border-radius: 6px; cursor: pointer; }
+    .profile-content { max-width: 1000px; margin: 0 auto; padding: 24px; }
+    .profile-card { background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .profile-card-title { font-size: 16px; font-weight: 600; color: #e2e8f0; margin-bottom: 16px; }
+    .profile-field { display: grid; grid-template-columns: 150px 1fr; gap: 16px; margin-bottom: 12px; }
+    .profile-label { color: #94a3b8; font-size: 13px; font-weight: 600; }
+    .profile-value { color: #e2e8f0; font-size: 14px; }
+    .profile-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 12px; }
+    .gallery-item { width: 150px; height: 150px; border-radius: 8px; overflow: hidden; cursor: pointer; }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    .inline-add-btn { padding: 4px 8px; background: #7c3aed; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    .inline-add-btn:hover { background: #6d28d9; }
+
+    .modal-footer input { padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 13px; flex: 1; }
+    .hidden-readonly { background: #f3f4f6; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #6b7280; }
+
+    @media (max-width: 768px) {
+      #app-switcher { bottom: 80px; right: 16px; padding: 10px 14px; font-size: 0.78rem; }
+      .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); z-index: 999; width: 240px; }
+      .sidebar.open { transform: translateX(0); }
+      .hamburger-btn { display: block; }
+      .container { flex-direction: column; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .modal { width: 95%; }
+      .modal-content { width: 95%; max-width: 95%; }
+      .section-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .form-row { grid-template-columns: 1fr; }
+      .data-table { font-size: 12px; }
+      .data-table th, .data-table td { padding: 8px; }
+      .bottombar { display: flex; height: 60px; background: white; border-top: 1px solid #e5e7eb; position: fixed; bottom: 0; width: 100%; }
+      .bottombar-btn { flex: 1; background: none; border: none; color: #6b7280; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; }
+      .bottombar-btn.active { color: #7c3aed; }
+      .content-area { padding-bottom: 70px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+      <h1>YONKER EL TRIANGULO</h1>
+      <p class="subtitle">Reparación de Computadoras</p>
+      <div class="login-form">
+        <input type="text" id="loginUsername" placeholder="Usuario">
+        <input type="password" id="loginPassword" placeholder="Contraseña">
+        <div id="loginError" class="login-error login-hidden"></div>
+        <button onclick="login()">Iniciar Sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container" id="mainContainer" style="display: none;">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h1>YONKER EL TRIANGULO</h1>
+        <div class="subtitle">Reparación de Computadoras</div>
+      </div>
+      <div class="sidebar-nav" id="sidebarNav">
+        <div class="nav-item active" onclick="switchSection('dashboard', this)">
+          <div class="nav-icon">📊</div>
+          <span>Dashboard</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('ingresos', this)">
+          <div class="nav-icon">💻</div>
+          <span>Ingresos</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('clientes', this)">
+          <div class="nav-icon">👥</div>
+          <span>Clientes</span>
+        </div>
+        <div class="nav-item" id="usersNavItem" style="display: none;" onclick="switchSection('usuarios', this)">
+          <div class="nav-icon">👤</div>
+          <span>Usuarios</span>
+        </div>
+        <div class="nav-item" id="backupNavItem" style="display: none;" onclick="switchSection('respaldos', this)">
+          <div class="nav-icon">💾</div>
+          <span>Respaldos</span>
+        </div>
+      </div>
+      <div class="sidebar-footer">
+        <div class="connection-status">
+          <div class="connection-dot"></div>
+          <span>Conectado</span>
+        </div>
+        <div id="sidebarDate" style="font-size: 12px; color: #cbd5e1;"></div>
+        <button onclick="logout()">Cerrar Sesión</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+          <div class="topbar-title" id="topbarTitle">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <div class="sidebar-date" id="sidebarDateTopbar"></div>
+          <div class="user-info">
+            <span id="currentUserName">Usuario</span>
+            <div class="user-badge" id="userBadge">U</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="content-area">
+        <div class="section active" id="dashboard">
+          <div class="section-header">
+            <h2>Dashboard</h2>
+          </div>
+          <div class="stats-grid" id="dashboardStats"></div>
+        </div>
+
+        <div class="section" id="ingresos">
+          <div class="section-header">
+            <h2>Ingresos de Computadoras</h2>
+            <button onclick="openIngresoModal()">➕ Nuevo Ingreso</button>
+          </div>
+          <div class="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Marca/Modelo</th>
+                  <th>N° Parte</th>
+                  <th>Cliente</th>
+                  <th>Estado</th>
+                  <th>¿Abierta?</th>
+                  <th>Registrado por</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="ingresosTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section" id="clientes">
+          <div class="section-header">
+            <h2>Clientes</h2>
+            <button onclick="openClienteModal()">➕ Nuevo Cliente</button>
+          </div>
+          <div class="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Teléfono</th>
+                  <th>Email</th>
+                  <th>Ingresos</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="clientesTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section" id="usuarios">
+          <div class="section-header">
+            <h2>Usuarios</h2>
+            <button onclick="openUsuarioModal()">➕ Nuevo Usuario</button>
+          </div>
+          <div class="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Usuario</th>
+                  <th>Rol</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="usuariosTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section" id="respaldos">
+          <div class="section-header">
+            <h2>Respaldos</h2>
+            <button onclick="backupNow()">💾 Respaldar Ahora</button>
+          </div>
+          <div class="data-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Tamaño</th>
+                  <th>Creado por</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="backupsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ingresoModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Nuevo Ingreso de Computadora</div>
+      <div class="form-group">
+        <label>Tipo de Módulo *</label>
+        <div class="radio-group">
+          <label class="radio-item"><input type="radio" name="tipoModulo" value="ECU" onchange="updateModuloType()"> ECU</label>
+          <label class="radio-item"><input type="radio" name="tipoModulo" value="TCM" onchange="updateModuloType()"> TCM</label>
+          <label class="radio-item"><input type="radio" name="tipoModulo" value="BCM" onchange="updateModuloType()"> BCM</label>
+          <label class="radio-item"><input type="radio" name="tipoModulo" value="Otra" onchange="updateModuloType()"> Otra</label>
+        </div>
+        <input type="text" id="tipoOtra" placeholder="Especificar" style="display: none; margin-top: 8px;">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Número de Parte *</label>
+          <input type="text" id="numeroParte">
+        </div>
+        <div class="form-group">
+          <label>Marca del Vehículo</label>
+          <input type="text" id="marcaVehiculo">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Modelo del Vehículo</label>
+          <input type="text" id="modeloVehiculo">
+        </div>
+        <div class="form-group">
+          <label>Año del Vehículo</label>
+          <input type="number" id="anoVehiculo">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Color del Vehículo</label>
+          <input type="text" id="colorVehiculo">
+        </div>
+        <div class="form-group">
+          <label>VIN</label>
+          <input type="text" id="vin">
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>Descripción de la Falla</label>
+        <textarea id="descripcionFalla" placeholder="Describir los síntomas y problemas..."></textarea>
+      </div>
+
+      <div class="form-group full">
+        <label>¿Viene Abierta? *</label>
+        <div class="toggle-group">
+          <button type="button" class="toggle-btn" onclick="setToggle('vienAbierta', 'SI')">✓ SI</button>
+          <button type="button" class="toggle-btn active" onclick="setToggle('vienAbierta', 'NO')">✗ NO</button>
+        </div>
+        <input type="hidden" id="vienAbierta" value="NO">
+      </div>
+
+      <div class="form-group full">
+        <label>Observaciones</label>
+        <textarea id="observaciones" placeholder="Notas adicionales..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="estado">
+            <option value="En diagnóstico">En diagnóstico</option>
+            <option value="En reparación">En reparación</option>
+            <option value="Listo">Listo</option>
+            <option value="Entregado">Entregado</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Cliente *</label>
+          <div style="display: flex; gap: 8px;">
+            <select id="clienteSelect" style="flex: 1;"></select>
+            <button type="button" class="inline-add-btn" onclick="openClienteModalInline()">➕ Nuevo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Precio de Diagnóstico</label>
+          <input type="number" id="precioEstimado" step="0.01">
+        </div>
+      </div>
+
+      <div class="form-group full">
+        <label>Fotos (máximo 8)</label>
+        <div class="photo-upload">
+          <button type="button" class="upload-btn" onclick="document.getElementById('fotoInput').click()">📷 Agregar Fotos</button>
+          <input type="file" id="fotoInput" class="photo-input" multiple accept="image/*" onchange="handlePhotoSelect(event)">
+        </div>
+        <div class="photo-grid" id="fotoGrid"></div>
+      </div>
+
+      <div class="form-group full">
+        <label>Quién Registró</label>
+        <div class="hidden-readonly" id="quienRegistro"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeIngresoModal()">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="saveIngreso()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="clienteModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header" id="clienteModalTitle">Nuevo Cliente</div>
+      <div class="form-group">
+        <label>Nombre *</label>
+        <input type="text" id="nombreCliente">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Teléfono</label>
+          <input type="text" id="telefonoCliente">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="emailCliente">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Dirección</label>
+        <input type="text" id="direccionCliente">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeClienteModal()">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="saveCliente()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="usuarioModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header" id="usuarioModalTitle">Nuevo Usuario</div>
+      <div class="form-group">
+        <label>Nombre *</label>
+        <input type="text" id="nombreUsuario">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Usuario *</label>
+          <input type="text" id="usernameUsuario">
+        </div>
+        <div class="form-group">
+          <label>Contraseña *</label>
+          <input type="password" id="passwordUsuario">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Rol *</label>
+          <select id="rolUsuario">
+            <option value="empleado">Empleado</option>
+            <option value="gerente">Gerente</option>
+            <option value="admin">Admin</option>
+            <option value="visor">Visor</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Activo</label>
+          <select id="activoUsuario">
+            <option value="true">Sí</option>
+            <option value="false">No</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Acceso a (seleccione al menos uno)</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" name="acceso" value="computadoras"> Computadoras</label>
+          <label><input type="checkbox" name="acceso" value="taller"> Taller</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-secondary" onclick="closeUsuarioModal()">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="saveUsuario()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ingresoPerfilScreen" class="profile-screen">
+    <div class="profile-header">
+      <div><h2 id="perfilTitulo">Ingreso #0</h2></div>
+      <div style="display:flex;gap:10px;">
+        <button class="print-btn-main" onclick="imprimirRecibo()" style="background:#10b981;border:none;color:white;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">🖨️ Imprimir Recibo</button>
+        <button onclick="closeIngresoProfile()">Cerrar</button>
+      </div>
+    </div>
+    <div class="profile-content" id="perfilContent"></div>
+  </div>
+
+  <div id="lightbox" class="lightbox">
+    <div class="lightbox-content">
+      <img class="lightbox-img" id="lightboxImg">
+      <button class="lightbox-nav lightbox-prev" onclick="lightboxPrev()">❮</button>
+      <button class="lightbox-nav lightbox-next" onclick="lightboxNext()">❯</button>
+      <button class="lightbox-close" onclick="closeLightbox()">×</button>
+      <div class="lightbox-dots" id="lightboxDots"></div>
+    </div>
+  </div>
+
+  <div id="app-switcher">
+    <button class="active" onclick="window.location.href='computadoras.html'">💻 Computadoras</button>
+    <button onclick="window.location.href='taller.html'">🚗 Taller</button>
+    <button onclick="window.location.href='index.html'">🏠 Inicio</button>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBW_BIFxoAjsppToJ-MyC8F4_LaoA6dVJM",
+      authDomain: "taller-mecanico-erick.firebaseapp.com",
+      projectId: "taller-mecanico-erick",
+      storageBucket: "taller-mecanico-erick.firebasestorage.app",
+      messagingSenderId: "925938033085",
+      appId: "1:925938033085:web:fb9f085c290067a22c32d4"
+    };
+
+    let fdb;
+    let currentUser = null;
+    let currentSection = 'dashboard';
+    let ingresosData = [];
+    let clientesData = [];
+    let usuariosData = [];
+    let editingIngreso = null;
+    let editingCliente = null;
+    let editingUser = null;
+    let ingresoPhotos = [];
+    let lightboxImages = [];
+    let lightboxCurrentIndex = 0;
+    let _savingIngreso = false;
+    const pvPhotoSets = {};
+
+    const v = id => document.getElementById(id)?.value?.trim() || '';
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val ?? ''; };
+    const setBtn = (id, txt, disabled) => { const b = document.getElementById(id); if(b){b.textContent=txt;b.disabled=disabled;} };
+
+    async function hashPassword(pwd) {
+      const data = new TextEncoder().encode(pwd);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    async function compressImage(file) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX = 1200;
+            let w = img.width, h = img.height;
+            if (w > h) { if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; } }
+            else { if (h > MAX) { w = Math.round(w * MAX / h); h = MAX; } }
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(resolve, 'image/jpeg', 0.80);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function login() {
+      const username = v('loginUsername');
+      const password = v('loginPassword');
+      if (!username || !password) {
+        showLoginError('Complete todos los campos');
+        return;
+      }
+      try {
+        const snap = await fdb.collection('usuarios').where('username', '==', username).get();
+        if (snap.empty) {
+          showLoginError('Usuario o contraseña incorrectos');
+          return;
+        }
+        const user = snap.docs[0];
+        const hashedPwd = await hashPassword(password);
+        if (user.data().passwordHash !== hashedPwd) {
+          showLoginError('Usuario o contraseña incorrectos');
+          return;
+        }
+        if (!user.data().activo) {
+          showLoginError('Usuario no activo');
+          return;
+        }
+        const acceso = user.data().acceso || [];
+        if (!acceso.includes('computadoras') && !acceso.includes('taller')) {
+          showLoginError('No tienes acceso a esta aplicación.');
+          return;
+        }
+        currentUser = { id: user.id, ...user.data() };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        showMainApp();
+      } catch (e) {
+        showLoginError('Error al iniciar sesión');
+      }
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('loginError');
+      el.textContent = msg;
+      el.classList.remove('login-hidden');
+    }
+
+    function showMainApp() {
+      document.getElementById('loginOverlay').classList.add('login-hidden');
+      document.getElementById('mainContainer').style.display = '';
+      document.getElementById('currentUserName').textContent = currentUser.nombre;
+      document.getElementById('userBadge').textContent = currentUser.nombre.charAt(0).toUpperCase();
+      updateDate();
+      setInterval(updateDate, 60000);
+      if (currentUser.role === 'admin' || currentUser.role === 'gerente') {
+        document.getElementById('usersNavItem').style.display = currentUser.role === 'admin' ? '' : 'none';
+        document.getElementById('backupNavItem').style.display = '';
+        setTimeout(checkAndAutoBackup, 3000);
+      }
+    }
+
+    function updateDate() {
+      const now = new Date();
+      const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      const dateStr = `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+      document.getElementById('sidebarDate').textContent = dateStr;
+      document.getElementById('sidebarDateTopbar').textContent = dateStr;
+    }
+
+    function logout() {
+      if (confirm('¿Cerrar sesión?')) {
+        localStorage.removeItem('currentUser');
+        location.reload();
+      }
+    }
+
+    function setupListeners() {
+      fdb.collection('computadoras').onSnapshot(snap => {
+        ingresosData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        if (currentSection === 'ingresos') renderIngresos();
+        if (currentSection === 'dashboard') renderDashboard();
+      });
+      fdb.collection('clientes').onSnapshot(snap => {
+        clientesData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        if (currentSection === 'clientes') renderClientes();
+        updateClienteSelect();
+      });
+      fdb.collection('usuarios').onSnapshot(snap => {
+        usuariosData = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        if (currentSection === 'usuarios') renderUsuarios();
+      });
+    }
+
+    function switchSection(section, el) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(section).classList.add('active');
+      currentSection = section;
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos'};
+      document.getElementById('topbarTitle').textContent = titles[section] || section;
+      closeSidebar();
+      if (section === 'dashboard') renderDashboard();
+      if (section === 'ingresos') renderIngresos();
+      if (section === 'clientes') renderClientes();
+      if (section === 'usuarios') renderUsuarios();
+      if (section === 'respaldos') renderBackups();
+    }
+
+    function renderDashboard() {
+      const totalIngresos = ingresosData.length;
+      const enDiagnostico = ingresosData.filter(i => i.estado === 'En diagnóstico').length;
+      const enReparacion = ingresosData.filter(i => i.estado === 'En reparación').length;
+      const listos = ingresosData.filter(i => i.estado === 'Listo').length;
+      const entregados = ingresosData.filter(i => i.estado === 'Entregado').length;
+      const html = `
+        <div class="stat-card">
+          <div class="stat-label">Ingresos Totales</div>
+          <div class="stat-value">${totalIngresos}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">En Diagnóstico</div>
+          <div class="stat-value">${enDiagnostico}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">En Reparación</div>
+          <div class="stat-value">${enReparacion}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Listos</div>
+          <div class="stat-value">${listos}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Entregados</div>
+          <div class="stat-value">${entregados}</div>
+        </div>
+      `;
+      document.getElementById('dashboardStats').innerHTML = html;
+    }
+
+    function renderIngresos() {
+      let html = '';
+      ingresosData.forEach(ing => {
+        const estadoBadge = {
+          'En diagnóstico': 'badge-en-diagnostico',
+          'En reparación': 'badge-en-reparacion',
+          'Listo': 'badge-listo',
+          'Entregado': 'badge-entregado'
+        }[ing.estado] || 'badge-en-diagnostico';
+        const abierta = ing.vienAbierta === 'SI' ? '✅' : '❌';
+        const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Desconocido';
+        const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
+        html += `
+          <tr>
+            <td>${tipo}</td>
+            <td>${ing.marcaVehiculo} ${ing.modeloVehiculo} ${ing.anoVehiculo || ''}</td>
+            <td>${ing.numeroParte}</td>
+            <td>${cliente}</td>
+            <td><span class="badge ${estadoBadge}">${ing.estado}</span></td>
+            <td>${abierta}</td>
+            <td>${ing.creadoPor || '-'}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn" onclick="viewIngresoProfile('${ing.id}')" title="Ver">🔍</button>
+                <button class="action-btn" onclick="editIngreso('${ing.id}')" title="Editar">✏️</button>
+                <button class="action-btn delete" onclick="deleteIngreso('${ing.id}')" title="Borrar">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('ingresosTableBody').innerHTML = html;
+    }
+
+    function renderClientes() {
+      let html = '';
+      clientesData.forEach(cliente => {
+        const ingresos = ingresosData.filter(i => i.clienteId === cliente.id).length;
+        html += `
+          <tr>
+            <td>${cliente.nombre}</td>
+            <td>${cliente.telefono || '-'}</td>
+            <td>${cliente.email || '-'}</td>
+            <td>${ingresos}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn" onclick="editCliente('${cliente.id}')" title="Editar">✏️</button>
+                <button class="action-btn delete" onclick="deleteCliente('${cliente.id}')" title="Borrar">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('clientesTableBody').innerHTML = html;
+    }
+
+    function renderUsuarios() {
+      let html = '';
+      usuariosData.forEach(user => {
+        const estadoBadge = user.activo ? '<span class="badge" style="background: #dcfce7; color: #166534;">Activo</span>' : '<span class="badge" style="background: #fee2e2; color: #991b1b;">Inactivo</span>';
+        html += `
+          <tr>
+            <td>${user.nombre}</td>
+            <td>${user.username}</td>
+            <td>${user.role}</td>
+            <td>${estadoBadge}</td>
+            <td>
+              <div class="action-buttons">
+                <button class="action-btn" onclick="editUsuario('${user.id}')" title="Editar">✏️</button>
+                <button class="action-btn delete" onclick="deleteUsuario('${user.id}')" title="Borrar">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      document.getElementById('usuariosTableBody').innerHTML = html;
+    }
+
+    function renderBackups() {
+      fdb.collection('backups_computadoras').orderBy('timestamp', 'desc').limit(30).get().then(snap => {
+        let html = '';
+        snap.forEach(doc => {
+          const data = doc.data();
+          const fecha = data.fecha || new Date(data.timestamp?.toDate?.()).toLocaleDateString('es-ES');
+          const size = data.size ? `${(data.size / 1024).toFixed(2)} KB` : 'N/A';
+          html += `
+            <tr>
+              <td>${fecha}</td>
+              <td>${size}</td>
+              <td>${data.creadoPor || '-'}</td>
+              <td>
+                <div class="action-buttons">
+                  <button class="action-btn" onclick="downloadBackup('${doc.id}')" title="Descargar">⬇️</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        });
+        document.getElementById('backupsTableBody').innerHTML = html;
+      });
+    }
+
+    function openIngresoModal() {
+      editingIngreso = null;
+      ingresoPhotos = [];
+      document.querySelectorAll('input[name="tipoModulo"]').forEach(r => r.checked = false);
+      set('tipoOtra', '');
+      document.getElementById('tipoOtra').style.display = 'none';
+      set('numeroParte', '');
+      set('marcaVehiculo', '');
+      set('modeloVehiculo', '');
+      set('anoVehiculo', '');
+      set('colorVehiculo', '');
+      set('vin', '');
+      set('descripcionFalla', '');
+      set('observaciones', '');
+      set('estado', 'En diagnóstico');
+      set('vienAbierta', 'NO');
+      setToggle('vienAbierta', 'NO');
+      set('precioEstimado', '');
+      document.getElementById('fotoGrid').innerHTML = '';
+      document.getElementById('quienRegistro').textContent = currentUser.nombre;
+      document.getElementById('ingresoModal').classList.add('active');
+      updateClienteSelect();
+    }
+
+    function closeIngresoModal() {
+      document.getElementById('ingresoModal').classList.remove('active');
+      editingIngreso = null;
+      ingresoPhotos = [];
+    }
+
+    function editIngreso(id) {
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      editingIngreso = ing;
+      document.querySelectorAll('input[name="tipoModulo"]').forEach(r => {
+        r.checked = r.value === ing.tipoModulo;
+      });
+      if (ing.tipoModulo === 'Otra') {
+        document.getElementById('tipoOtra').style.display = '';
+        set('tipoOtra', ing.tipoOtra);
+      } else {
+        document.getElementById('tipoOtra').style.display = 'none';
+      }
+      set('numeroParte', ing.numeroParte);
+      set('marcaVehiculo', ing.marcaVehiculo);
+      set('modeloVehiculo', ing.modeloVehiculo);
+      set('anoVehiculo', ing.anoVehiculo);
+      set('colorVehiculo', ing.colorVehiculo);
+      set('vin', ing.vin);
+      set('descripcionFalla', ing.descripcionFalla);
+      set('observaciones', ing.observaciones);
+      set('estado', ing.estado);
+      set('vienAbierta', ing.vienAbierta);
+      setToggle('vienAbierta', ing.vienAbierta);
+      set('precioEstimado', ing.precioEstimado);
+      document.getElementById('clienteSelect').value = ing.clienteId || '';
+      document.getElementById('quienRegistro').textContent = ing.creadoPor || currentUser.nombre;
+      loadPhotosFromFirestore(ing.id);
+      document.getElementById('ingresoModal').classList.add('active');
+      updateClienteSelect();
+    }
+
+    function deleteIngreso(id) {
+      if (confirm('¿Eliminar este ingreso?')) {
+        fdb.collection('computadoras').doc(id).delete();
+        fdb.collection('fotos').where('parentId', '==', id).where('parentType', '==', 'computadora').get().then(snap => {
+          snap.forEach(doc => fdb.collection('fotos').doc(doc.id).delete());
+        });
+      }
+    }
+
+    function saveIngreso() {
+      if (_savingIngreso) return;
+      _savingIngreso = true;
+      const tipoModulo = document.querySelector('input[name="tipoModulo"]:checked')?.value;
+      const numeroParte = v('numeroParte');
+      const clienteId = v('clienteSelect');
+      if (!tipoModulo || !numeroParte || !clienteId) {
+        alert('Completar campos requeridos');
+        _savingIngreso = false;
+        return;
+      }
+      const data = {
+        tipoModulo,
+        tipoOtra: tipoModulo === 'Otra' ? v('tipoOtra') : '',
+        numeroParte,
+        marcaVehiculo: v('marcaVehiculo'),
+        modeloVehiculo: v('modeloVehiculo'),
+        anoVehiculo: v('anoVehiculo') ? parseInt(v('anoVehiculo')) : null,
+        colorVehiculo: v('colorVehiculo'),
+        vin: v('vin'),
+        descripcionFalla: v('descripcionFalla'),
+        observaciones: v('observaciones'),
+        vienAbierta: v('vienAbierta'),
+        estado: v('estado'),
+        clienteId,
+        precioEstimado: v('precioEstimado') ? parseFloat(v('precioEstimado')) : null,
+        creadoPor: currentUser.nombre
+      };
+      if (editingIngreso) {
+        fdb.collection('computadoras').doc(editingIngreso.id).update(data).then(() => {
+          _savingIngreso = false;
+          closeIngresoModal();
+        });
+      } else {
+        fdb.collection('computadoras').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(docRef => {
+          uploadIngresoPhotos(docRef.id).then(() => {
+            _savingIngreso = false;
+            closeIngresoModal();
+          });
+        });
+      }
+    }
+
+    function handlePhotoSelect(event) {
+      const files = Array.from(event.target.files);
+      if (ingresoPhotos.length + files.length > 8) {
+        alert('Máximo 8 fotos');
+        return;
+      }
+      Promise.all(files.map(f => compressImage(f))).then(blobs => {
+        blobs.forEach(blob => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            ingresoPhotos.push(e.target.result);
+            renderPhotoGrid();
+          };
+          reader.readAsDataURL(blob);
+        });
+      });
+    }
+
+    function renderPhotoGrid() {
+      let html = '';
+      ingresoPhotos.forEach((photo, idx) => {
+        html += `
+          <div class="photo-item">
+            <img src="${photo}" onclick="viewLightbox(${idx})">
+            <button class="remove-btn" onclick="ingresoPhotos.splice(${idx}, 1); renderPhotoGrid();">×</button>
+          </div>
+        `;
+      });
+      document.getElementById('fotoGrid').innerHTML = html;
+    }
+
+    async function uploadIngresoPhotos(parentId) {
+      for (let i = 0; i < ingresoPhotos.length; i++) {
+        const dataUrl = ingresoPhotos[i];
+        await fdb.collection('fotos').add({
+          parentId,
+          parentType: 'computadora',
+          index: i,
+          dataUrl,
+          creado: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      ingresoPhotos = [];
+    }
+
+    async function loadPhotosFromFirestore(parentId) {
+      const snap = await fdb.collection('fotos').where('parentId', '==', parentId).where('parentType', '==', 'computadora').get();
+      const fotos = snap.docs.map(d => d.data());
+      fotos.sort((a, b) => (a.index || 0) - (b.index || 0));
+      ingresoPhotos = fotos.map(f => f.dataUrl);
+      renderPhotoGrid();
+    }
+
+    function openClienteModal() {
+      editingCliente = null;
+      set('nombreCliente', '');
+      set('telefonoCliente', '');
+      set('emailCliente', '');
+      set('direccionCliente', '');
+      document.getElementById('clienteModalTitle').textContent = 'Nuevo Cliente';
+      document.getElementById('clienteModal').classList.add('active');
+    }
+
+    function openClienteModalInline() {
+      closeIngresoModal();
+      openClienteModal();
+    }
+
+    function closeClienteModal() {
+      document.getElementById('clienteModal').classList.remove('active');
+      editingCliente = null;
+    }
+
+    function editCliente(id) {
+      const cliente = clientesData.find(c => c.id === id);
+      if (!cliente) return;
+      editingCliente = cliente;
+      set('nombreCliente', cliente.nombre);
+      set('telefonoCliente', cliente.telefono);
+      set('emailCliente', cliente.email);
+      set('direccionCliente', cliente.direccion);
+      document.getElementById('clienteModalTitle').textContent = 'Editar Cliente';
+      document.getElementById('clienteModal').classList.add('active');
+    }
+
+    function deleteCliente(id) {
+      if (confirm('¿Eliminar cliente?')) {
+        fdb.collection('clientes').doc(id).delete();
+      }
+    }
+
+    function saveCliente() {
+      const nombre = v('nombreCliente');
+      if (!nombre) {
+        alert('Ingrese nombre del cliente');
+        return;
+      }
+      const data = {
+        nombre,
+        telefono: v('telefonoCliente'),
+        email: v('emailCliente'),
+        direccion: v('direccionCliente')
+      };
+      if (editingCliente) {
+        fdb.collection('clientes').doc(editingCliente.id).update(data).then(() => closeClienteModal());
+      } else {
+        fdb.collection('clientes').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(() => closeClienteModal());
+      }
+    }
+
+    function updateClienteSelect() {
+      const select = document.getElementById('clienteSelect');
+      const val = select.value;
+      select.innerHTML = '<option value="">Seleccionar Cliente...</option>';
+      clientesData.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nombre;
+        select.appendChild(opt);
+      });
+      select.value = val;
+    }
+
+    function openUsuarioModal() {
+      editingUser = null;
+      set('nombreUsuario', '');
+      set('usernameUsuario', '');
+      set('passwordUsuario', '');
+      set('rolUsuario', 'empleado');
+      set('activoUsuario', 'true');
+      document.querySelectorAll('input[name="acceso"]').forEach(c => c.checked = false);
+      document.getElementById('usuarioModalTitle').textContent = 'Nuevo Usuario';
+      document.getElementById('usuarioModal').classList.add('active');
+    }
+
+    function closeUsuarioModal() {
+      document.getElementById('usuarioModal').classList.remove('active');
+      editingUser = null;
+    }
+
+    function editUsuario(id) {
+      const user = usuariosData.find(u => u.id === id);
+      if (!user) return;
+      editingUser = user;
+      set('nombreUsuario', user.nombre);
+      set('usernameUsuario', user.username);
+      set('passwordUsuario', '');
+      set('rolUsuario', user.role);
+      set('activoUsuario', user.activo ? 'true' : 'false');
+      document.querySelectorAll('input[name="acceso"]').forEach(c => {
+        c.checked = (user.acceso || []).includes(c.value);
+      });
+      document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
+      document.getElementById('usuarioModal').classList.add('active');
+    }
+
+    function deleteUsuario(id) {
+      if (confirm('¿Eliminar usuario?')) {
+        fdb.collection('usuarios').doc(id).delete();
+      }
+    }
+
+    function saveUsuario() {
+      const nombre = v('nombreUsuario');
+      const username = v('usernameUsuario');
+      const password = v('passwordUsuario');
+      const rol = v('rolUsuario');
+      const acceso = Array.from(document.querySelectorAll('input[name="acceso"]:checked')).map(c => c.value);
+      if (!nombre || !username || !rol || acceso.length === 0) {
+        alert('Complete todos los campos requeridos');
+        return;
+      }
+      if (!editingUser && !password) {
+        alert('Ingrese contraseña para nuevo usuario');
+        return;
+      }
+      const activo = v('activoUsuario') === 'true';
+      hashPassword(password || editingUser?.passwordHash || '').then(hashedPwd => {
+        const data = {
+          nombre,
+          username,
+          role: rol,
+          activo,
+          acceso
+        };
+        if (password || !editingUser) {
+          data.passwordHash = hashedPwd;
+        }
+        if (editingUser) {
+          fdb.collection('usuarios').doc(editingUser.id).update(data).then(() => closeUsuarioModal());
+        } else {
+          fdb.collection('usuarios').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(() => closeUsuarioModal());
+        }
+      });
+    }
+
+    function viewIngresoProfile(id) {
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      loadPhotosFromFirestore(id).then(() => {
+        const cliente = clientesData.find(c => c.id === ing.clienteId);
+        const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
+        let fotosHtml = '';
+        if (lightboxImages && lightboxImages.length > 0) {
+          fotosHtml = '<div class="profile-gallery">';
+          lightboxImages.forEach((img, idx) => {
+            fotosHtml += `<div class="gallery-item" onclick="viewLightboxProfile(${idx})"><img src="${img}" alt="Foto"></div>`;
+          });
+          fotosHtml += '</div>';
+        }
+        const html = `
+          <div class="profile-card">
+            <div class="profile-card-title">Información del Ingreso</div>
+            <div class="profile-field">
+              <div class="profile-label">Tipo de Módulo:</div>
+              <div class="profile-value">${tipo}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Número de Parte:</div>
+              <div class="profile-value">${ing.numeroParte}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Marca:</div>
+              <div class="profile-value">${ing.marcaVehiculo || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Modelo:</div>
+              <div class="profile-value">${ing.modeloVehiculo || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Año:</div>
+              <div class="profile-value">${ing.anoVehiculo || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">VIN:</div>
+              <div class="profile-value">${ing.vin || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Color:</div>
+              <div class="profile-value">${ing.colorVehiculo || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Descripción de Falla:</div>
+              <div class="profile-value">${ing.descripcionFalla || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">¿Viene Abierta?:</div>
+              <div class="profile-value">${ing.vienAbierta === 'SI' ? '✅ Sí' : '❌ No'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Observaciones:</div>
+              <div class="profile-value">${ing.observaciones || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Estado:</div>
+              <div class="profile-value">${ing.estado}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Precio de Diagnóstico:</div>
+              <div class="profile-value">${ing.precioEstimado ? `$${ing.precioEstimado.toFixed(2)}` : '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Registrado por:</div>
+              <div class="profile-value">${ing.creadoPor || '-'}</div>
+            </div>
+          </div>
+          <div class="profile-card">
+            <div class="profile-card-title">Información del Cliente</div>
+            <div class="profile-field">
+              <div class="profile-label">Nombre:</div>
+              <div class="profile-value">${cliente?.nombre || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Teléfono:</div>
+              <div class="profile-value">${cliente?.telefono || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Email:</div>
+              <div class="profile-value">${cliente?.email || '-'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">Dirección:</div>
+              <div class="profile-value">${cliente?.direccion || '-'}</div>
+            </div>
+          </div>
+          ${fotosHtml ? `<div class="profile-card"><div class="profile-card-title">Fotos</div>${fotosHtml}</div>` : ''}
+        `;
+        document.getElementById('perfilContent').innerHTML = html;
+        document.getElementById('perfilTitulo').textContent = `${tipo} — ${ing.numeroParte}`;
+        document.getElementById('ingresoPerfilScreen').classList.add('active');
+        // guardar referencia para recibo
+        window._reciboIngreso = ing;
+        window._reciboCliente = cliente;
+      });
+    }
+
+    function closeIngresoProfile() {
+      document.getElementById('ingresoPerfilScreen').classList.remove('active');
+    }
+
+    // ── Impresora de red ──────────────────────────────────────
+    const PRINTER_IP   = '192.168.1.12';
+    const PRINTER_URL  = `http://${PRINTER_IP}`;
+    const PRINTER_IPP  = `http://${PRINTER_IP}:631/ipp/print`;
+
+    async function checkPrinterOnline() {
+      try {
+        // no-cors: si la impresora responde (aunque bloquee CORS) no lanza error de red
+        await fetch(PRINTER_URL, { mode: 'no-cors', signal: AbortSignal.timeout(2500) });
+        return true;
+      } catch(e) { return false; }
+    }
+
+    async function imprimirRecibo() {
+      const ing = window._reciboIngreso;
+      const cli = window._reciboCliente;
+      if (!ing) return;
+
+      const btn = document.querySelector('#ingresoPerfilScreen .print-btn-main');
+      if (btn) { btn.textContent = '⏳ Verificando impresora...'; btn.disabled = true; }
+
+      const online = await checkPrinterOnline();
+
+      if (btn) {
+        btn.textContent = online ? '🖨️ Imprimir Recibo' : '🖨️ Imprimir Recibo';
+        btn.disabled = false;
+      }
+
+      if (!online) {
+        const cont = confirm(
+          `⚠️ La impresora (${PRINTER_IP}) no responde.\n\n` +
+          `Verifica que esté encendida y conectada a la red.\n\n` +
+          `¿Imprimir de todas formas usando otra impresora?`
+        );
+        if (!cont) return;
+      }
+
+      const fecha = ing.creado
+        ? new Date(ing.creado.seconds * 1000).toLocaleDateString('es-HN', {year:'numeric',month:'long',day:'numeric'})
+        : new Date().toLocaleDateString('es-HN', {year:'numeric',month:'long',day:'numeric'});
+      const tipo  = ing.tipoBusqueda === 'Otra' ? (ing.tipoOtro || 'Otra') : (ing.tipoBusqueda || '-');
+      const precio = ing.precioEstimado ? `L. ${parseFloat(ing.precioEstimado).toFixed(2)}` : 'Por definir';
+      const folio  = Date.now().toString(36).toUpperCase();
+
+      const recibo = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Recibo — ${folio}</title>
+<style>
+  @page { margin: 14mm 12mm; size: A4; }
+  @media print { .no-print { display:none; } }
+  * { box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background:#fff; color:#000; padding:20px; max-width:620px; margin:0 auto; font-size:13px; }
+  .header { text-align:center; border-bottom:3px double #000; padding-bottom:12px; margin-bottom:14px; }
+  .header h1 { font-size:22px; margin:0; letter-spacing:1px; }
+  .header h2 { font-size:13px; font-weight:normal; margin:4px 0 2px; color:#444; }
+  .header .folio { font-size:11px; color:#666; }
+  .section-title { font-size:11px; font-weight:bold; background:#f0f0f0; padding:4px 8px; border-left:4px solid #7c3aed; margin:12px 0 6px; text-transform:uppercase; letter-spacing:.5px; }
+  .row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dotted #ddd; }
+  .row .lbl { color:#555; flex:0 0 46%; }
+  .row .val { font-weight:600; flex:0 0 52%; text-align:right; word-break:break-all; }
+  .falla-box { padding:6px 0; border-bottom:1px dotted #ddd; line-height:1.5; }
+  .precio-box { border:2px solid #000; border-radius:5px; padding:10px 14px; margin:14px 0; display:flex; justify-content:space-between; align-items:center; }
+  .precio-box .lbl { font-size:13px; font-weight:bold; }
+  .precio-box .val { font-size:22px; font-weight:900; }
+  .firma-box { margin-top:28px; display:flex; justify-content:space-between; }
+  .firma { text-align:center; flex:0 0 44%; }
+  .firma .linea { border-top:1px solid #000; margin-bottom:5px; }
+  .firma .label { font-size:10px; color:#555; }
+  .footer { margin-top:18px; text-align:center; font-size:10px; color:#666; border-top:1px solid #ddd; padding-top:10px; line-height:1.7; }
+  .print-btn { display:block; margin:20px auto 0; padding:11px 30px; background:#7c3aed; color:white; border:none; border-radius:6px; font-size:14px; cursor:pointer; }
+  .printer-info { font-size:10px; color:#888; text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>⚡ YONKER EL TRIANGULO</h1>
+  <h2>Reparación de Computadoras Automotrices</h2>
+  <div class="folio">Recibo #${folio} — ${fecha}</div>
+</div>
+
+<div class="section-title">Información del Cliente</div>
+<div class="row"><span class="lbl">Nombre:</span><span class="val">${cli?.nombre || '-'}</span></div>
+<div class="row"><span class="lbl">Teléfono:</span><span class="val">${cli?.telefono || '-'}</span></div>
+<div class="row"><span class="lbl">Email:</span><span class="val">${cli?.email || '-'}</span></div>
+
+<div class="section-title">Detalles del Módulo</div>
+<div class="row"><span class="lbl">Tipo:</span><span class="val">${tipo}</span></div>
+<div class="row"><span class="lbl">Número de Parte:</span><span class="val">${ing.numeroParte || '-'}</span></div>
+<div class="row"><span class="lbl">Marca / Modelo:</span><span class="val">${[ing.marcaVehiculo, ing.modeloVehiculo].filter(Boolean).join(' ') || '-'}</span></div>
+<div class="row"><span class="lbl">Año:</span><span class="val">${ing.anioVehiculo || '-'}</span></div>
+<div class="row"><span class="lbl">VIN:</span><span class="val">${ing.vin || '-'}</span></div>
+<div class="row"><span class="lbl">¿Viene abierta?:</span><span class="val">${ing.vienAbierta === 'SI' ? 'Sí' : 'No'}</span></div>
+<div class="row"><span class="lbl">Estado:</span><span class="val">${ing.estado || '-'}</span></div>
+
+<div class="section-title">Descripción de Falla</div>
+<div class="falla-box">${ing.descripcionFalla || '-'}</div>
+${ing.observaciones ? `<div class="section-title">Observaciones</div><div class="falla-box">${ing.observaciones}</div>` : ''}
+
+<div class="precio-box">
+  <span class="lbl">💰 Precio de Diagnóstico</span>
+  <span class="val">${precio}</span>
+</div>
+
+<div class="firma-box">
+  <div class="firma"><div class="linea"></div><div class="label">Firma del Técnico</div></div>
+  <div class="firma"><div class="linea"></div><div class="label">Firma del Cliente</div></div>
+</div>
+
+<div class="footer">
+  Gracias por confiar en YONKER EL TRIANGULO<br>
+  Comprobante de recepción de módulo electrónico.<br>
+  Atendido por: ${ing.creadoPor || 'Técnico'}
+</div>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Imprimir</button>
+<div class="printer-info no-print">Impresora: ${PRINTER_IP} ${online ? '✅ En línea' : '⚠️ Sin conexión'}</div>
+
+<script>
+  // Auto-imprimir al cargar
+  window.onload = function() {
+    setTimeout(function(){ window.print(); }, 400);
+  };
+<\/script>
+</body>
+</html>`;
+
+      const win = window.open('', '_blank', 'width=700,height=950,left=100,top=50');
+      if (!win) {
+        alert('El navegador bloqueó la ventana emergente. Por favor permite las ventanas emergentes de este sitio e intenta de nuevo.');
+        return;
+      }
+      win.document.write(recibo);
+      win.document.close();
+    }
+
+    function viewLightbox(idx) {
+      lightboxCurrentIndex = idx;
+      lightboxImages = ingresoPhotos;
+      openLightbox();
+    }
+
+    function viewLightboxProfile(idx) {
+      lightboxCurrentIndex = idx;
+      openLightbox();
+    }
+
+    function openLightbox() {
+      const lb = document.getElementById('lightbox');
+      lb.classList.add('active');
+      showLightboxImage();
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.remove('active');
+    }
+
+    function showLightboxImage() {
+      const lb = document.getElementById('lightbox');
+      const img = document.getElementById('lightboxImg');
+      const dots = document.getElementById('lightboxDots');
+      img.src = lightboxImages[lightboxCurrentIndex];
+      dots.innerHTML = lightboxImages.map((_, i) => `
+        <div class="lightbox-dot ${i === lightboxCurrentIndex ? 'active' : ''}" onclick="lightboxCurrentIndex=${i}; showLightboxImage();"></div>
+      `).join('');
+    }
+
+    function lightboxPrev() {
+      lightboxCurrentIndex = (lightboxCurrentIndex - 1 + lightboxImages.length) % lightboxImages.length;
+      showLightboxImage();
+    }
+
+    function lightboxNext() {
+      lightboxCurrentIndex = (lightboxCurrentIndex + 1) % lightboxImages.length;
+      showLightboxImage();
+    }
+
+    function setToggle(id, val) {
+      set(id, val);
+      document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
+      event?.target?.classList?.add('active');
+      if (val === 'SI') {
+        document.querySelectorAll('.toggle-btn')[0]?.classList.add('active');
+      } else {
+        document.querySelectorAll('.toggle-btn')[1]?.classList.add('active');
+      }
+    }
+
+    function updateModuloType() {
+      const selected = document.querySelector('input[name="tipoModulo"]:checked')?.value;
+      document.getElementById('tipoOtra').style.display = selected === 'Otra' ? '' : 'none';
+    }
+
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('open');
+    }
+
+    async function checkAndAutoBackup() {
+      const snap = await fdb.collection('backups_computadoras').where('fecha', '==', new Date().toLocaleDateString('es-ES')).limit(1).get();
+      if (snap.empty) {
+        await backupNow();
+      }
+    }
+
+    async function backupNow() {
+      setBtn('backupBtn', 'Respaldando...', true);
+      const [ingresos, fotos, clientes] = await Promise.all([
+        fdb.collection('computadoras').get(),
+        fdb.collection('fotos').where('parentType', '==', 'computadora').get(),
+        fdb.collection('clientes').get()
+      ]);
+      const data = {
+        ingresos: ingresos.docs.map(d => ({id: d.id, ...d.data()})),
+        fotos: fotos.docs.map(d => ({id: d.id, ...d.data()})),
+        clientes: clientes.docs.map(d => ({id: d.id, ...d.data()}))
+      };
+      const fecha = new Date().toLocaleDateString('es-ES');
+      await fdb.collection('backups_computadoras').add({
+        fecha,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        data,
+        size: JSON.stringify(data).length,
+        creadoPor: currentUser.nombre
+      });
+      if (currentSection === 'respaldos') renderBackups();
+    }
+
+    function downloadBackup(backupId) {
+      fdb.collection('backups_computadoras').doc(backupId).get().then(doc => {
+        const data = doc.data();
+        const json = JSON.stringify(data.data, null, 2);
+        const blob = new Blob([json], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_computadoras_${data.fecha}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    }
+
+    async function initApp() {
+      const app = firebase.initializeApp(firebaseConfig);
+      fdb = firebase.firestore();
+      const stored = localStorage.getItem('currentUser');
+      if (stored) {
+        try {
+          currentUser = JSON.parse(stored);
+          showMainApp();
+          setupListeners();
+        } catch (e) {
+          localStorage.removeItem('currentUser');
+        }
+      }
+    }
+
+    window.addEventListener('load', initApp);
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeIngresoModal();
+        closeClienteModal();
+        closeUsuarioModal();
+        closeIngresoProfile();
+        closeLightbox();
+      }
+    });
+  </script>
+</body>
+</html>
