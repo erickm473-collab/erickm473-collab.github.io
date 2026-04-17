@@ -2660,20 +2660,25 @@
           max_tokens: 400,
           messages: [{
             role: 'user',
-            content: `Eres un experto en componentes de computadoras y electrónica. Analiza este identificador de componente: "${texto}"
+            content: `Eres un experto en módulos electrónicos automotrices (ECU, TCM, BCM, PCM, ABS, Airbag, etc.). Analiza este número de parte de computadora de auto: "${texto}"
 
-IMPORTANTE: Muchos números de parte incluyen el código de modelo seguido del número de serie. Por ejemplo "DBMEC83-712A10000" tiene modelo "DBMEC83". Identifica el fabricante y tipo aunque solo tengas el prefijo del modelo.
+CONTEXTO: Los números de parte automotrices mezclan el código de módulo con el número de serie. Por ejemplo:
+- "DBMEC83-712A10000DB631" → módulo MEC83 = ECU/PCM Nissan Quest 2007-2009 3.5L V6
+- "MEC83-051" → ECU Nissan Quest 2007 VQ35DE
+- "28384-ZQ00A" → módulo Nissan (el primer segmento antes del guion es el código de módulo)
+- "SH7058" → prefijo Hitachi/Renesas para ECUs Nissan/Infiniti
+Identifica marca del VEHÍCULO (no del fabricante del módulo), modelo del vehículo, año y tipo de módulo.
 
 Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra):
 {"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
 
 Reglas:
-- marca: nombre del fabricante (Acer, Dell, HP, Lenovo, Intel, AMD, Samsung, ASUS, MSI, Gigabyte, Corsair, Kingston, Crucial, Seagate, WD, NVIDIA, etc.)
-- modelo: código o nombre del modelo (ej: "EC83", "Aspire E15", "Core i5-8250U")
-- ano: año estimado de fabricación/lanzamiento como número, o null
-- tipo: uno de estos exactamente → CPU | RAM | SSD | HDD | GPU | Motherboard | Laptop | Fuente de Poder | Pantalla | Batería | Teclado | Otro
-- descripcion: descripción en español máx 90 caracteres (ej: "Tarjeta madre Acer para laptop Aspire serie E")
-Aunque no conozcas el modelo exacto, infiere la marca y tipo si el prefijo lo indica.`
+- marca: marca del VEHÍCULO (Nissan, Toyota, Honda, Ford, Chevrolet, Dodge, Hyundai, Kia, Mazda, Mitsubishi, Subaru, Volkswagen, BMW, Mercedes, Audi, Infiniti, Acura, Lexus, etc.)
+- modelo: modelo del vehículo + motor si se conoce (ej: "Quest 3.5L V6 VQ35DE", "Altima 2.5L", "Sentra 1.8L")
+- ano: año del vehículo como número (o el año más probable del rango, ej: 2008), o null
+- tipo: uno de estos exactamente → ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
+- descripcion: descripción en español máx 90 caracteres (ej: "Módulo ECU/PCM Nissan Quest 2007-2009 3.5L V6 VQ35DE")
+Si no reconoces el número exacto, usa el prefijo del modelo para inferir marca y tipo.`
           }]
         })
       });
