@@ -3139,11 +3139,17 @@
 
     // Extrae el segmento de modelo de un número que puede incluir serial
     function extraerSegmentos(codigo) {
-      // Ej: DBMEC83-712A10000DB631423710 → ["DBMEC83", "712A10000DB631423710"]
-      const partes = codigo.split(/[-_\/\s]+/);
-      // El modelo suele ser el primer segmento corto (≤12 chars alfanumérico)
-      const modelo = partes[0] || codigo;
-      return { modelo, completo: codigo };
+      let limpio = codigo.trim();
+
+      // Chrysler/Dodge/Jeep/RAM: prefijo P o 4/5/6 dígitos iniciales
+      // Ej: P05150657AA → 05150657AA
+      if (/^P0[456]\d{7}[A-Z]{0,2}$/i.test(limpio)) {
+        limpio = limpio.replace(/^P/i, '');
+      }
+
+      const partes = limpio.split(/[-_\/\s]+/);
+      const modelo = partes[0] || limpio;
+      return { modelo, completo: limpio, original: codigo };
     }
 
     async function llamarClaude(texto, apiKey) {
@@ -3165,20 +3171,46 @@
 IMPORTANTE: estos módulos son ECU/PCM/TCM/BCM de vehículos, NO computadoras de escritorio ni laptops.
 
 GUÍA DE IDENTIFICACIÓN (usa esta base de conocimiento):
+
+NISSAN / INFINITI:
 - MEC83 / MEC90 / MEC88 = Nissan (Quest, Murano, Pathfinder 3.5L VQ35DE) — fabricante: Hitachi
-- ME17.9 / ME7.x = Bosch ECU (muchas marcas europeas y asiáticas)
-- SH7058 / SH7055 = Renesas chip → Nissan/Infiniti Hitachi ECU
-- MR479 / MR523 = Toyota/Lexus ECU — fabricante: Denso
-- 0261S / 0261E = Bosch ECU genérico
+- SH7058 / SH7055 = Renesas chip → Nissan/Infiniti ECU (Hitachi)
 - 237xx-xxxxx = numeración OEM Nissan
+
+TOYOTA / LEXUS:
+- MR479 / MR523 / 89661 = Toyota/Lexus ECU — fabricante: Denso
 - 89661-xxxxx = numeración OEM Toyota
+
+HONDA / ACURA:
 - 37820-xxx = numeración OEM Honda
-- PCM-003 / TCM-xxx = código genérico de reconstructor
+
+CHRYSLER / DODGE / JEEP / RAM (MUY IMPORTANTE):
+- Formato OEM Chrysler/FCA/Stellantis: 04xxxxxxAA / 05xxxxxxAA / 056xxxxxAA
+  - 04xxxx = módulos era 2000-2004 (Cherokee, Durango, RAM, Neon, Stratus)
+  - 05xxxx = módulos era 2004-2015 (Caliber, Charger, Challenger, Journey, Avenger, Grand Cherokee, Wrangler, RAM)
+  - 056xxxx = BCM/módulo de carrocería Chrysler
+  - Letras al final (AA/AB/AC/BA) = revisión de calibración
+- El prefijo "P" antes del número (ej: P05150657AA) es solo el marcador de catálogo, el número real empieza en 0
+- Fabricantes de módulos Chrysler: Bosch, Delphi, Continental, Siemens/VDO
+- Ejemplos: 05150657AA = PCM Dodge Caliber/Jeep Compass/Patriot 2.4L; 04896xx = PCM Neon; 05017xxx = PCM Dodge Stratus/Sebring; 04793xx = PCM Cherokee
+
+CHEVROLET / GM:
+- 12xxx / 16xxx = ECM/PCM GM — fabricante: Delphi o Bosch
+- 25xxxx = BCM GM
+
+FORD:
+- 3U7A / 4U7A / 5U7A = PCM Ford 6.0L (Superduty, Excursion) — fabricante: Siemens/VDO
+- 6C3Z / 7C3Z = PCM Ford Trucks — fabricante: Motorcraft
+
+BOSCH GENÉRICO:
+- ME17.9 / ME7.x / 0261S / 0261E = Bosch ECU (Ford, VW, Audi, Chevrolet, etc.)
 
 INSTRUCCIONES:
 - Analiza el prefijo/código para inferir marca del VEHÍCULO y tipo de módulo
+- Para números Chrysler (05xxxxxxAA): el número completo ES el número OEM, las letras finales son la revisión. Busca en la guía de arriba el rango de número para inferir el vehículo.
 - Si el número tiene guión, lo de antes del guión suele ser el modelo del módulo y lo de después suele mezclar configuración + número de serie
 - El número de serie suele ser el bloque alfanumérico largo (>8 chars) al final
+- Para Chrysler/Dodge/Jeep: el tipo casi siempre es PCM o ECU salvo que sea 056xxxx (BCM)
 
 Devuelve SOLO este JSON (sin markdown, sin explicación):
 {"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
