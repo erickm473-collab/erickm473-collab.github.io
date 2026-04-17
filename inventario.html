@@ -3139,41 +3139,107 @@
 
     // ── Base de datos LOCAL de prefijos automotrices ────────────────
     // Respuesta instantánea sin necesidad de API para códigos conocidos
+    // Fuentes: alientech.com, ckecu.com, mhhauto.com, importapart.com, eBay listings, usuario confirmado
     const LOCAL_DB = [
       // ═══════════════════════════════════════════════════════════════
-      // NISSAN / INFINITI  — Módulos Hitachi (prefijo planta 2 letras)
+      // NISSAN / INFINITI — Módulos Hitachi ECU (prefijo planta 2 letras)
+      // TABLA COMPLETA — actualizada con búsqueda en internet
       // ═══════════════════════════════════════════════════════════════
-      { p:/^MEC32/i,    marca:'Nissan', modelos:'Sentra B14 / Tsuru III',          motor:'1.6L GA16DE',                   tipo:'ECU', fab:'Hitachi', anos:'1995-2006', oem:'' },
-      // MEC35-522 CONFIRMADO: Nissan Altima L31 2005-2006, 2.5L QR25DE — OEM: 23710-9J507
-      // Número completo: 5BMEC35-522A100005B473023710 → planta 5B, módulo MEC35-522, serie 5B473023710
-      // 9J507 en el número hace referencia al OEM 23710-9J507
-      { p:/^MEC35-522/i,marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
-      { p:/^MEC35/i,    marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2004-2006', oem:'23710-9J507' },
-      { p:/^MEC37/i,    marca:'Nissan', modelos:'Sentra B15 / Almera N16',         motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'' },
-      // MEC63-130 CONFIRMADO: Nissan Sentra B16 1.6L HR16DE
+
+      // MEC13 — generación antigua (Almera / Sunny 1990s)
+      { p:/^MEC.?N013|^MEC13/i, marca:'Nissan', modelos:'Almera / Sunny (generación antigua)', motor:'1.6L GA16DE / 1.4L GA14DE', tipo:'ECU', fab:'Hitachi', anos:'1993-1999', oem:'' },
+
+      // MEC20 — Almera N16 (primera versión)
+      { p:/^MEC20/i,    marca:'Nissan', modelos:'Almera N16',                      motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2003', oem:'' },
+
+      // MEC23 — Patrol Y61
+      { p:/^MEC23/i,    marca:'Nissan', modelos:'Patrol Y61',                      motor:'4.8L TB48DE',                   tipo:'ECU', fab:'Hitachi', anos:'2001-2010', oem:'' },
+
+      // MEC30 — Almera N16 / Primera P12 / Avenir W11
+      { p:/^MEC30/i,    marca:'Nissan', modelos:'Almera N16 / Primera P12 / Avenir W11', motor:'1.8L QG18DE',             tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'' },
+
+      // MEC31 — 350Z Z33 / Murano Z50 / Maxima A34 (3.5L VQ35DE)
+      { p:/^MEC31/i,    marca:'Nissan', modelos:'350Z Z33 / Murano Z50 / Maxima A34', motor:'3.5L VQ35DE',                tipo:'ECU', fab:'Hitachi', anos:'2003-2007', oem:'' },
+
+      // MEC32 — Sentra B14 / Tsuru III / Almera Tino
+      { p:/^MEC32/i,    marca:'Nissan', modelos:'Sentra B14 / Tsuru III / Almera Tino', motor:'1.6L GA16DE / 1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'1995-2006', oem:'' },
+
+      // MEC35 — IMPORTANTE: sub-código determina el vehículo
+      // MEC35-0xx/5xx = Altima L31 2.5L QR25DE (CONFIRMADO por usuario y eBay)
+      // MEC35-7xx     = Pathfinder R51 4.0L VQ40DE 2005 (CONFIRMADO: 23710-EA62B / MEC35-752)
+      { p:/^MEC35-[0-6]/i, marca:'Nissan', modelos:'Altima L31',                   motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'23710-9J507' },
+      { p:/^MEC35-522/i,   marca:'Nissan', modelos:'Altima L31',                   motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
+      { p:/^MEC35-7/i,     marca:'Nissan', modelos:'Pathfinder R51',               motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005',      oem:'23710-EA62B' },
+      { p:/^MEC35/i,       marca:'Nissan', modelos:'Altima L31 / Pathfinder R51',  motor:'2.5L QR25DE / 4.0L VQ40DE',     tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'' },
+
+      // MEC36 — Almera / Primera familia (similar a MEC32/MEC37)
+      { p:/^MEC36/i,    marca:'Nissan', modelos:'Almera N16 / Primera P12',        motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'' },
+
+      // MEC37 — Sentra B15 / Almera N16 / Cube Z11
+      { p:/^MEC37/i,    marca:'Nissan', modelos:'Sentra B15 / Almera N16 / Cube Z11', motor:'1.8L QG18DE / 1.4L CR14DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'' },
+
+      // MEC38 — Frontier D22 / Navara D22 (2.4L gasolina)
+      { p:/^MEC38/i,    marca:'Nissan', modelos:'Frontier D22 / Navara D22',       motor:'2.4L KA24DE',                   tipo:'ECU', fab:'Hitachi', anos:'1998-2004', oem:'' },
+
+      // MEC43 — familia similar a MEC32/MEC37 (Almera / Primera)
+      { p:/^MEC43/i,    marca:'Nissan', modelos:'Almera N16 / Primera P12',        motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'' },
+
+      // MEC63 — Sentra B16 / Tiida C11 1.6L HR16DE ← CONFIRMADO MERCADO LATINOAMERICANO
       { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
       { p:/^MEC63-1/i,  marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
-      { p:/^MEC63-2/i,  marca:'Nissan', modelos:'Sentra B16',                      motor:'1.8L MR18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
-      { p:/^MEC63/i,    marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
-      { p:/^MEC76/i,    marca:'Nissan', modelos:'Sentra / Note E11 / Versa N17',   motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2014', oem:'' },
+      { p:/^MEC63-2/i,  marca:'Nissan', modelos:'Sentra B16 / Tiida C11',          motor:'1.8L MR18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
+      { p:/^MEC63/i,    marca:'Nissan', modelos:'Sentra B16 / Tiida C11',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
+
+      // MEC70 — Pathfinder R51 4.0L VQ40DE 2006 (confirmado: 23710-ZP50B / MEC70-100)
+      { p:/^MEC70/i,    marca:'Nissan', modelos:'Pathfinder R51',                  motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2008', oem:'23710-ZP50B' },
+
+      // MEC76 — Versa N17 / Note E11 / Tiida (mercados específicos)
+      { p:/^MEC76/i,    marca:'Nissan', modelos:'Versa N17 / Note E11 / Tiida C11', motor:'1.6L HR16DE',                  tipo:'ECU', fab:'Hitachi', anos:'2006-2014', oem:'' },
+
+      // MEC80 — Pathfinder R51 4x4 / Frontier D40 4.0L VQ40DE
+      { p:/^MEC80/i,    marca:'Nissan', modelos:'Pathfinder R51 / Frontier D40',   motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'' },
+
+      // MEC83 — Murano Z50 / Quest V42
       { p:/^MEC83/i,    marca:'Nissan', modelos:'Murano Z50 / Quest V42',          motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2003-2009', oem:'' },
+
+      // MEC88 — Altima L32 / Maxima A35
       { p:/^MEC88/i,    marca:'Nissan', modelos:'Altima L32 / Maxima A35',         motor:'2.5L QR25DE / 3.5L VQ35DE',     tipo:'ECU', fab:'Hitachi', anos:'2007-2012', oem:'' },
-      { p:/^MEC90/i,    marca:'Nissan', modelos:'Pathfinder R51 / Frontier D40',   motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2012', oem:'' },
-      { p:/^MEC93/i,    marca:'Nissan', modelos:'Maxima A35',                      motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2009-2014', oem:'' },
+
+      // MEC90 — Tiida C11 / Versa C11 / X-Trail T31 / Sentra B16 (corregido)
+      // NOTA: MEC90 NO es Pathfinder. MEC90-680 = Tiida confirmado en MHH AUTO
+      { p:/^MEC90/i,    marca:'Nissan', modelos:'Tiida C11 / Versa C11 / X-Trail T31 / Sentra B16', motor:'1.6L HR16DE / 1.5L HR15DE / 2.0L MR20DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2015', oem:'' },
+
+      // MEC93 — Maxima A35 / Qashqai J10 3.5L
+      { p:/^MEC93/i,    marca:'Nissan', modelos:'Maxima A35 / Qashqai J10',        motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2009-2014', oem:'' },
+
+      // MEC101 — Sentra B17 / Versa N18 1.6L
       { p:/^MEC101/i,   marca:'Nissan', modelos:'Sentra B17 / Versa N18',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2012-2019', oem:'' },
+
+      // MEC110 — Rogue T32 / X-Trail T32
       { p:/^MEC110/i,   marca:'Nissan', modelos:'Rogue T32 / X-Trail T32',         motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2014-2020', oem:'' },
-      { p:/^MEC120/i,   marca:'Nissan', modelos:'Versa N17 / March K13',           motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2011-2018', oem:'' },
+
+      // MEC120 — Versa N17 / March K13
+      { p:/^MEC120/i,   marca:'Nissan', modelos:'Versa N17 / March K13',           motor:'1.6L HR16DE / 1.2L HR12DE',     tipo:'ECU', fab:'Hitachi', anos:'2011-2018', oem:'' },
+
+      // MEC200 — generación más nueva (Sentra B18 / Versa N19)
       { p:/^MEC200/i,   marca:'Nissan', modelos:'Sentra B18 / Versa N19',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2019-2024', oem:'' },
-      { p:/^A56/i,      marca:'Nissan', modelos:'(ver número — posible BCM/IPDM)', motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
-      { p:/^284B2/i,    marca:'Nissan', modelos:'(BCM Nissan — ver número)',        motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
-      { p:/^31036|^31037|^31038/i, marca:'Nissan', modelos:'(TCM Nissan — ver número)', motor:'',                         tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
-      { p:/^23710/i,    marca:'Nissan', modelos:'(ECU Nissan — ver número completo)', motor:'',                            tipo:'ECU', fab:'Hitachi', anos:'',          oem:'' },
-      // ZG53A CONFIRMADO: Nissan Sentra B15 1.8L QG18DE
+
+      // Códigos OEM Nissan (formato 23710-xxxxx)
       { p:/^ZG53/i,     marca:'Nissan', modelos:'Sentra B15',                      motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
-      // 9J507 = referencia al OEM 23710-9J507 → ECU Nissan Altima 2.5L QR25DE
-      // Ej: 9J5070079 → número OEM 23710-9J507, revisión 0079
+      { p:/^ZP50/i,     marca:'Nissan', modelos:'Pathfinder R51',                  motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2008', oem:'23710-ZP50B' },
+      { p:/^ZP40/i,     marca:'Nissan', modelos:'Pathfinder R51',                  motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006',      oem:'23710-ZP40A' },
+      { p:/^EA62/i,     marca:'Nissan', modelos:'Pathfinder R51',                  motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005',      oem:'23710-EA62B' },
       { p:/^9J507/i,    marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
       { p:/^9J/i,       marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
+      { p:/^23710/i,    marca:'Nissan', modelos:'(ECU Nissan — ver número completo)', motor:'',                            tipo:'ECU', fab:'Hitachi', anos:'',          oem:'' },
+
+      // Módulos A56 / BCM / TCM Nissan
+      { p:/^A56-B06/i,  marca:'Nissan', modelos:'Tiida C11 / Latio',               motor:'1.5L HR15DE',                   tipo:'ECU', fab:'Hitachi', anos:'2004-2012', oem:'' },
+      { p:/^A56-B7/i,   marca:'Nissan', modelos:'Qashqai J10 / X-Trail T30',       motor:'2.0L MR20DE',                   tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
+      { p:/^A56-R18/i,  marca:'Nissan', modelos:'X-Trail T30',                     motor:'2.0L QR20DE / 2.5L QR25DE',     tipo:'ECU', fab:'Hitachi', anos:'2001-2007', oem:'' },
+      { p:/^A56/i,      marca:'Nissan', modelos:'(ver número — ECU/BCM Nissan)',   motor:'',                              tipo:'ECU', fab:'Hitachi', anos:'',          oem:'' },
+      { p:/^284B2/i,    marca:'Nissan', modelos:'(BCM Nissan — ver número)',        motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
+      { p:/^31036|^31037|^31038/i, marca:'Nissan', modelos:'(TCM Nissan — ver número)', motor:'',                         tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
       { p:/^ZB/i,       marca:'Nissan', modelos:'(BCM Nissan)',                    motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
       // ═══════════════════════════════════════════════════════════════
       // TOYOTA / LEXUS
@@ -3267,22 +3333,36 @@ NISSAN / INFINITI — MERCADO LATINOAMERICANO (HONDURAS, MEXICO, CENTROAMERICA):
 IMPORTANTE: En Latinoamérica los nombres de modelos difieren del mercado USA. La plataforma C11 se vendió como SENTRA y/o TIIDA según el país.
 Los números Nissan tienen prefijo de 2 letras de planta (DB, XY, AB, ZA, ZG, etc.) seguido del código del módulo Hitachi.
 
-TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan Latinoamérica):
-- MEC32 = Nissan Sentra B14 / Tsuru III — motor: 1.6L GA16DE — años: 1995-2006
-- MEC35-522 = Nissan Altima L31 — motor: 2.5L QR25DE — años: 2005-2006 — OEM: 23710-9J507 — CONFIRMADO
-         EJEMPLO CONFIRMADO: 5BMEC35-522A100005B473023710 = ECU Nissan Altima L31 2.5L QR25DE, fabricante Hitachi, número de serie 5B473023710, OEM 23710-9J507
-         NOTA: 9J507 en el número largo hace referencia al part number OEM 23710-9J507 (NO es un TCM)
-- MEC35 = Nissan Altima L31 — motor: 2.5L QR25DE — años: 2004-2006 — OEM: 23710-9J507
-- MEC37 = Nissan Sentra B15 / Almera N16 — motor: 1.8L QG18DE — años: 2000-2006
-- MEC63 = Nissan SENTRA B16 mercado latinoamericano — motor: 1.6L HR16DE — años: 2006-2012 — OEM: 23710-ZG53A
-         EJEMPLO CONFIRMADO: XYMEC63-130C10000XY580423710 = ECU Nissan Sentra B16 1.6L HR16DE, fabricante Hitachi, número de serie XY580423710, OEM 23710-ZG53A
-- MEC76 = Nissan Sentra / Note E11 / Versa N17 — motor: 1.6L HR16DE — años: 2006-2014
+TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan — investigada en internet):
+- MEC13/MEC-N013 = Nissan Almera / Sunny (gen. antigua) — motor: 1.4L GA14DE / 1.6L GA16DE — años: 1993-1999
+- MEC20 = Nissan Almera N16 (primera versión) — motor: 1.8L QG18DE — años: 2000-2003
+- MEC23 = Nissan Patrol Y61 — motor: 4.8L TB48DE — años: 2001-2010
+- MEC30 = Nissan Almera N16 / Primera P12 / Avenir W11 — motor: 1.8L QG18DE — años: 2002-2006
+- MEC31 = Nissan 350Z Z33 / Murano Z50 / Maxima A34 — motor: 3.5L VQ35DE — años: 2003-2007
+- MEC32 = Nissan Sentra B14 / Tsuru III / Almera Tino — motor: 1.6L GA16DE / 1.8L QG18DE — años: 1995-2006
+- MEC35-0xx a MEC35-5xx = Nissan Altima L31 — motor: 2.5L QR25DE — años: 2002-2006 — OEM: 23710-9J507 ← CONFIRMADO
+         EJEMPLO: 5BMEC35-522A100005B473023710 = ECU Altima L31 2.5L QR25DE, serie 5B473023710, OEM 23710-9J507
+         NOTA: "9J507" en el código = referencia al OEM 23710-9J507 (NO es TCM)
+- MEC35-7xx = Nissan Pathfinder R51 — motor: 4.0L VQ40DE — años: 2005 — OEM: 23710-EA62B
+         EJEMPLO: MEC35-752 = Pathfinder R51 2005 4.0L VQ40DE
+- MEC36 = Nissan Almera N16 / Primera P12 — motor: 1.8L QG18DE — años: 2002-2006
+- MEC37 = Nissan Sentra B15 / Almera N16 / Cube Z11 — motor: 1.8L QG18DE / 1.4L CR14DE — años: 2000-2006
+- MEC38 = Nissan Frontier D22 / Navara D22 — motor: 2.4L KA24DE — años: 1998-2004
+- MEC43 = Nissan Almera N16 / Primera P12 (variante) — motor: 1.8L QG18DE — años: 2002-2006
+- MEC63 = Nissan Sentra B16 / Tiida C11 MERCADO LATINOAMERICANO — motor: 1.6L HR16DE — años: 2006-2013
+         EJEMPLO CONFIRMADO: XYMEC63-130C10000XY580423710 = ECU Sentra B16, OEM 23710-ZG53A, serie XY580423710
+- MEC70 = Nissan Pathfinder R51 — motor: 4.0L VQ40DE — años: 2006-2008 — OEM: 23710-ZP50B/ZP50A
+- MEC76 = Nissan Versa N17 / Note E11 / Tiida C11 — motor: 1.6L HR16DE — años: 2006-2014
+- MEC80 = Nissan Pathfinder R51 4x4 / Frontier D40 4.0L — motor: 4.0L VQ40DE — años: 2006-2012
 - MEC83 = Nissan Murano Z50 / Quest V42 — motor: 3.5L VQ35DE — años: 2003-2009
 - MEC88 = Nissan Altima L32 / Maxima A35 — motor: 2.5L QR25DE o 3.5L VQ35DE — años: 2007-2012
-- MEC90 = Nissan Pathfinder R51 / Frontier D40 / Xterra — motor: 4.0L VQ40DE — años: 2005-2012
-- MEC93 = Nissan Maxima A35 — motor: 3.5L VQ35DE — años: 2009-2014
+- MEC90 = Nissan Tiida C11 / Versa C11 / X-Trail T31 / Sentra B16 — motor: 1.6L HR16DE / 1.5L HR15DE — años: 2007-2015
+         ⚠️ MEC90 NO ES Pathfinder. MEC90-680 = Tiida C11 (confirmado MHH AUTO)
+- MEC93 = Nissan Maxima A35 / Qashqai J10 — motor: 3.5L VQ35DE — años: 2009-2014
 - MEC101 = Nissan Sentra B17 / Versa N18 — motor: 1.6L HR16DE — años: 2012-2019
 - MEC110 = Nissan Rogue T32 / X-Trail T32 — motor: 2.5L QR25DE — años: 2014-2020
+- MEC120 = Nissan Versa N17 / March K13 — motor: 1.6L HR16DE / 1.2L HR12DE — años: 2011-2018
+- MEC200 = Nissan Sentra B18 / Versa N19 (nueva generación) — motor: 1.6L HR16DE — años: 2019-2024
 
 FORMATO ZG/ZB (Nissan Latinoamérica):
 - ZG53 / ZG53A = Nissan SENTRA B15 mercado latinoamericano — motor: 1.8L QG18DE — años: 2000-2006 — OEM: 23710-ZG53A
@@ -3357,18 +3437,29 @@ INSTRUCCIONES CRÍTICAS:
 - El número de serie suele ser el bloque alfanumérico largo (>8 chars) al final
 - Para Chrysler/Dodge/Jeep: el tipo casi siempre es PCM salvo que sea 056xxxx (BCM) o 068xxxx (TCM)
 
-⚠️ REGLA ANTI-ERROR NISSAN (MUY IMPORTANTE):
-- NO digas "Sentra" si el código es MEC35, MEC83, MEC88, MEC90, MEC93, MEC110 — esos son otros modelos
-- MEC35 / MEC35-522 = ALTIMA (NO Sentra)
-- MEC83 = MURANO / QUEST (NO Sentra)
-- MEC88 = ALTIMA L32 / MAXIMA (NO Sentra)
-- MEC90 = PATHFINDER / FRONTIER (NO Sentra)
-- MEC93 = MAXIMA (NO Sentra)
-- MEC110 = ROGUE / X-TRAIL (NO Sentra)
-- Solo MEC32, MEC37, MEC63, MEC76, MEC101 tienen relación con Sentra
-- Si el código tiene ZG53 o ZG53A → es Sentra B15 (NO Frontier, NO Xterra)
-- Si el código tiene 9J507 → es Altima L31 (NO TCM, NO Sentra)
-- NUNCA pongas modelo="Sentra" para un código MEC que no esté en la lista Sentra de arriba
+⚠️ REGLA ANTI-ERROR NISSAN — CADA MEC TIENE UN VEHÍCULO ESPECÍFICO:
+- MEC13/MEC-N013 = Almera/Sunny ANTIGUA (años 90) — NO es Sentra moderno
+- MEC20 / MEC30 = Almera N16 / Primera P12 — NO es Sentra
+- MEC23 = Patrol Y61 4.8L — NO es Sentra ni Frontier
+- MEC31 = 350Z / Murano / Maxima 3.5L — NO es Sentra
+- MEC32 = Sentra B14 / Tsuru — SÍ relacionado con Sentra/Tsuru
+- MEC35-0xx a MEC35-5xx = ALTIMA L31 2.5L — NO es Sentra, NO es Pathfinder
+- MEC35-7xx = PATHFINDER R51 4.0L — NO es Sentra, NO es Altima
+- MEC36 / MEC43 = Almera N16 / Primera — NO es Sentra
+- MEC37 = Sentra B15 / Almera — SÍ relacionado con Sentra B15
+- MEC38 = Frontier D22 / Navara D22 2.4L — NO es Sentra
+- MEC63 = Sentra B16 / Tiida C11 1.6L HR16DE — SÍ Sentra/Tiida
+- MEC70 = PATHFINDER R51 4.0L VQ40DE 2006 — NO es Sentra
+- MEC76 = Versa N17 / Note E11 — NO exactamente Sentra
+- MEC80 = PATHFINDER R51 4x4 / FRONTIER D40 4.0L — NO es Sentra
+- MEC83 = MURANO Z50 / QUEST V42 3.5L — NO es Sentra
+- MEC88 = ALTIMA L32 / MAXIMA A35 2.5L/3.5L — NO es Sentra
+- MEC90 = TIIDA C11 / VERSA C11 / X-TRAIL T31 — ⚠️ NO es Pathfinder ni Frontier
+- MEC93 = MAXIMA A35 / Qashqai 3.5L — NO es Sentra
+- MEC101 = Sentra B17 / Versa N18 — SÍ Sentra B17
+- MEC110 = ROGUE T32 / X-TRAIL T32 — NO es Sentra
+- ZG53A = Sentra B15 1.8L QG18DE — NO es Frontier, NO es Xterra
+- 9J507 = Altima L31 OEM number — NO es TCM, NO es Sentra
 
 Devuelve SOLO este JSON (sin markdown, sin explicación):
 {"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
