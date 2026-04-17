@@ -3191,6 +3191,21 @@
       // MEC43 — familia similar a MEC32/MEC37 (Almera / Primera)
       { p:/^MEC43/i,    marca:'Nissan', modelos:'Almera N16 / Primera P12',        motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2002-2006', oem:'' },
 
+      // MEC50 — Nissan Micra K12 / Note E11
+      { p:/^MEC50/i,    marca:'Nissan', modelos:'Micra K12 / Note E11',              motor:'1.2L CR12DE / 1.4L CR14DE',      tipo:'ECU', fab:'Hitachi', anos:'2002-2010', oem:'' },
+
+      // MEC51 — Nissan Micra K12 variante
+      { p:/^MEC51/i,    marca:'Nissan', modelos:'Micra K12',                         motor:'1.4L CR14DE',                    tipo:'ECU', fab:'Hitachi', anos:'2002-2010', oem:'' },
+
+      // MEC56 — Nissan Armada TA60 / Titan A60 / Patrol Y62 5.6L
+      { p:/^MEC56/i,    marca:'Nissan', modelos:'Armada TA60 / Titan A60 / Patrol Y62', motor:'5.6L VK56DE',                tipo:'ECU', fab:'Hitachi', anos:'2004-2015', oem:'' },
+
+      // MEC58 — Nissan Armada / QX56 primera generación
+      { p:/^MEC58/i,    marca:'Nissan', modelos:'Armada / Infiniti QX56 JA60',       motor:'5.6L VK56DE',                    tipo:'ECU', fab:'Hitachi', anos:'2004-2010', oem:'' },
+
+      // MEC60 — Nissan 350Z Z33 / Infiniti G35 V35 ← CONFIRMADO POR USUARIO
+      { p:/^MEC60/i,    marca:'Nissan', modelos:'350Z Z33 / Fairlady Z Z33 / Infiniti G35 V35', motor:'3.5L VQ35DE',         tipo:'ECU', fab:'Hitachi', anos:'2003-2009', oem:'' },
+
       // MEC63 — Sentra B16 / Tiida C11 1.6L HR16DE ← CONFIRMADO MERCADO LATINOAMERICANO
       { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
       { p:/^MEC63-1/i,  marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
@@ -3393,6 +3408,11 @@ TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan — investigada en internet
 - MEC37 = Nissan Sentra B15 / Almera N16 / Cube Z11 — motor: 1.8L QG18DE / 1.4L CR14DE — años: 2000-2006
 - MEC38 = Nissan Frontier D22 / Navara D22 — motor: 2.4L KA24DE — años: 1998-2004
 - MEC43 = Nissan Almera N16 / Primera P12 (variante) — motor: 1.8L QG18DE — años: 2002-2006
+- MEC50 = Nissan Micra K12 / Note E11 — motor: 1.2L CR12DE / 1.4L CR14DE — años: 2002-2010
+- MEC56 = Nissan Armada / Titan / Patrol Y62 — motor: 5.6L VK56DE — años: 2004-2015
+- MEC58 = Nissan Armada / Infiniti QX56 primera gen — motor: 5.6L VK56DE — años: 2004-2010
+- MEC60 = Nissan 350Z Z33 / Fairlady Z Z33 / Infiniti G35 V35 — motor: 3.5L VQ35DE — años: 2003-2009 ← CONFIRMADO USUARIO
+         EJEMPLO CONFIRMADO: MEC60-132 = ECU 350Z Z33 / G35 V35, 3.5L VQ35DE
 - MEC63 = Nissan Sentra B16 / Tiida C11 MERCADO LATINOAMERICANO — motor: 1.6L HR16DE — años: 2006-2013
          EJEMPLO CONFIRMADO: XYMEC63-130C10000XY580423710 = ECU Sentra B16, OEM 23710-ZG53A, serie XY580423710
 - MEC70 = Nissan Pathfinder R51 — motor: 4.0L VQ40DE — años: 2006-2008 — OEM: 23710-ZP50B/ZP50A
@@ -3485,13 +3505,17 @@ INSTRUCCIONES CRÍTICAS:
 - MEC13/MEC-N013 = Almera/Sunny ANTIGUA (años 90) — NO es Sentra moderno
 - MEC20 / MEC30 = Almera N16 / Primera P12 — NO es Sentra
 - MEC23 = Patrol Y61 4.8L — NO es Sentra ni Frontier
-- MEC31 = 350Z / Murano / Maxima 3.5L — NO es Sentra
+- MEC31 = 350Z Z33 / Murano Z50 / Maxima A34 3.5L VQ35DE — NO es Sentra
 - MEC32 = Sentra B14 / Tsuru — SÍ relacionado con Sentra/Tsuru
 - MEC35-0xx a MEC35-5xx = ALTIMA L31 2.5L — NO es Sentra, NO es Pathfinder
 - MEC35-7xx = PATHFINDER R51 4.0L — NO es Sentra, NO es Altima
 - MEC36 / MEC43 = Almera N16 / Primera — NO es Sentra
 - MEC37 = Sentra B15 / Almera — SÍ relacionado con Sentra B15
 - MEC38 = Frontier D22 / Navara D22 2.4L — NO es Sentra
+- MEC50 = Micra K12 / Note E11 1.2L-1.4L — NO es Sentra
+- MEC56 = Armada / Titan / Patrol Y62 5.6L VK56DE — NO es Sentra
+- MEC58 = Armada / Infiniti QX56 5.6L — NO es Sentra
+- MEC60 = 350Z Z33 / Fairlady Z / Infiniti G35 V35 3.5L VQ35DE — ⚠️ NO es Sentra, NO es Tiida ← CONFIRMADO USUARIO
 - MEC63 = Sentra B16 / Tiida C11 1.6L HR16DE — SÍ Sentra/Tiida
 - MEC70 = PATHFINDER R51 4.0L VQ40DE 2006 — NO es Sentra
 - MEC76 = Versa N17 / Note E11 — NO exactamente Sentra
@@ -3646,7 +3670,7 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
         const mecMatch = modulo.match(/^MEC(\d+)/i);
         if (mecMatch && info.modelo && info.modelo.toLowerCase().includes('sentra')) {
           const mecNum = parseInt(mecMatch[1]);
-          const mecNoSentra = [35,38,43,70,76,80,83,88,90,93,110,120,200,13,20,23,30,31,36];
+          const mecNoSentra = [13,20,23,30,31,35,36,38,43,50,51,56,58,60,65,68,70,76,80,83,88,90,93,110,120,200];
           if (mecNoSentra.includes(mecNum)) {
             console.warn('[FILTRO ANTI-SENTRA]', modulo, '→ Claude dijo Sentra pero debería ser otro modelo. Ignorando modelo de Claude.');
             // Forzar búsqueda local como fallback
@@ -3760,11 +3784,13 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       const casos = [
         'MEC35-522',   // → Altima L31
         'MEC35-752',   // → Pathfinder R51
+        'MEC60-132',   // → 350Z Z33 ← CONFIRMADO POR USUARIO
         'MEC63-130',   // → Sentra B16
         'MEC88-001',   // → Altima L32 / Maxima
         'MEC90-680',   // → Tiida C11
         'MEC83-100',   // → Murano / Quest
         'MEC70-001',   // → Pathfinder R51
+        'MEC80-001',   // → Pathfinder / Frontier 4.0L
         '23710-9J507', // → Altima L31 (OEM)
         '23710-ZG53A', // → Sentra B15 (OEM)
       ];
