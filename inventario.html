@@ -1104,7 +1104,13 @@
                   <div class="form-grid">
                     <div class="form-group">
                       <label>Número de Parte *</label>
-                      <input type="text" id="partes-numero" placeholder="ej: PT-001" required>
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="partes-numero" placeholder="ej: PT-001" required style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('partes-numero')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">
+                          <span style="font-size:1.1rem;">󠀠󠀠</span>📷
+                        </button>
+                      </div>
                       <div class="duplicate-warning" id="dup-warning-partes">
                         <div class="duplicate-warning-text" id="dup-text-partes"></div>
                         <div class="duplicate-actions">
@@ -1229,7 +1235,13 @@
                   <div class="form-grid">
                     <div class="form-group">
                       <label>Número de Computadora *</label>
-                      <input type="text" id="buenas-numero" placeholder="ej: PC-001" required>
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="buenas-numero" placeholder="ej: PC-001" required style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('buenas-numero')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">
+                          📷
+                        </button>
+                      </div>
                       <div class="duplicate-warning" id="dup-warning-buenas">
                         <div class="duplicate-warning-text" id="dup-text-buenas"></div>
                         <div class="duplicate-actions">
@@ -2370,6 +2382,160 @@
         showLoginOverlay();
       }
     })();
+
+    // ===== BARCODE SCANNER =====
+    let _scanTarget = null;   // el ID del input donde poner el resultado
+    let _scanStream = null;
+    let _scanDetector = null;
+    let _scanAnimId = null;
+
+    function abrirEscaner(targetInputId) {
+      _scanTarget = targetInputId;
+      document.getElementById('scanner-overlay').style.display = 'flex';
+      iniciarCamara();
+    }
+
+    function cerrarEscaner() {
+      if (_scanAnimId) { cancelAnimationFrame(_scanAnimId); _scanAnimId = null; }
+      if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
+      document.getElementById('scanner-overlay').style.display = 'none';
+      document.getElementById('scanner-result').textContent = '';
+      document.getElementById('scanner-result-box').style.display = 'none';
+    }
+
+    async function iniciarCamara() {
+      const video = document.getElementById('scanner-video');
+      const statusEl = document.getElementById('scanner-status');
+      statusEl.textContent = 'Iniciando cámara...';
+      try {
+        _scanStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        video.srcObject = _scanStream;
+        await video.play();
+        statusEl.textContent = '';
+
+        if ('BarcodeDetector' in window) {
+          _scanDetector = new BarcodeDetector({ formats: [
+            'code_128','code_39','code_93','ean_13','ean_8','upc_a','upc_e',
+            'qr_code','data_matrix','pdf417','aztec','itf','codabar'
+          ]});
+          escanearLoop();
+        } else {
+          statusEl.textContent = '⚠️ Escáner automático no disponible en este navegador. Usa entrada manual.';
+          document.getElementById('scanner-manual-section').style.display = 'block';
+        }
+      } catch(e) {
+        statusEl.textContent = '❌ No se pudo acceder a la cámara: ' + e.message;
+        document.getElementById('scanner-manual-section').style.display = 'block';
+      }
+    }
+
+    function escanearLoop() {
+      const video = document.getElementById('scanner-video');
+      if (!_scanStream || !_scanDetector) return;
+      _scanAnimId = requestAnimationFrame(async () => {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+          try {
+            const barcodes = await _scanDetector.detect(video);
+            if (barcodes.length > 0) {
+              const codigo = barcodes[0].rawValue;
+              mostrarResultadoEscan(codigo);
+              return; // detener loop al encontrar
+            }
+          } catch(e) {}
+        }
+        escanearLoop(); // continuar loop
+      });
+    }
+
+    function mostrarResultadoEscan(codigo) {
+      if (_scanAnimId) { cancelAnimationFrame(_scanAnimId); _scanAnimId = null; }
+      // Vibrar en móvil
+      if (navigator.vibrate) navigator.vibrate(100);
+      document.getElementById('scanner-result').textContent = codigo;
+      document.getElementById('scanner-result-box').style.display = 'block';
+      document.getElementById('scanner-status').textContent = '✅ Código detectado';
+    }
+
+    function confirmarCodigo() {
+      const codigo = document.getElementById('scanner-result').textContent.trim();
+      if (codigo && _scanTarget) {
+        const el = document.getElementById(_scanTarget);
+        if (el) {
+          el.value = codigo;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+      cerrarEscaner();
+    }
+
+    function usarManual() {
+      const val = document.getElementById('scanner-manual-input').value.trim();
+      if (!val) return;
+      mostrarResultadoEscan(val);
+    }
+
+    function escanearOtro() {
+      document.getElementById('scanner-result-box').style.display = 'none';
+      document.getElementById('scanner-result').textContent = '';
+      document.getElementById('scanner-status').textContent = 'Apunta la cámara al código...';
+      if (_scanDetector) escanearLoop();
+    }
   </script>
+
+  <!-- SCANNER OVERLAY -->
+  <div id="scanner-overlay" style="display:none; position:fixed; inset:0; background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:flex-start;">
+    <!-- Header -->
+    <div style="width:100%; background:rgba(0,0,0,.8); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
+      <div style="color:#f59e0b; font-weight:800; font-size:1rem;">📷 Escanear Código de Barras</div>
+      <button onclick="cerrarEscaner()" style="background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:.85rem; font-weight:700; cursor:pointer;">✕ Cerrar</button>
+    </div>
+
+    <!-- Video -->
+    <div style="position:relative; width:100%; max-width:520px; flex:1; min-height:0; overflow:hidden; background:#111;">
+      <video id="scanner-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:block;"></video>
+      <!-- Visor -->
+      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+        <div style="width:75%; max-width:320px; height:160px; border:3px solid #f59e0b; border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,.45);"></div>
+      </div>
+    </div>
+
+    <!-- Controles -->
+    <div style="width:100%; max-width:520px; padding:14px 16px; background:#0f172a; flex-shrink:0;">
+      <div id="scanner-status" style="color:#94a3b8; font-size:.82rem; text-align:center; margin-bottom:10px; min-height:18px;">Apunta la cámara al código...</div>
+
+      <!-- Resultado -->
+      <div id="scanner-result-box" style="display:none; background:#1e293b; border:2px solid #f59e0b; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
+        <div style="font-size:.7rem; font-weight:700; color:#f59e0b; text-transform:uppercase; margin-bottom:4px;">Código detectado:</div>
+        <div id="scanner-result" style="font-size:1.1rem; font-weight:800; color:#fff; letter-spacing:1px; word-break:break-all;"></div>
+        <div style="display:flex; gap:8px; margin-top:12px;">
+          <button onclick="confirmarCodigo()" style="flex:1; background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px; font-weight:700; font-size:.9rem; cursor:pointer;">✅ Usar este código</button>
+          <button onclick="escanearOtro()" style="background:rgba(255,255,255,.1); color:#94a3b8; border:none; border-radius:8px; padding:10px 14px; font-size:.85rem; cursor:pointer;">🔄 Otro</button>
+        </div>
+      </div>
+
+      <!-- Entrada manual -->
+      <div id="scanner-manual-section" style="display:none;">
+        <div style="color:#64748b; font-size:.78rem; text-align:center; margin-bottom:8px;">Entrada manual de código</div>
+        <div style="display:flex; gap:8px;">
+          <input id="scanner-manual-input" type="text" placeholder="Escribe o pega el código aquí..."
+            style="flex:1; padding:10px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.9rem;"
+            onkeydown="if(event.key==='Enter') usarManual()">
+          <button onclick="usarManual()" style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px 16px; font-weight:700; cursor:pointer;">OK</button>
+        </div>
+      </div>
+
+      <!-- Activar manual -->
+      <div style="text-align:center; margin-top:10px;">
+        <button onclick="document.getElementById('scanner-manual-section').style.display = document.getElementById('scanner-manual-section').style.display==='none'?'block':'none'"
+          style="background:none; border:none; color:#475569; font-size:.78rem; cursor:pointer; text-decoration:underline;">
+          ⌨️ Ingresar código manualmente
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
