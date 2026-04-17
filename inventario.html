@@ -3145,10 +3145,11 @@
       { p:/^MEC37/i,  marca:'Nissan', modelos:'Sentra B15 / Almera N16', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
       { p:/^MEC32/i,  marca:'Nissan', modelos:'Sentra B14 / Tsuru III', motor:'1.6L GA16DE', tipo:'ECU', fab:'Hitachi', anos:'1995-2006' },
       { p:/^MEC37/i,  marca:'Nissan', modelos:'Sentra B15 / Almera N16', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
-      // MEC63: En Latinoamérica aplica para Sentra B16 y Tiida C11 (misma plataforma)
-      { p:/^MEC63-1/i,marca:'Nissan', modelos:'Sentra B16 / Tiida C11', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013' },
-      { p:/^MEC63-2/i,marca:'Nissan', modelos:'Sentra B16 / Tiida C11', motor:'1.8L MR18DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2013' },
-      { p:/^MEC63/i,  marca:'Nissan', modelos:'Sentra B16 / Tiida C11', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013' },
+      // MEC63-130 = Nissan Sentra B16 1.6L HR16DE (confirmado en mercado latinoamericano)
+      { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
+      { p:/^MEC63-1/i,  marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
+      { p:/^MEC63-2/i,  marca:'Nissan', modelos:'Sentra B16', motor:'1.8L MR18DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
+      { p:/^MEC63/i,    marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
       { p:/^MEC76/i,  marca:'Nissan', modelos:'Sentra / Note E11 / Versa N17', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2014' },
       { p:/^MEC83/i,  marca:'Nissan', modelos:'Murano Z50 / Quest V42', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2003-2009' },
       { p:/^MEC88/i,  marca:'Nissan', modelos:'Altima L32 / Maxima A35', motor:'2.5L QR25DE / 3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2012' },
@@ -3156,8 +3157,9 @@
       { p:/^MEC93/i,  marca:'Nissan', modelos:'Maxima A35', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2009-2014' },
       { p:/^MEC101/i, marca:'Nissan', modelos:'Sentra B17 / Versa N18', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2012-2019' },
       { p:/^MEC110/i, marca:'Nissan', modelos:'Rogue T32 / X-Trail T32', motor:'2.5L QR25DE', tipo:'ECU', fab:'Hitachi', anos:'2014-2020' },
-      // ZG53: Nissan Sentra B15 en mercado latinoamericano
-      { p:/^ZG53/i,   marca:'Nissan', modelos:'Sentra B15', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
+      // ZG53A = Nissan Sentra B15 1.8L QG18DE (confirmado en mercado latinoamericano)
+      // Ej: ZG53A1791 → código de calibración A1791
+      { p:/^ZG53/i,   marca:'Nissan', modelos:'Sentra B15', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
       { p:/^ZB/i,     marca:'Nissan', modelos:'(BCM Nissan)', motor:'', tipo:'BCM', fab:'Hitachi', anos:'' },
       // ── TOYOTA / LEXUS ────────────────────────────────────────────
       { p:/^MR479/i,  marca:'Toyota', modelos:'Yaris / Echo / Vitz', motor:'1.0L 1KR-FE / 1.3L 2NZ-FE', tipo:'ECU', fab:'Denso', anos:'2005-2014' },
@@ -3182,16 +3184,16 @@
       const hit = LOCAL_DB.find(e => e.p.test(c));
       if (!hit) return null;
       return {
-        marca: hit.marca,
-        modelo: hit.modelos,
-        ano: hit.anos || null,
-        tipo: hit.tipo,
-        motor: hit.motor,
-        fabricante: hit.fab,
-        numeroOEM: '',
+        marca:       hit.marca,
+        modelo:      hit.modelos,
+        ano:         hit.anos || null,
+        tipo:        hit.tipo,
+        motor:       hit.motor,
+        fabricante:  hit.fab,
+        numeroOEM:   hit.oem || '',
         numeroSerie: '',
-        descripcion: `${hit.tipo} ${hit.marca} ${hit.modelos} ${hit.motor}`.trim().substring(0, 90),
-        fuente: '📋 Base de datos local'
+        descripcion: `${hit.tipo} ${hit.marca} ${hit.modelos} ${hit.motor} ${hit.anos}`.trim().substring(0, 90),
+        fuente:      '📋 Base de datos local'
       };
     }
 
@@ -3245,9 +3247,8 @@ Los números Nissan tienen prefijo de 2 letras de planta (DB, XY, AB, ZA, ZG, et
 TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan Latinoamérica):
 - MEC32 = Nissan Sentra B14 / Tsuru III — motor: 1.6L GA16DE — años: 1995-2006
 - MEC37 = Nissan Sentra B15 / Almera N16 — motor: 1.8L QG18DE — años: 2000-2006
-- MEC63 = Nissan SENTRA B16 / Tiida C11 Latinoamérica — motor: 1.6L HR16DE — años: 2006-2013
-         (En Honduras/México la plataforma C11 se vendió como SENTRA; en otros mercados como Tiida)
-         EJEMPLO REAL: XYMEC63-130C10000XY580423710 = ECU Nissan Sentra B16 1.6L HR16DE, Hitachi, serie XY580423710
+- MEC63 = Nissan SENTRA B16 mercado latinoamericano — motor: 1.6L HR16DE — años: 2006-2012 — OEM: 23710-ZG53A
+         EJEMPLO CONFIRMADO: XYMEC63-130C10000XY580423710 = ECU Nissan Sentra B16 1.6L HR16DE, fabricante Hitachi, número de serie XY580423710, OEM 23710-ZG53A
 - MEC76 = Nissan Sentra / Note E11 / Versa N17 — motor: 1.6L HR16DE — años: 2006-2014
 - MEC83 = Nissan Murano Z50 / Quest V42 — motor: 3.5L VQ35DE — años: 2003-2009
 - MEC88 = Nissan Altima L32 / Maxima A35 — motor: 2.5L QR25DE o 3.5L VQ35DE — años: 2007-2012
@@ -3257,8 +3258,8 @@ TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan Latinoamérica):
 - MEC110 = Nissan Rogue T32 / X-Trail T32 — motor: 2.5L QR25DE — años: 2014-2020
 
 FORMATO ZG/ZB (Nissan Latinoamérica):
-- ZG53 / ZG53A = Nissan SENTRA B15 mercado latinoamericano — motor: 1.8L QG18DE — años: 2000-2006
-                 EJEMPLO REAL: ZG53A1791 = ECU Nissan Sentra B15 1.8L QG18DE
+- ZG53 / ZG53A = Nissan SENTRA B15 mercado latinoamericano — motor: 1.8L QG18DE — años: 2000-2006 — OEM: 23710-ZG53A
+                 EJEMPLO CONFIRMADO: ZG53A1791 = ECU Nissan Sentra B15 1.8L QG18DE, código de calibración A1791, fabricante Hitachi
 - ZBxxx = BCM (Body Control Module) Nissan
 
 EXTRACCIÓN DE DATOS del formato MEC (crítico):
