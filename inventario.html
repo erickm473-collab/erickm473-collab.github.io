@@ -1,0 +1,2383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventario - YONKER EL TRIANGULO</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    /* ===== LOGIN OVERLAY ===== */
+    #login-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      opacity: 1;
+      transition: opacity 0.3s;
+    }
+    #login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #login-card {
+      background: #1e293b;
+      padding: 40px;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #login-card h2 {
+      color: #f59e0b;
+      margin-bottom: 8px;
+      font-size: 28px;
+    }
+    #login-card .subtitle {
+      color: #94a3b8;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #cbd5e1;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    #login-btn {
+      width: 100%;
+      padding: 12px;
+      background: #f59e0b;
+      color: #1c1008;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+    #login-btn:hover {
+      background: #d97706;
+    }
+    #login-btn:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    #login-error {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 15px;
+      text-align: center;
+      min-height: 20px;
+    }
+
+    /* ===== MAIN LAYOUT ===== */
+    .main-wrapper {
+      display: flex;
+      height: 100vh;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .main-wrapper.visible {
+      opacity: 1;
+    }
+
+    /* ===== SIDEBAR ===== */
+    #sidebar {
+      width: 250px;
+      background: #1c1008;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px 0;
+      overflow-y: auto;
+      padding-bottom: 20px;
+    }
+
+    .sidebar-header {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 20px;
+    }
+    .sidebar-header h1 {
+      color: #f59e0b;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+    .sidebar-header p {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    .nav-section {
+      margin-bottom: 10px;
+    }
+    .nav-section-title {
+      color: #64748b;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 0 20px 8px;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      color: #cbd5e1;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+    .nav-item:hover {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.1);
+    }
+    .nav-item.active {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.2);
+      border-left: 3px solid #f59e0b;
+      padding-left: 17px;
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 20px;
+      padding-top: 20px;
+    }
+
+    #logout-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      padding: 12px 20px;
+      background: transparent;
+      color: #94a3b8;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    #logout-btn:hover {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* ===== TOP BAR ===== */
+    #topbar {
+      height: 60px;
+      background: #1e293b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      padding: 0 30px;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    #topbar-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #f59e0b;
+    }
+
+    #user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    /* ===== CONTENT AREA ===== */
+    .flex-container {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    #content-area {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 80px;
+    }
+
+    #content-area::-webkit-scrollbar {
+      width: 8px;
+    }
+    #content-area::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #content-area::-webkit-scrollbar-thumb {
+      background: #475569;
+      border-radius: 4px;
+    }
+    #content-area::-webkit-scrollbar-thumb:hover {
+      background: #64748b;
+    }
+
+    /* ===== DASHBOARD ===== */
+    .dashboard {
+      padding: 30px;
+    }
+
+    .dashboard-title {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 30px;
+      color: #f1f5f9;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      border-left: 4px solid #f59e0b;
+    }
+
+    .stat-label {
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      color: #f59e0b;
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    /* ===== TAB NAVIGATION ===== */
+    .tab-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0 30px;
+    }
+
+    .tab-btn {
+      padding: 12px 20px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      margin-bottom: -1px;
+    }
+
+    .tab-btn:hover {
+      color: #f59e0b;
+    }
+
+    .tab-btn.active {
+      color: #f59e0b;
+      border-bottom-color: #f59e0b;
+    }
+
+    .tab-content {
+      display: none;
+      padding: 30px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ===== SEARCH & ACTIONS ===== */
+    .section-controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 250px;
+      position: relative;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 15px 10px 40px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13px;
+      transition: border-color 0.2s;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    .search-box::before {
+      content: "🔍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .btn-primary {
+      padding: 10px 18px;
+      background: #f59e0b;
+      color: #1c1008;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.2s;
+    }
+
+    .btn-primary:hover {
+      background: #d97706;
+    }
+
+    /* ===== FORM ===== */
+    .form-container {
+      background: #1e293b;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+      border-radius: 12px;
+      padding: 25px;
+      margin-bottom: 30px;
+    }
+
+    .form-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #f59e0b;
+      margin-bottom: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      padding: 10px 12px;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: #f59e0b;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-full {
+      grid-column: 1 / -1;
+    }
+
+    /* ===== DUPLICATE WARNING ===== */
+    .duplicate-warning {
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: none;
+    }
+
+    .duplicate-warning.show {
+      display: block;
+    }
+
+    .duplicate-warning-text {
+      color: #92400e;
+      font-size: 13px;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .duplicate-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-secondary {
+      padding: 8px 14px;
+      background: #fcd34d;
+      color: #92400e;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+
+    .btn-secondary:hover {
+      background: #fbbf24;
+    }
+
+    /* ===== PHOTOS ===== */
+    .photo-section {
+      grid-column: 1 / -1;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 20px;
+    }
+
+    .photo-label {
+      color: #cbd5e1;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .photo-preview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .photo-preview {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #334155;
+      cursor: pointer;
+    }
+
+    .photo-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .photo-remove {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      background: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .photo-preview:hover .photo-remove {
+      opacity: 1;
+    }
+
+    .photo-count {
+      color: #94a3b8;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: #0f172a;
+      border: 1px dashed #f59e0b;
+      border-radius: 6px;
+      color: #f59e0b;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .file-input-label:hover {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .file-input-wrapper input[type="file"] {
+      display: none;
+    }
+
+    /* ===== FORM BUTTONS ===== */
+    .form-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 25px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-save {
+      padding: 12px 24px;
+      background: #f59e0b;
+      color: #1c1008;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .btn-save:hover:not(:disabled) {
+      background: #d97706;
+    }
+
+    .btn-save:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .btn-cancel {
+      padding: 12px 24px;
+      background: #334155;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+
+    .btn-cancel:hover {
+      background: #475569;
+    }
+
+    /* ===== TABLE ===== */
+    .table-wrapper {
+      background: #1e293b;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    th {
+      padding: 12px 15px;
+      text-align: left;
+      color: #f59e0b;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    td {
+      padding: 12px 15px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 13px;
+      color: #cbd5e1;
+    }
+
+    tbody tr:hover {
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .table-thumbnail {
+      width: 40px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      cursor: pointer;
+    }
+
+    .table-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .action-btn {
+      padding: 6px 12px;
+      background: transparent;
+      border: 1px solid #f59e0b;
+      color: #f59e0b;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+      background: rgba(245, 158, 11, 0.2);
+    }
+
+    .action-btn.delete {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .action-btn.delete:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #64748b;
+    }
+
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+    }
+
+    /* ===== PROFILE VIEW ===== */
+    #profile-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9000;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    #profile-overlay.show {
+      display: flex;
+    }
+
+    .profile-modal {
+      background: #1e293b;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .profile-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 25px;
+      border-bottom: 1px solid rgba(245, 158, 11, 0.1);
+    }
+
+    .profile-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #f59e0b;
+    }
+
+    .profile-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 24px;
+      transition: color 0.2s;
+    }
+
+    .profile-close:hover {
+      color: #e2e8f0;
+    }
+
+    .profile-content {
+      padding: 25px;
+    }
+
+    .profile-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .profile-field {
+      border-left: 3px solid #f59e0b;
+      padding-left: 15px;
+    }
+
+    .profile-label {
+      color: #94a3b8;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .profile-value {
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .profile-photos {
+      margin-top: 30px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 25px;
+    }
+
+    .profile-photos-title {
+      color: #f59e0b;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 12px;
+    }
+
+    .gallery-img {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      object-fit: cover;
+      cursor: pointer;
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      transition: transform 0.2s;
+    }
+
+    .gallery-img:hover {
+      transform: scale(1.05);
+    }
+
+    /* ===== LIGHTBOX ===== */
+    #lightbox-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+
+    #lightbox-overlay.show {
+      display: flex;
+    }
+
+    #lightbox-img {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 8px;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-size: 32px;
+    }
+
+    /* ===== CLIENTS ===== */
+    .clients-list {
+      background: #1e293b;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(245, 158, 11, 0.1);
+    }
+
+    .client-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.2s;
+    }
+
+    .client-item:hover {
+      background: rgba(245, 158, 11, 0.05);
+    }
+
+    .client-info {
+      flex: 1;
+    }
+
+    .client-name {
+      color: #e2e8f0;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .client-contact {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+
+    /* ===== BOTTOM NAV ===== */
+    #bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #1e293b;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 10px 0 12px;
+      z-index: 900;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    #bottom-nav a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 12px;
+      border-radius: 8px;
+      transition: color 0.2s;
+    }
+
+    #bottom-nav a .bn-icon {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    #bottom-nav a.bn-active {
+      color: #fff;
+    }
+
+    #bottom-nav a:hover {
+      color: #e2e8f0;
+    }
+
+    @media (max-width: 600px) {
+      #bottom-nav a {
+        padding: 4px 8px;
+        font-size: 10px;
+      }
+      #bottom-nav a .bn-icon {
+        font-size: 20px;
+      }
+
+      #sidebar {
+        width: 200px;
+      }
+
+      .dashboard-title {
+        font-size: 22px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .tab-nav {
+        padding: 0 15px;
+      }
+
+      .tab-content {
+        padding: 15px;
+      }
+
+      .dashboard {
+        padding: 15px;
+      }
+    }
+
+    @media (max-width: 800px) {
+      #sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        height: 100%;
+        z-index: 950;
+        transform: translateX(-100%);
+        transition: transform 0.3s;
+      }
+
+      #sidebar.open {
+        transform: translateX(0);
+      }
+
+      .flex-container {
+        position: relative;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay">
+    <div id="login-card">
+      <h2>🔐 Inventario</h2>
+      <p class="subtitle">YONKER EL TRIANGULO</p>
+      <div class="form-group">
+        <label>Usuario</label>
+        <input type="text" id="login-usuario" placeholder="Tu usuario">
+      </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="login-password" placeholder="Tu contraseña">
+      </div>
+      <button id="login-btn">Acceder</button>
+      <div id="login-error"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div class="main-wrapper">
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h1>🖥️ Inventario</h1>
+        <p>YONKER EL TRIANGULO</p>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-title">Navegación</div>
+        <a class="nav-item active" data-tab="dashboard">📊 Dashboard</a>
+        <a class="nav-item" data-tab="partes">🔩 Partes</a>
+        <a class="nav-item" data-tab="buenas">🖥️ Buenas</a>
+        <a class="nav-item" data-tab="clientes">👥 Clientes</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="logout-btn">🚪 Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="flex-container">
+      <!-- TOP BAR -->
+      <div style="width: 100%; display: flex; flex-direction: column;">
+        <div id="topbar">
+          <div id="topbar-title">Gestión de Inventario</div>
+          <div id="user-info">
+            <span id="user-name">Usuario</span>
+          </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div id="content-area">
+          <!-- DASHBOARD TAB -->
+          <div id="dashboard-tab" class="tab-content active">
+            <div class="dashboard">
+              <h2 class="dashboard-title">📊 Dashboard</h2>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-label">Total Partes</div>
+                  <div class="stat-value" id="stat-total-partes">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Total Buenas</div>
+                  <div class="stat-value" id="stat-total-buenas">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Disponibles</div>
+                  <div class="stat-value" id="stat-disponibles">0</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-label">Agotados</div>
+                  <div class="stat-value" id="stat-agotados">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PARTES TAB -->
+          <div id="partes-tab" class="tab-content">
+            <div style="padding: 30px;">
+              <h2 class="dashboard-title">🔩 Partes / Repuestos</h2>
+
+              <div class="form-container">
+                <div class="form-title">Agregar / Editar Parte</div>
+                <form id="form-partes">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Número de Parte *</label>
+                      <input type="text" id="partes-numero" placeholder="ej: PT-001" required>
+                      <div class="duplicate-warning" id="dup-warning-partes">
+                        <div class="duplicate-warning-text" id="dup-text-partes"></div>
+                        <div class="duplicate-actions">
+                          <button type="button" class="btn-secondary" id="dup-update-partes">Actualizar cantidad</button>
+                          <button type="button" class="btn-secondary" id="dup-create-partes">Crear de todas formas</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Marca</label>
+                      <input type="text" id="partes-marca" placeholder="ej: Intel">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Modelo</label>
+                      <input type="text" id="partes-modelo" placeholder="ej: i7-8700K">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Año</label>
+                      <input type="number" id="partes-ano" placeholder="2024">
+                    </div>
+
+                    <div class="form-group form-full">
+                      <label>Descripción</label>
+                      <textarea id="partes-descripcion" placeholder="Descripción detallada de la parte..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Precio (L.)</label>
+                      <input type="number" id="partes-precio" placeholder="0.00" step="0.01" min="0">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Cantidad</label>
+                      <input type="number" id="partes-cantidad" placeholder="0" min="0" value="1">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Estante</label>
+                      <input type="text" id="partes-estante" placeholder="ej: A">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Ubicación en Estante</label>
+                      <input type="text" id="partes-ubicacion" placeholder="ej: Fila 2, Columna 3">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Estado</label>
+                      <select id="partes-estado">
+                        <option value="">Seleccionar...</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="Agotado">Agotado</option>
+                        <option value="Reservado">Reservado</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group photo-section">
+                      <label class="photo-label">Fotos (hasta 6)</label>
+                      <div class="photo-count" id="partes-photo-count">0 / 6 fotos</div>
+                      <div class="photo-preview-grid" id="partes-photo-preview"></div>
+                      <div class="file-input-wrapper">
+                        <label class="file-input-label">+ Agregar foto</label>
+                        <input type="file" id="partes-photo-input" accept="image/*">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-buttons">
+                    <button type="submit" class="btn-save" id="partes-save-btn">Guardar Parte</button>
+                    <button type="button" class="btn-cancel" id="partes-cancel-btn">Cancelar</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="section-controls">
+                <div class="search-box">
+                  <input type="text" id="partes-search" placeholder="Buscar por número, marca, modelo...">
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>N° Parte</th>
+                      <th>Marca/Modelo</th>
+                      <th>Año</th>
+                      <th>Precio (L.)</th>
+                      <th>Cantidad</th>
+                      <th>Estante</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="partes-table-body">
+                    <tr>
+                      <td colspan="9" style="text-align: center; padding: 40px;">
+                        <div class="empty-state">
+                          <div class="empty-state-icon">📦</div>
+                          <div>No hay partes registradas</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- BUENAS TAB -->
+          <div id="buenas-tab" class="tab-content">
+            <div style="padding: 30px;">
+              <h2 class="dashboard-title">🖥️ Computadoras Buenas</h2>
+
+              <div class="form-container">
+                <div class="form-title">Agregar / Editar Computadora</div>
+                <form id="form-buenas">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Número de Computadora *</label>
+                      <input type="text" id="buenas-numero" placeholder="ej: PC-001" required>
+                      <div class="duplicate-warning" id="dup-warning-buenas">
+                        <div class="duplicate-warning-text" id="dup-text-buenas"></div>
+                        <div class="duplicate-actions">
+                          <button type="button" class="btn-secondary" id="dup-update-buenas">Actualizar cantidad</button>
+                          <button type="button" class="btn-secondary" id="dup-create-buenas">Crear de todas formas</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Marca</label>
+                      <input type="text" id="buenas-marca" placeholder="ej: Dell">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Modelo</label>
+                      <input type="text" id="buenas-modelo" placeholder="ej: OptiPlex 7090">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Año</label>
+                      <input type="number" id="buenas-ano" placeholder="2024">
+                    </div>
+
+                    <div class="form-group form-full">
+                      <label>Descripción</label>
+                      <textarea id="buenas-descripcion" placeholder="Descripción detallada de la computadora..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Precio (L.)</label>
+                      <input type="number" id="buenas-precio" placeholder="0.00" step="0.01" min="0">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Cantidad</label>
+                      <input type="number" id="buenas-cantidad" placeholder="0" min="0" value="1">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Estante</label>
+                      <input type="text" id="buenas-estante" placeholder="ej: A">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Ubicación en Estante</label>
+                      <input type="text" id="buenas-ubicacion" placeholder="ej: Fila 2, Columna 3">
+                    </div>
+
+                    <div class="form-group">
+                      <label>Estado</label>
+                      <select id="buenas-estado">
+                        <option value="">Seleccionar...</option>
+                        <option value="Disponible">Disponible</option>
+                        <option value="Agotado">Agotado</option>
+                        <option value="Reservado">Reservado</option>
+                      </select>
+                    </div>
+
+                    <div class="form-group photo-section">
+                      <label class="photo-label">Fotos (hasta 6)</label>
+                      <div class="photo-count" id="buenas-photo-count">0 / 6 fotos</div>
+                      <div class="photo-preview-grid" id="buenas-photo-preview"></div>
+                      <div class="file-input-wrapper">
+                        <label class="file-input-label">+ Agregar foto</label>
+                        <input type="file" id="buenas-photo-input" accept="image/*">
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-buttons">
+                    <button type="submit" class="btn-save" id="buenas-save-btn">Guardar Computadora</button>
+                    <button type="button" class="btn-cancel" id="buenas-cancel-btn">Cancelar</button>
+                  </div>
+                </form>
+              </div>
+
+              <div class="section-controls">
+                <div class="search-box">
+                  <input type="text" id="buenas-search" placeholder="Buscar por número, marca, modelo...">
+                </div>
+              </div>
+
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Foto</th>
+                      <th>N° Computadora</th>
+                      <th>Marca/Modelo</th>
+                      <th>Año</th>
+                      <th>Precio (L.)</th>
+                      <th>Cantidad</th>
+                      <th>Estante</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody id="buenas-table-body">
+                    <tr>
+                      <td colspan="9" style="text-align: center; padding: 40px;">
+                        <div class="empty-state">
+                          <div class="empty-state-icon">💻</div>
+                          <div>No hay computadoras registradas</div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- CLIENTES TAB -->
+          <div id="clientes-tab" class="tab-content">
+            <div style="padding: 30px;">
+              <h2 class="dashboard-title">👥 Clientes</h2>
+
+              <div class="clients-list" id="clients-list">
+                <div style="text-align: center; padding: 40px; color: #64748b;">
+                  <div class="empty-state">
+                    <div class="empty-state-icon">👤</div>
+                    <div>Cargando clientes...</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE OVERLAY -->
+  <div id="profile-overlay">
+    <div class="profile-modal">
+      <div class="profile-header">
+        <div class="profile-title" id="profile-title">Detalles</div>
+        <button class="profile-close" id="profile-close">&times;</button>
+      </div>
+      <div class="profile-content" id="profile-content"></div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX -->
+  <div id="lightbox-overlay">
+    <button class="lightbox-close" id="lightbox-close">&times;</button>
+    <img id="lightbox-img" src="">
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav id="bottom-nav">
+    <a href="index.html"><span class="bn-icon">🏠</span><span>Inicio</span></a>
+    <a href="taller.html"><span class="bn-icon">🔧</span><span>Taller</span></a>
+    <a href="repuestos.html"><span class="bn-icon">📦</span><span>Repuestos</span></a>
+    <a href="computadoras.html"><span class="bn-icon">💻</span><span>Computadoras</span></a>
+    <a href="inventario.html" class="bn-active"><span class="bn-icon">🖥️</span><span>Inventario</span></a>
+  </nav>
+
+  <script>
+    // ===== FIREBASE CONFIG =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyBbDMiJGiSPmCGtHFqlGQFONVTiLv0Vg2Y",
+      authDomain: "taller-mecanico-erick.firebaseapp.com",
+      projectId: "taller-mecanico-erick",
+      storageBucket: "taller-mecanico-erick.appspot.com",
+      messagingSenderId: "321948927786",
+      appId: "1:321948927786:web:4b2f14c91cb2e4b8f3c9d1"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const fdb = firebase.firestore();
+
+    // ===== STATE =====
+    let currentUser = null;
+    let _savingParte = false;
+    let _savingBuena = false;
+    let _editingParteId = null;
+    let _editingBuenaId = null;
+    let _duplicateParteData = null;
+    let _duplicateBuenaData = null;
+    let _forceCreateParte = false;
+    let _forceCreateBuena = false;
+
+    // ===== UTILITIES =====
+    function hashPassword(password) {
+      return CryptoJS.SHA256(password).toString();
+    }
+
+    async function loadCurrentUser() {
+      const usuario = localStorage.getItem('inv_usuario');
+      const hash = localStorage.getItem('inv_hash');
+      if (!usuario || !hash) return null;
+
+      const snap = await fdb.collection('usuarios').where('usuario', '==', usuario).get();
+      if (snap.empty) return null;
+
+      const userData = snap.docs[0].data();
+      if (CryptoJS.SHA256(userData.password).toString() === hash) {
+        return userData;
+      }
+      return null;
+    }
+
+    function showLoginOverlay() {
+      document.getElementById('login-overlay').classList.remove('hidden');
+      document.querySelector('.main-wrapper').classList.remove('visible');
+    }
+
+    function hideLoginOverlay() {
+      document.getElementById('login-overlay').classList.add('hidden');
+      document.querySelector('.main-wrapper').classList.add('visible');
+    }
+
+    async function checkDuplicateParte(numeroParte, coleccion, excludeId = null) {
+      if (!numeroParte.trim()) return null;
+      const snap = await fdb.collection(coleccion)
+        .where('numeroParte', '==', numeroParte.trim())
+        .get();
+      const docs = snap.docs.filter(d => d.id !== excludeId);
+      if (docs.length > 0) return { id: docs[0].id, ...docs[0].data() };
+      return null;
+    }
+
+    function compressImage(file, maxDim, quality) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width, h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+              else { w = Math.round(w * maxDim / h); h = maxDim; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function loadPhotosFromFirestore(parentId, parentType) {
+      const snap = await fdb.collection('fotos')
+        .where('parentId', '==', parentId)
+        .where('parentType', '==', parentType)
+        .get();
+      const photos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      photos.sort((a, b) => (a.index || 0) - (b.index || 0));
+      return photos;
+    }
+
+    // ===== LOGIN =====
+    document.getElementById('login-btn').addEventListener('click', async () => {
+      const usuario = document.getElementById('login-usuario').value.trim();
+      const password = document.getElementById('login-password').value;
+      const errorEl = document.getElementById('login-error');
+
+      if (!usuario || !password) {
+        errorEl.textContent = 'Usuario y contraseña requeridos';
+        return;
+      }
+
+      document.getElementById('login-btn').disabled = true;
+      errorEl.textContent = '';
+
+      try {
+        const snap = await fdb.collection('usuarios').where('usuario', '==', usuario).get();
+        if (snap.empty) {
+          errorEl.textContent = 'Usuario no encontrado';
+          document.getElementById('login-btn').disabled = false;
+          return;
+        }
+
+        const userData = snap.docs[0].data();
+        const hash = CryptoJS.SHA256(password).toString();
+
+        if (CryptoJS.SHA256(userData.password).toString() !== hash) {
+          errorEl.textContent = 'Contraseña incorrecta';
+          document.getElementById('login-btn').disabled = false;
+          return;
+        }
+
+        localStorage.setItem('inv_usuario', usuario);
+        localStorage.setItem('inv_hash', hash);
+        currentUser = userData;
+
+        hideLoginOverlay();
+        document.getElementById('user-name').textContent = userData.nombre || usuario;
+        await loadDashboard();
+        await loadPartes();
+        await loadBuenas();
+        await loadClientes();
+
+      } catch (err) {
+        console.error(err);
+        errorEl.textContent = 'Error al autenticar';
+        document.getElementById('login-btn').disabled = false;
+      }
+    });
+
+    document.getElementById('logout-btn').addEventListener('click', () => {
+      localStorage.removeItem('inv_usuario');
+      localStorage.removeItem('inv_hash');
+      currentUser = null;
+      showLoginOverlay();
+      resetForms();
+    });
+
+    // ===== NAVIGATION =====
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const tab = e.currentTarget.dataset.tab;
+        if (!tab) return;
+
+        document.querySelectorAll('.nav-item').forEach(it => it.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.getElementById(tab + '-tab').classList.add('active');
+      });
+    });
+
+    // ===== PHOTO HANDLERS =====
+    ['partes', 'buenas'].forEach(prefix => {
+      const input = document.getElementById(`${prefix}-photo-input`);
+      const preview = document.getElementById(`${prefix}-photo-preview`);
+      const countEl = document.getElementById(`${prefix}-photo-count`);
+
+      input.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files);
+        const currentCount = preview.children.length;
+
+        for (const file of files) {
+          if (currentCount + preview.children.length >= 6) break;
+
+          try {
+            const compressed = await compressImage(file, 1200, 0.80);
+            const thumbnail = await compressImage(file, 200, 0.40);
+
+            const photoEl = document.createElement('div');
+            photoEl.className = 'photo-preview';
+            photoEl.innerHTML = `
+              <img src="${thumbnail}">
+              <button type="button" class="photo-remove">✕</button>
+            `;
+
+            photoEl.dataset.full = compressed;
+            photoEl.dataset.thumb = thumbnail;
+
+            photoEl.querySelector('.photo-remove').addEventListener('click', (evt) => {
+              evt.preventDefault();
+              photoEl.remove();
+              updatePhotoCount(prefix);
+            });
+
+            preview.appendChild(photoEl);
+          } catch (err) {
+            console.error('Error compressing image:', err);
+          }
+        }
+
+        updatePhotoCount(prefix);
+        input.value = '';
+      });
+    });
+
+    function updatePhotoCount(prefix) {
+      const preview = document.getElementById(`${prefix}-photo-preview`);
+      const count = preview.children.length;
+      document.getElementById(`${prefix}-photo-count`).textContent = `${count} / 6 fotos`;
+    }
+
+    // ===== DUPLICATE DETECTION =====
+    document.getElementById('partes-numero').addEventListener('blur', async (e) => {
+      const numero = e.target.value.trim();
+      if (!numero || _editingParteId) {
+        document.getElementById('dup-warning-partes').classList.remove('show');
+        return;
+      }
+
+      const dup = await checkDuplicateParte(numero, 'inventario_partes');
+      if (dup) {
+        _duplicateParteData = dup;
+        document.getElementById('dup-text-partes').textContent = `⚠️ Ya existe un artículo con este número de parte: ${dup.marca || ''} ${dup.modelo || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
+        document.getElementById('dup-warning-partes').classList.add('show');
+      } else {
+        document.getElementById('dup-warning-partes').classList.remove('show');
+        _duplicateParteData = null;
+      }
+    });
+
+    document.getElementById('buenas-numero').addEventListener('blur', async (e) => {
+      const numero = e.target.value.trim();
+      if (!numero || _editingBuenaId) {
+        document.getElementById('dup-warning-buenas').classList.remove('show');
+        return;
+      }
+
+      const dup = await checkDuplicateParte(numero, 'inventario_buenas');
+      if (dup) {
+        _duplicateBuenaData = dup;
+        document.getElementById('dup-text-buenas').textContent = `⚠️ Ya existe un artículo con este número: ${dup.marca || ''} ${dup.modelo || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
+        document.getElementById('dup-warning-buenas').classList.add('show');
+      } else {
+        document.getElementById('dup-warning-buenas').classList.remove('show');
+        _duplicateBuenaData = null;
+      }
+    });
+
+    // ===== DUPLICATE ACTIONS =====
+    document.getElementById('dup-update-partes').addEventListener('click', () => {
+      _editingParteId = _duplicateParteData.id;
+      loadParteForEdit(_duplicateParteData.id);
+      document.getElementById('dup-warning-partes').classList.remove('show');
+    });
+
+    document.getElementById('dup-create-partes').addEventListener('click', () => {
+      _forceCreateParte = true;
+      document.getElementById('dup-warning-partes').classList.remove('show');
+    });
+
+    document.getElementById('dup-update-buenas').addEventListener('click', () => {
+      _editingBuenaId = _duplicateBuenaData.id;
+      loadBuenaForEdit(_duplicateBuenaData.id);
+      document.getElementById('dup-warning-buenas').classList.remove('show');
+    });
+
+    document.getElementById('dup-create-buenas').addEventListener('click', () => {
+      _forceCreateBuena = true;
+      document.getElementById('dup-warning-buenas').classList.remove('show');
+    });
+
+    // ===== PARTES FORM =====
+    document.getElementById('form-partes').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (_savingParte) return;
+
+      _savingParte = true;
+      const saveBtn = document.getElementById('partes-save-btn');
+      const originalText = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+
+      try {
+        const numero = document.getElementById('partes-numero').value.trim();
+        const marca = document.getElementById('partes-marca').value.trim();
+        const modelo = document.getElementById('partes-modelo').value.trim();
+        const ano = parseInt(document.getElementById('partes-ano').value) || null;
+        const descripcion = document.getElementById('partes-descripcion').value.trim();
+        const precio = parseFloat(document.getElementById('partes-precio').value) || 0;
+        const cantidad = parseInt(document.getElementById('partes-cantidad').value) || 0;
+        const estante = document.getElementById('partes-estante').value.trim();
+        const ubicacion = document.getElementById('partes-ubicacion').value.trim();
+        const estado = document.getElementById('partes-estado').value;
+
+        if (!numero) {
+          alert('Número de parte es requerido');
+          _savingParte = false;
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalText;
+          return;
+        }
+
+        if (!_forceCreateParte && !_editingParteId) {
+          const dup = await checkDuplicateParte(numero, 'inventario_partes');
+          if (dup && !_forceCreateParte) {
+            alert('Por favor, selecciona una opción del aviso de duplicado');
+            _savingParte = false;
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            return;
+          }
+        }
+
+        const data = {
+          numeroParte: numero,
+          marca,
+          modelo,
+          ano,
+          descripcion,
+          precio,
+          cantidad,
+          estante,
+          ubicacion,
+          estado,
+          registradoPor: currentUser.nombre || currentUser.usuario,
+          updatedAt: new Date()
+        };
+
+        let docId;
+        if (_editingParteId) {
+          await fdb.collection('inventario_partes').doc(_editingParteId).update(data);
+          docId = _editingParteId;
+        } else {
+          const ref = await fdb.collection('inventario_partes').add(data);
+          docId = ref.id;
+        }
+
+        const photoPreview = document.getElementById('partes-photo-preview');
+        const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_parte');
+
+        for (const oldPhoto of oldPhotos) {
+          await fdb.collection('fotos').doc(oldPhoto.id).delete();
+        }
+
+        let photoIndex = 0;
+        for (const photoEl of photoPreview.children) {
+          const fullData = photoEl.dataset.full;
+          const thumbData = photoEl.dataset.thumb;
+
+          await fdb.collection('fotos').add({
+            parentId: docId,
+            parentType: 'inv_parte',
+            data: fullData,
+            thumbnail: thumbData,
+            index: photoIndex++
+          });
+        }
+
+        alert('Parte guardada correctamente');
+        resetParteForm();
+        await loadPartes();
+        await loadDashboard();
+
+      } catch (err) {
+        console.error(err);
+        alert('Error al guardar: ' + err.message);
+      } finally {
+        _savingParte = false;
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    });
+
+    document.getElementById('partes-cancel-btn').addEventListener('click', () => {
+      resetParteForm();
+    });
+
+    function resetParteForm() {
+      document.getElementById('form-partes').reset();
+      document.getElementById('partes-photo-preview').innerHTML = '';
+      updatePhotoCount('partes');
+      document.getElementById('dup-warning-partes').classList.remove('show');
+      _editingParteId = null;
+      _duplicateParteData = null;
+      _forceCreateParte = false;
+    }
+
+    async function loadParteForEdit(docId) {
+      const doc = await fdb.collection('inventario_partes').doc(docId).get();
+      const data = doc.data();
+
+      document.getElementById('partes-numero').value = data.numeroParte || '';
+      document.getElementById('partes-marca').value = data.marca || '';
+      document.getElementById('partes-modelo').value = data.modelo || '';
+      document.getElementById('partes-ano').value = data.ano || '';
+      document.getElementById('partes-descripcion').value = data.descripcion || '';
+      document.getElementById('partes-precio').value = data.precio || '';
+      document.getElementById('partes-cantidad').value = data.cantidad || 1;
+      document.getElementById('partes-estante').value = data.estante || '';
+      document.getElementById('partes-ubicacion').value = data.ubicacion || '';
+      document.getElementById('partes-estado').value = data.estado || '';
+
+      const photos = await loadPhotosFromFirestore(docId, 'inv_parte');
+      const preview = document.getElementById('partes-photo-preview');
+      preview.innerHTML = '';
+
+      for (const photo of photos) {
+        const photoEl = document.createElement('div');
+        photoEl.className = 'photo-preview';
+        photoEl.innerHTML = `
+          <img src="${photo.thumbnail}">
+          <button type="button" class="photo-remove">✕</button>
+        `;
+        photoEl.dataset.full = photo.data;
+        photoEl.dataset.thumb = photo.thumbnail;
+
+        photoEl.querySelector('.photo-remove').addEventListener('click', (evt) => {
+          evt.preventDefault();
+          photoEl.remove();
+          updatePhotoCount('partes');
+        });
+
+        preview.appendChild(photoEl);
+      }
+
+      updatePhotoCount('partes');
+      document.querySelector('[data-tab="partes"]').click();
+    }
+
+    // ===== BUENAS FORM =====
+    document.getElementById('form-buenas').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (_savingBuena) return;
+
+      _savingBuena = true;
+      const saveBtn = document.getElementById('buenas-save-btn');
+      const originalText = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Guardando...';
+
+      try {
+        const numero = document.getElementById('buenas-numero').value.trim();
+        const marca = document.getElementById('buenas-marca').value.trim();
+        const modelo = document.getElementById('buenas-modelo').value.trim();
+        const ano = parseInt(document.getElementById('buenas-ano').value) || null;
+        const descripcion = document.getElementById('buenas-descripcion').value.trim();
+        const precio = parseFloat(document.getElementById('buenas-precio').value) || 0;
+        const cantidad = parseInt(document.getElementById('buenas-cantidad').value) || 0;
+        const estante = document.getElementById('buenas-estante').value.trim();
+        const ubicacion = document.getElementById('buenas-ubicacion').value.trim();
+        const estado = document.getElementById('buenas-estado').value;
+
+        if (!numero) {
+          alert('Número de computadora es requerido');
+          _savingBuena = false;
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalText;
+          return;
+        }
+
+        if (!_forceCreateBuena && !_editingBuenaId) {
+          const dup = await checkDuplicateParte(numero, 'inventario_buenas');
+          if (dup && !_forceCreateBuena) {
+            alert('Por favor, selecciona una opción del aviso de duplicado');
+            _savingBuena = false;
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            return;
+          }
+        }
+
+        const data = {
+          numeroParte: numero,
+          marca,
+          modelo,
+          ano,
+          descripcion,
+          precio,
+          cantidad,
+          estante,
+          ubicacion,
+          estado,
+          registradoPor: currentUser.nombre || currentUser.usuario,
+          updatedAt: new Date()
+        };
+
+        let docId;
+        if (_editingBuenaId) {
+          await fdb.collection('inventario_buenas').doc(_editingBuenaId).update(data);
+          docId = _editingBuenaId;
+        } else {
+          const ref = await fdb.collection('inventario_buenas').add(data);
+          docId = ref.id;
+        }
+
+        const photoPreview = document.getElementById('buenas-photo-preview');
+        const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_buena');
+
+        for (const oldPhoto of oldPhotos) {
+          await fdb.collection('fotos').doc(oldPhoto.id).delete();
+        }
+
+        let photoIndex = 0;
+        for (const photoEl of photoPreview.children) {
+          const fullData = photoEl.dataset.full;
+          const thumbData = photoEl.dataset.thumb;
+
+          await fdb.collection('fotos').add({
+            parentId: docId,
+            parentType: 'inv_buena',
+            data: fullData,
+            thumbnail: thumbData,
+            index: photoIndex++
+          });
+        }
+
+        alert('Computadora guardada correctamente');
+        resetBuenaForm();
+        await loadBuenas();
+        await loadDashboard();
+
+      } catch (err) {
+        console.error(err);
+        alert('Error al guardar: ' + err.message);
+      } finally {
+        _savingBuena = false;
+        saveBtn.disabled = false;
+        saveBtn.textContent = originalText;
+      }
+    });
+
+    document.getElementById('buenas-cancel-btn').addEventListener('click', () => {
+      resetBuenaForm();
+    });
+
+    function resetBuenaForm() {
+      document.getElementById('form-buenas').reset();
+      document.getElementById('buenas-photo-preview').innerHTML = '';
+      updatePhotoCount('buenas');
+      document.getElementById('dup-warning-buenas').classList.remove('show');
+      _editingBuenaId = null;
+      _duplicateBuenaData = null;
+      _forceCreateBuena = false;
+    }
+
+    async function loadBuenaForEdit(docId) {
+      const doc = await fdb.collection('inventario_buenas').doc(docId).get();
+      const data = doc.data();
+
+      document.getElementById('buenas-numero').value = data.numeroParte || '';
+      document.getElementById('buenas-marca').value = data.marca || '';
+      document.getElementById('buenas-modelo').value = data.modelo || '';
+      document.getElementById('buenas-ano').value = data.ano || '';
+      document.getElementById('buenas-descripcion').value = data.descripcion || '';
+      document.getElementById('buenas-precio').value = data.precio || '';
+      document.getElementById('buenas-cantidad').value = data.cantidad || 1;
+      document.getElementById('buenas-estante').value = data.estante || '';
+      document.getElementById('buenas-ubicacion').value = data.ubicacion || '';
+      document.getElementById('buenas-estado').value = data.estado || '';
+
+      const photos = await loadPhotosFromFirestore(docId, 'inv_buena');
+      const preview = document.getElementById('buenas-photo-preview');
+      preview.innerHTML = '';
+
+      for (const photo of photos) {
+        const photoEl = document.createElement('div');
+        photoEl.className = 'photo-preview';
+        photoEl.innerHTML = `
+          <img src="${photo.thumbnail}">
+          <button type="button" class="photo-remove">✕</button>
+        `;
+        photoEl.dataset.full = photo.data;
+        photoEl.dataset.thumb = photo.thumbnail;
+
+        photoEl.querySelector('.photo-remove').addEventListener('click', (evt) => {
+          evt.preventDefault();
+          photoEl.remove();
+          updatePhotoCount('buenas');
+        });
+
+        preview.appendChild(photoEl);
+      }
+
+      updatePhotoCount('buenas');
+      document.querySelector('[data-tab="buenas"]').click();
+    }
+
+    // ===== DASHBOARD =====
+    async function loadDashboard() {
+      const partesSnap = await fdb.collection('inventario_partes').get();
+      const buenasSnap = await fdb.collection('inventario_buenas').get();
+
+      const partes = partesSnap.docs.map(d => d.data());
+      const buenas = buenasSnap.docs.map(d => d.data());
+
+      const totalPartes = partes.reduce((sum, p) => sum + (p.cantidad || 0), 0);
+      const totalBuenas = buenas.reduce((sum, b) => sum + (b.cantidad || 0), 0);
+      const disponibles = partes.filter(p => p.estado === 'Disponible').length + buenas.filter(b => b.estado === 'Disponible').length;
+      const agotados = partes.filter(p => p.estado === 'Agotado').length + buenas.filter(b => b.estado === 'Agotado').length;
+
+      document.getElementById('stat-total-partes').textContent = totalPartes;
+      document.getElementById('stat-total-buenas').textContent = totalBuenas;
+      document.getElementById('stat-disponibles').textContent = disponibles;
+      document.getElementById('stat-agotados').textContent = agotados;
+    }
+
+    // ===== PARTES TABLE =====
+    async function loadPartes() {
+      const snap = await fdb.collection('inventario_partes').get();
+      const partes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const tbody = document.getElementById('partes-table-body');
+      tbody.innerHTML = '';
+
+      if (partes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">📦</div><div>No hay partes registradas</div></div></td></tr>';
+        return;
+      }
+
+      for (const parte of partes) {
+        const photos = await loadPhotosFromFirestore(parte.id, 'inv_parte');
+        const photoSrc = photos.length > 0 ? photos[0].thumbnail : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><img src="${photoSrc}" class="table-thumbnail" data-parte-id="${parte.id}"></td>
+          <td>${parte.numeroParte}</td>
+          <td>${parte.marca} ${parte.modelo}</td>
+          <td>${parte.ano || '-'}</td>
+          <td>L. ${parte.precio.toFixed(2)}</td>
+          <td>${parte.cantidad}</td>
+          <td>${parte.estante}</td>
+          <td><span style="color: ${parte.estado === 'Disponible' ? '#10b981' : parte.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${parte.estado}</span></td>
+          <td class="table-actions">
+            <button class="action-btn" onclick="window.viewPartePerfil('${parte.id}')">Ver</button>
+            <button class="action-btn" onclick="window.editParte('${parte.id}')">Editar</button>
+            <button class="action-btn delete" onclick="window.deleteParte('${parte.id}')">Eliminar</button>
+          </td>
+        `;
+
+        tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewPartePerfil(parte.id));
+        tbody.appendChild(tr);
+      }
+    }
+
+    window.viewPartePerfil = async (docId) => {
+      const doc = await fdb.collection('inventario_partes').doc(docId).get();
+      const data = doc.data();
+      const photos = await loadPhotosFromFirestore(docId, 'inv_parte');
+
+      const content = document.getElementById('profile-content');
+      content.innerHTML = `
+        <div class="profile-grid">
+          <div class="profile-field">
+            <div class="profile-label">N° Parte</div>
+            <div class="profile-value">${data.numeroParte}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Marca</div>
+            <div class="profile-value">${data.marca || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Modelo</div>
+            <div class="profile-value">${data.modelo || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Año</div>
+            <div class="profile-value">${data.ano || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Precio</div>
+            <div class="profile-value">L. ${data.precio.toFixed(2)}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Cantidad</div>
+            <div class="profile-value">${data.cantidad}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Estante</div>
+            <div class="profile-value">${data.estante || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Ubicación</div>
+            <div class="profile-value">${data.ubicacion || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Estado</div>
+            <div class="profile-value" style="color: ${data.estado === 'Disponible' ? '#10b981' : data.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${data.estado}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Registrado por</div>
+            <div class="profile-value">${data.registradoPor || '-'}</div>
+          </div>
+        </div>
+        <div class="profile-field form-full" style="border: none;">
+          <div class="profile-label">Descripción</div>
+          <div class="profile-value" style="white-space: pre-wrap;">${data.descripcion || '-'}</div>
+        </div>
+        ${photos.length > 0 ? `
+          <div class="profile-photos">
+            <div class="profile-photos-title">Galería de Fotos</div>
+            <div class="gallery-grid">
+              ${photos.map(p => `<img src="${p.data}" class="gallery-img" onclick="window.showLightbox('${p.data}')">`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca}`;
+      document.getElementById('profile-overlay').classList.add('show');
+    };
+
+    window.editParte = async (docId) => {
+      _editingParteId = docId;
+      await loadParteForEdit(docId);
+    };
+
+    window.deleteParte = async (docId) => {
+      if (!confirm('¿Estás seguro de que deseas eliminar esta parte?')) return;
+
+      try {
+        const photos = await loadPhotosFromFirestore(docId, 'inv_parte');
+        for (const photo of photos) {
+          await fdb.collection('fotos').doc(photo.id).delete();
+        }
+        await fdb.collection('inventario_partes').doc(docId).delete();
+        alert('Parte eliminada');
+        await loadPartes();
+        await loadDashboard();
+      } catch (err) {
+        console.error(err);
+        alert('Error al eliminar: ' + err.message);
+      }
+    };
+
+    // ===== BUENAS TABLE =====
+    async function loadBuenas() {
+      const snap = await fdb.collection('inventario_buenas').get();
+      const buenas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      const tbody = document.getElementById('buenas-table-body');
+      tbody.innerHTML = '';
+
+      if (buenas.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px;"><div class="empty-state"><div class="empty-state-icon">💻</div><div>No hay computadoras registradas</div></div></td></tr>';
+        return;
+      }
+
+      for (const buena of buenas) {
+        const photos = await loadPhotosFromFirestore(buena.id, 'inv_buena');
+        const photoSrc = photos.length > 0 ? photos[0].thumbnail : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><img src="${photoSrc}" class="table-thumbnail" data-buena-id="${buena.id}"></td>
+          <td>${buena.numeroParte}</td>
+          <td>${buena.marca} ${buena.modelo}</td>
+          <td>${buena.ano || '-'}</td>
+          <td>L. ${buena.precio.toFixed(2)}</td>
+          <td>${buena.cantidad}</td>
+          <td>${buena.estante}</td>
+          <td><span style="color: ${buena.estado === 'Disponible' ? '#10b981' : buena.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${buena.estado}</span></td>
+          <td class="table-actions">
+            <button class="action-btn" onclick="window.viewBuenaPerfil('${buena.id}')">Ver</button>
+            <button class="action-btn" onclick="window.editBuena('${buena.id}')">Editar</button>
+            <button class="action-btn delete" onclick="window.deleteBuena('${buena.id}')">Eliminar</button>
+          </td>
+        `;
+
+        tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewBuenaPerfil(buena.id));
+        tbody.appendChild(tr);
+      }
+    }
+
+    window.viewBuenaPerfil = async (docId) => {
+      const doc = await fdb.collection('inventario_buenas').doc(docId).get();
+      const data = doc.data();
+      const photos = await loadPhotosFromFirestore(docId, 'inv_buena');
+
+      const content = document.getElementById('profile-content');
+      content.innerHTML = `
+        <div class="profile-grid">
+          <div class="profile-field">
+            <div class="profile-label">N° Computadora</div>
+            <div class="profile-value">${data.numeroParte}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Marca</div>
+            <div class="profile-value">${data.marca || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Modelo</div>
+            <div class="profile-value">${data.modelo || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Año</div>
+            <div class="profile-value">${data.ano || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Precio</div>
+            <div class="profile-value">L. ${data.precio.toFixed(2)}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Cantidad</div>
+            <div class="profile-value">${data.cantidad}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Estante</div>
+            <div class="profile-value">${data.estante || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Ubicación</div>
+            <div class="profile-value">${data.ubicacion || '-'}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Estado</div>
+            <div class="profile-value" style="color: ${data.estado === 'Disponible' ? '#10b981' : data.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${data.estado}</div>
+          </div>
+          <div class="profile-field">
+            <div class="profile-label">Registrado por</div>
+            <div class="profile-value">${data.registradoPor || '-'}</div>
+          </div>
+        </div>
+        <div class="profile-field form-full" style="border: none;">
+          <div class="profile-label">Descripción</div>
+          <div class="profile-value" style="white-space: pre-wrap;">${data.descripcion || '-'}</div>
+        </div>
+        ${photos.length > 0 ? `
+          <div class="profile-photos">
+            <div class="profile-photos-title">Galería de Fotos</div>
+            <div class="gallery-grid">
+              ${photos.map(p => `<img src="${p.data}" class="gallery-img" onclick="window.showLightbox('${p.data}')">`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      `;
+
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca}`;
+      document.getElementById('profile-overlay').classList.add('show');
+    };
+
+    window.editBuena = async (docId) => {
+      _editingBuenaId = docId;
+      await loadBuenaForEdit(docId);
+    };
+
+    window.deleteBuena = async (docId) => {
+      if (!confirm('¿Estás seguro de que deseas eliminar esta computadora?')) return;
+
+      try {
+        const photos = await loadPhotosFromFirestore(docId, 'inv_buena');
+        for (const photo of photos) {
+          await fdb.collection('fotos').doc(photo.id).delete();
+        }
+        await fdb.collection('inventario_buenas').doc(docId).delete();
+        alert('Computadora eliminada');
+        await loadBuenas();
+        await loadDashboard();
+      } catch (err) {
+        console.error(err);
+        alert('Error al eliminar: ' + err.message);
+      }
+    };
+
+    // ===== SEARCH =====
+    document.getElementById('partes-search').addEventListener('input', async (e) => {
+      const query = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#partes-table-body tr');
+
+      for (const row of rows) {
+        const numero = row.cells[1]?.textContent || '';
+        const marca = row.cells[2]?.textContent || '';
+        const modelo = row.cells[2]?.textContent || '';
+
+        const matches = numero.toLowerCase().includes(query) ||
+                       marca.toLowerCase().includes(query) ||
+                       modelo.toLowerCase().includes(query);
+
+        row.style.display = matches ? '' : 'none';
+      }
+    });
+
+    document.getElementById('buenas-search').addEventListener('input', async (e) => {
+      const query = e.target.value.toLowerCase();
+      const rows = document.querySelectorAll('#buenas-table-body tr');
+
+      for (const row of rows) {
+        const numero = row.cells[1]?.textContent || '';
+        const marca = row.cells[2]?.textContent || '';
+        const modelo = row.cells[2]?.textContent || '';
+
+        const matches = numero.toLowerCase().includes(query) ||
+                       marca.toLowerCase().includes(query) ||
+                       modelo.toLowerCase().includes(query);
+
+        row.style.display = matches ? '' : 'none';
+      }
+    });
+
+    // ===== CLIENTES =====
+    async function loadClientes() {
+      const snap = await fdb.collection('usuarios').get();
+      const clientes = snap.docs.map(d => d.data());
+
+      const container = document.getElementById('clients-list');
+      container.innerHTML = '';
+
+      if (clientes.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #64748b;"><div class="empty-state"><div class="empty-state-icon">👤</div><div>No hay clientes registrados</div></div></div>';
+        return;
+      }
+
+      const list = document.createElement('div');
+      list.className = 'clients-list';
+
+      for (const cliente of clientes) {
+        const item = document.createElement('div');
+        item.className = 'client-item';
+        item.innerHTML = `
+          <div class="client-info">
+            <div class="client-name">${cliente.nombre || cliente.usuario}</div>
+            <div class="client-contact">${cliente.usuario || '-'}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      }
+
+      container.appendChild(list);
+    }
+
+    // ===== PROFILE & LIGHTBOX =====
+    document.getElementById('profile-close').addEventListener('click', () => {
+      document.getElementById('profile-overlay').classList.remove('show');
+    });
+
+    window.showLightbox = (src) => {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox-overlay').classList.add('show');
+    };
+
+    document.getElementById('lightbox-close').addEventListener('click', () => {
+      document.getElementById('lightbox-overlay').classList.remove('show');
+    });
+
+    document.getElementById('lightbox-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('lightbox-overlay')) {
+        document.getElementById('lightbox-overlay').classList.remove('show');
+      }
+    });
+
+    document.getElementById('profile-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('profile-overlay')) {
+        document.getElementById('profile-overlay').classList.remove('show');
+      }
+    });
+
+    // ===== RESET FORMS =====
+    function resetForms() {
+      resetParteForm();
+      resetBuenaForm();
+    }
+
+    // ===== INIT =====
+    (async () => {
+      const user = await loadCurrentUser();
+      if (user) {
+        currentUser = user;
+        hideLoginOverlay();
+        document.getElementById('user-name').textContent = user.nombre || user.usuario;
+        await loadDashboard();
+        await loadPartes();
+        await loadBuenas();
+        await loadClientes();
+      } else {
+        showLoginOverlay();
+      }
+    })();
+
+    // Load CryptoJS
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.0/crypto-js.min.js';
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>
