@@ -2637,6 +2637,57 @@
       if (codigo) ejecutarClaudeIA(codigo, prefijo, key);
     }
 
+    // Extrae el segmento de modelo de un número que puede incluir serial
+    function extraerSegmentos(codigo) {
+      // Ej: DBMEC83-712A10000DB631423710 → ["DBMEC83", "712A10000DB631423710"]
+      const partes = codigo.split(/[-_\/\s]+/);
+      // El modelo suele ser el primer segmento corto (≤12 chars alfanumérico)
+      const modelo = partes[0] || codigo;
+      return { modelo, completo: codigo };
+    }
+
+    async function llamarClaude(texto, apiKey) {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 400,
+          messages: [{
+            role: 'user',
+            content: `Eres un experto en componentes de computadoras y electrónica. Analiza este identificador de componente: "${texto}"
+
+IMPORTANTE: Muchos números de parte incluyen el código de modelo seguido del número de serie. Por ejemplo "DBMEC83-712A10000" tiene modelo "DBMEC83". Identifica el fabricante y tipo aunque solo tengas el prefijo del modelo.
+
+Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra):
+{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
+
+Reglas:
+- marca: nombre del fabricante (Acer, Dell, HP, Lenovo, Intel, AMD, Samsung, ASUS, MSI, Gigabyte, Corsair, Kingston, Crucial, Seagate, WD, NVIDIA, etc.)
+- modelo: código o nombre del modelo (ej: "EC83", "Aspire E15", "Core i5-8250U")
+- ano: año estimado de fabricación/lanzamiento como número, o null
+- tipo: uno de estos exactamente → CPU | RAM | SSD | HDD | GPU | Motherboard | Laptop | Fuente de Poder | Pantalla | Batería | Teclado | Otro
+- descripcion: descripción en español máx 90 caracteres (ej: "Tarjeta madre Acer para laptop Aspire serie E")
+Aunque no conozcas el modelo exacto, infiere la marca y tipo si el prefijo lo indica.`
+          }]
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status === 401) { localStorage.removeItem('inv_ai_key'); throw new Error('Clave API inválida. Toca 🤖 de nuevo.'); }
+        if (resp.status === 429) throw new Error('Límite de consultas alcanzado. Intenta en un momento.');
+        throw new Error(err?.error?.message || `Error ${resp.status}`);
+      }
+      const data = await resp.json();
+      const raw  = data.content?.[0]?.text || '{}';
+      try { return JSON.parse(raw.match(/\{[\s\S]*?\}/)?.[0] || '{}'); } catch { return {}; }
+    }
+
     async function ejecutarClaudeIA(codigo, prefijo, apiKey) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
       cardEl.innerHTML = `
@@ -2646,47 +2697,19 @@
         </div>`;
 
       try {
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true'
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 350,
-            messages: [{
-              role: 'user',
-              content: `Identifica este número de parte o código de barras de computadora/electrónica: "${codigo}"
+        const { modelo, completo } = extraerSegmentos(codigo);
 
-Responde SOLO con JSON válido, sin markdown ni texto extra:
-{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
+        // 1er intento: número completo
+        let info = await llamarClaude(completo, apiKey);
 
-- marca: fabricante exacto (Intel, AMD, Samsung, Dell, HP, Lenovo, Seagate, WD, Kingston, Crucial, NVIDIA, ASUS, MSI, Gigabyte, Corsair, etc.)
-- modelo: nombre de modelo específico (ej: "Core i5-12400", "970 EVO Plus 500GB")
-- ano: año de lanzamiento como número entero o null
-- tipo: CPU | RAM | SSD | HDD | GPU | Motherboard | Fuente de Poder | Pantalla | Laptop | Batería | Otro
-- descripcion: descripción breve en español, máx 90 caracteres
-Si el código es irreconocible, devuelve campos vacíos/null.`
-            }]
-          })
-        });
-
-        if (!resp.ok) {
-          const err = await resp.json().catch(() => ({}));
-          if (resp.status === 401) {
-            localStorage.removeItem('inv_ai_key');
-            throw new Error('Clave inválida. Toca 🤖 de nuevo para ingresar una nueva.');
-          }
-          throw new Error(err?.error?.message || `Error ${resp.status}`);
+        // 2do intento: solo el segmento de modelo si el completo no dio resultados
+        const hayInfo = info.marca || info.modelo || info.tipo;
+        if (!hayInfo && modelo !== completo) {
+          cardEl.querySelector('span').textContent = `Probando con modelo "${modelo}"…`;
+          info = await llamarClaude(modelo, apiKey);
+          if (info.modelo && !info.modelo.includes(modelo)) info.modelo = modelo + ' — ' + info.modelo;
         }
 
-        const data = await resp.json();
-        const raw  = data.content?.[0]?.text || '{}';
-        let info = {};
-        try { info = JSON.parse(raw.match(/\{[\s\S]*?\}/)?.[0] || '{}'); } catch {}
         info.fuente = 'Claude AI';
         mostrarTarjetaIA(info, prefijo, codigo);
 
