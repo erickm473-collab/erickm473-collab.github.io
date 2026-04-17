@@ -50,12 +50,8 @@
     .user-info { display: flex; align-items: center; gap: 8px; font-size: 13px; }
     .user-badge { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
 
-    #app-switcher { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 8px; background: white; padding: 12px 16px; border-radius: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 500; }
-    #app-switcher button { padding: 8px 12px; border: none; border-radius: 12px; background: #f3f4f6; color: #1f2937; cursor: pointer; font-size: 12px; font-weight: 500; }
-    #app-switcher button:hover { background: #e5e7eb; }
-    #app-switcher button.active { background: #7c3aed; color: white; }
 
-    .content-area { flex: 1; overflow-y: auto; padding: 24px; }
+    .content-area { flex: 1; overflow-y: auto; padding: 24px; padding-bottom:72px; }
     .section { display: none; }
     .section.active { display: block; }
 
@@ -158,7 +154,6 @@
     .hidden-readonly { background: #f3f4f6; padding: 8px 12px; border-radius: 6px; font-size: 13px; color: #6b7280; }
 
     @media (max-width: 768px) {
-      #app-switcher { bottom: 80px; right: 16px; padding: 10px 14px; font-size: 0.78rem; }
       .sidebar { position: fixed; left: 0; top: 0; height: 100%; transform: translateX(-100%); z-index: 999; width: 240px; }
       .sidebar.open { transform: translateX(0); }
       .hamburger-btn { display: block; }
@@ -170,11 +165,13 @@
       .form-row { grid-template-columns: 1fr; }
       .data-table { font-size: 12px; }
       .data-table th, .data-table td { padding: 8px; }
-      .bottombar { display: flex; height: 60px; background: white; border-top: 1px solid #e5e7eb; position: fixed; bottom: 0; width: 100%; }
-      .bottombar-btn { flex: 1; background: none; border: none; color: #6b7280; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; }
-      .bottombar-btn.active { color: #7c3aed; }
-      .content-area { padding-bottom: 70px; }
     }
+    #bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#1e293b;display:flex;justify-content:space-around;align-items:center;padding:10px 0 12px;z-index:900;border-top:1px solid rgba(255,255,255,.1);box-shadow:0 -4px 24px rgba(0,0,0,.35);}
+    #bottom-nav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:#94a3b8;text-decoration:none;font-size:11px;font-weight:500;padding:4px 12px;border-radius:8px;transition:color .2s;}
+    #bottom-nav a .bn-icon{font-size:22px;line-height:1;}
+    #bottom-nav a.bn-active{color:#fff;}
+    #bottom-nav a:hover{color:#e2e8f0;}
+    @media(max-width:600px){#bottom-nav a{padding:4px 8px;font-size:10px;}#bottom-nav a .bn-icon{font-size:20px;}}
   </style>
 </head>
 <body>
@@ -552,11 +549,6 @@
     </div>
   </div>
 
-  <div id="app-switcher">
-    <button class="active" onclick="window.location.href='computadoras.html'">💻 Computadoras</button>
-    <button onclick="window.location.href='taller.html'">🚗 Taller</button>
-    <button onclick="window.location.href='index.html'">🏠 Inicio</button>
-  </div>
 
   <script>
     const firebaseConfig = {
@@ -1539,5 +1531,12 @@ ${ing.observaciones ? `<div class="section-title">Observaciones</div><div class=
       }
     });
   </script>
+
+  <nav id="bottom-nav">
+    <a href="index.html"><span class="bn-icon">🏠</span><span>Inicio</span></a>
+    <a href="taller.html"><span class="bn-icon">🔧</span><span>Taller</span></a>
+    <a href="repuestos.html"><span class="bn-icon">📦</span><span>Repuestos</span></a>
+    <a href="computadoras.html" class="bn-active"><span class="bn-icon">💻</span><span>Computadoras</span></a>
+  </nav>
 </body>
 </html>
