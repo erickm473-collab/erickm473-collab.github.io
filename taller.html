@@ -915,6 +915,103 @@
         <div id="pvOrdenes"></div>
       </div>
 
+      <!-- TRABAJOS REALIZADOS -->
+      <div style="background:#1e293b; border-radius:14px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="font-size:.7rem; font-weight:800; color:#34d399; text-transform:uppercase; letter-spacing:1px;">🔩 Trabajos Realizados</div>
+          <button onclick="togglePvForm('pvTrabajoForm')" style="background:rgba(52,211,153,.15); color:#34d399; border:1px solid rgba(52,211,153,.3); border-radius:8px; padding:5px 12px; font-size:.78rem; font-weight:700; cursor:pointer;">+ Agregar</button>
+        </div>
+        <!-- Form -->
+        <div id="pvTrabajoForm" style="display:none; background:rgba(0,0,0,.25); border-radius:10px; padding:14px; margin-bottom:14px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">TIPO DE TRABAJO</label>
+              <select id="pvTrabTipo" style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+                <option value="">Seleccionar...</option>
+                <option>Cambio de aceite</option>
+                <option>Cambio de bujías</option>
+                <option>Cambio de filtro de aire</option>
+                <option>Cambio de filtro de combustible</option>
+                <option>Cambio de correa de distribución</option>
+                <option>Cambio de frenos</option>
+                <option>Cambio de amortiguadores</option>
+                <option>Alineación y balanceo</option>
+                <option>Revisión eléctrica</option>
+                <option>Diagnóstico computarizado</option>
+                <option>Cambio de batería</option>
+                <option>Cambio de refrigerante</option>
+                <option>Cambio de líquido de frenos</option>
+                <option>Reparación de motor</option>
+                <option>Reparación de transmisión</option>
+                <option>Reparación de suspensión</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">TÉCNICO RESPONSABLE</label>
+              <input type="text" id="pvTrabTecnico" placeholder="Nombre del técnico" style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+            </div>
+          </div>
+          <div style="margin-bottom:10px;">
+            <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">DESCRIPCIÓN DEL TRABAJO</label>
+            <textarea id="pvTrabDesc" rows="3" placeholder="Describe el trabajo realizado..." style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem; resize:vertical;"></textarea>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button onclick="togglePvForm('pvTrabajoForm')" style="padding:8px 16px; background:rgba(255,255,255,.08); color:#94a3b8; border:none; border-radius:8px; font-size:.82rem; cursor:pointer;">Cancelar</button>
+            <button id="pvTrabGuardarBtn" onclick="guardarTrabajo()" style="padding:8px 16px; background:#34d399; color:#064e3b; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer;">💾 Guardar</button>
+          </div>
+        </div>
+        <!-- Lista -->
+        <div id="pvTrabajosList"><div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Cargando...</div></div>
+      </div>
+
+      <!-- GASTOS Y PARTES -->
+      <div style="background:#1e293b; border-radius:14px; padding:16px; margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+          <div style="font-size:.7rem; font-weight:800; color:#f87171; text-transform:uppercase; letter-spacing:1px;">💰 Gastos y Partes Utilizadas</div>
+          <button onclick="togglePvForm('pvGastoForm')" style="background:rgba(248,113,113,.15); color:#f87171; border:1px solid rgba(248,113,113,.3); border-radius:8px; padding:5px 12px; font-size:.78rem; font-weight:700; cursor:pointer;">+ Agregar</button>
+        </div>
+        <!-- Form -->
+        <div id="pvGastoForm" style="display:none; background:rgba(0,0,0,.25); border-radius:10px; padding:14px; margin-bottom:14px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">CATEGORÍA</label>
+              <select id="pvGastoCat" style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+                <option value="parte">🔩 Parte / Repuesto</option>
+                <option value="insumo">🧴 Insumo</option>
+                <option value="servicio">🛠️ Servicio externo</option>
+                <option value="otro">📦 Otro</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">DESCRIPCIÓN / NOMBRE</label>
+              <input type="text" id="pvGastoDesc" placeholder="Ej: Aceite 5W-30, Filtro K&N..." style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">CANTIDAD</label>
+              <input type="number" id="pvGastoCant" value="1" min="1" step="0.01" style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+            </div>
+            <div>
+              <label style="font-size:.72rem; color:#94a3b8; font-weight:600; display:block; margin-bottom:4px;">COSTO UNITARIO (Lps.)</label>
+              <input type="number" id="pvGastoCosto" value="0" min="0" step="0.01" style="width:100%; padding:9px 10px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.85rem;">
+            </div>
+          </div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button onclick="togglePvForm('pvGastoForm')" style="padding:8px 16px; background:rgba(255,255,255,.08); color:#94a3b8; border:none; border-radius:8px; font-size:.82rem; cursor:pointer;">Cancelar</button>
+            <button id="pvGastoGuardarBtn" onclick="guardarGasto()" style="padding:8px 16px; background:#f87171; color:#fff; border:none; border-radius:8px; font-size:.82rem; font-weight:700; cursor:pointer;">💾 Guardar</button>
+          </div>
+        </div>
+        <!-- Lista -->
+        <div id="pvGastosList"><div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Cargando...</div></div>
+        <!-- Total -->
+        <div id="pvGastosTotal" style="display:none; margin-top:12px; background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.25); border-radius:10px; padding:12px; text-align:right;">
+          <span style="font-size:.78rem; color:#94a3b8; font-weight:600;">TOTAL GASTOS:</span>
+          <span id="pvGastosTotalVal" style="font-size:1.2rem; font-weight:800; color:#f87171; margin-left:10px;">Lps. 0.00</span>
+        </div>
+      </div>
+
       <!-- ACCIONES -->
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;">
         <button id="pvBtnContrato" onclick="" style="flex:1; min-width:140px; background:#25d366; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;">📲 Enviar Contrato</button>
@@ -1284,6 +1381,8 @@
       const veh = vehiculosData.find(x => x.id === vehiculoId);
       if (!veh) return;
 
+      _pvVehiculoId = vehiculoId;
+
       const screen = document.getElementById('vehiculoPerfilScreen');
       screen.style.display = 'block';
       screen.scrollTop = 0;
@@ -1397,6 +1496,10 @@
       document.getElementById('pvBtnContrato').onclick = () => enviarContrato(vehiculoId);
       document.getElementById('pvBtnEditar').onclick = () => { cerrarPerfilVehiculo(); editVehiculo(vehiculoId); };
 
+      // Cargar trabajos y gastos
+      loadTrabajosVehiculo(vehiculoId);
+      loadGastosVehiculo(vehiculoId);
+
       // Fotos — cargar async
       document.getElementById('pvFotosGrid').innerHTML = '<div style="color:#64748b;font-size:.82rem;">Cargando fotos...</div>';
       document.getElementById('pvDiagFotos').innerHTML = '';
@@ -1434,7 +1537,172 @@
 
     function cerrarPerfilVehiculo() {
       document.getElementById('vehiculoPerfilScreen').style.display = 'none';
+      _pvVehiculoId = null;
     }
+
+    // ══════════ TRABAJOS Y GASTOS ══════════
+    let _pvVehiculoId = null;
+    let _savingTrabajo = false;
+    let _savingGasto = false;
+
+    function togglePvForm(id) {
+      const el = document.getElementById(id);
+      el.style.display = el.style.display === 'none' ? 'block' : 'none';
+    }
+
+    async function loadTrabajosVehiculo(vehiculoId) {
+      const el = document.getElementById('pvTrabajosList');
+      el.innerHTML = '<div style="font-size:.82rem; color:#64748b; text-align:center; padding:8px;">Cargando...</div>';
+      try {
+        const snap = await db.collection('trabajos_vehiculo').where('vehiculoId','==',vehiculoId).get();
+        if (snap.empty) {
+          el.innerHTML = '<div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Sin trabajos registrados</div>';
+          return;
+        }
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a,b) => (b.fecha?.seconds||0) - (a.fecha?.seconds||0));
+        el.innerHTML = items.map(t => {
+          const fecha = t.fecha ? new Date(t.fecha.seconds*1000).toLocaleDateString('es-HN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+          return `<div style="background:rgba(255,255,255,.04); border-left:3px solid #34d399; border-radius:8px; padding:12px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+              <span style="font-size:.88rem; font-weight:700; color:#a7f3d0;">${t.tipo || 'Trabajo'}</span>
+              <span style="font-size:.72rem; color:#64748b; flex-shrink:0; margin-left:8px;">${fecha}</span>
+            </div>
+            ${t.descripcion ? `<div style="font-size:.82rem; color:#cbd5e1; line-height:1.5; margin-bottom:4px;">${t.descripcion}</div>` : ''}
+            <div style="display:flex; gap:12px; font-size:.75rem; color:#64748b; margin-top:4px;">
+              ${t.tecnico ? `<span>👷 ${t.tecnico}</span>` : ''}
+              ${t.creadoPor ? `<span>✍️ Registrado por: <strong style="color:#94a3b8;">${t.creadoPor}</strong></span>` : ''}
+            </div>
+            ${currentUser?.role === 'admin' ? `<button onclick="deleteTrabajo('${t.id}')" style="margin-top:6px; background:rgba(220,38,38,.15); color:#f87171; border:1px solid rgba(220,38,38,.2); border-radius:6px; padding:3px 10px; font-size:.72rem; cursor:pointer;">🗑️ Borrar</button>` : ''}
+          </div>`;
+        }).join('');
+      } catch(e) {
+        el.innerHTML = `<div style="color:#f87171;font-size:.82rem;">Error: ${e.message}</div>`;
+      }
+    }
+
+    async function guardarTrabajo() {
+      if (_savingTrabajo) return;
+      const tipo = document.getElementById('pvTrabTipo').value.trim();
+      const desc = document.getElementById('pvTrabDesc').value.trim();
+      const tecnico = document.getElementById('pvTrabTecnico').value.trim();
+      if (!tipo) { alert('Selecciona el tipo de trabajo'); return; }
+      if (!_pvVehiculoId) return;
+      _savingTrabajo = true;
+      const btn = document.getElementById('pvTrabGuardarBtn');
+      btn.disabled = true; btn.textContent = 'Guardando...';
+      try {
+        await db.collection('trabajos_vehiculo').add({
+          vehiculoId: _pvVehiculoId,
+          tipo,
+          descripcion: desc,
+          tecnico,
+          creadoPor: currentUser?.nombre || currentUser?.username || '—',
+          fecha: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        document.getElementById('pvTrabTipo').value = '';
+        document.getElementById('pvTrabDesc').value = '';
+        document.getElementById('pvTrabTecnico').value = '';
+        togglePvForm('pvTrabajoForm');
+        await loadTrabajosVehiculo(_pvVehiculoId);
+      } catch(e) {
+        alert('Error al guardar: ' + e.message);
+      } finally {
+        _savingTrabajo = false;
+        btn.disabled = false; btn.textContent = '💾 Guardar';
+      }
+    }
+
+    async function deleteTrabajo(id) {
+      if (!confirm('¿Eliminar este trabajo?')) return;
+      await db.collection('trabajos_vehiculo').doc(id).delete();
+      await loadTrabajosVehiculo(_pvVehiculoId);
+    }
+
+    async function loadGastosVehiculo(vehiculoId) {
+      const el = document.getElementById('pvGastosList');
+      el.innerHTML = '<div style="font-size:.82rem; color:#64748b; text-align:center; padding:8px;">Cargando...</div>';
+      try {
+        const snap = await db.collection('gastos_vehiculo').where('vehiculoId','==',vehiculoId).get();
+        if (snap.empty) {
+          el.innerHTML = '<div style="font-size:.85rem; color:#475569; text-align:center; padding:10px;">Sin gastos registrados</div>';
+          document.getElementById('pvGastosTotal').style.display = 'none';
+          return;
+        }
+        const catColors = { parte:'#60a5fa', insumo:'#fbbf24', servicio:'#c084fc', otro:'#94a3b8' };
+        const catLabels = { parte:'🔩 Parte', insumo:'🧴 Insumo', servicio:'🛠️ Servicio', otro:'📦 Otro' };
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+          .sort((a,b) => (b.fecha?.seconds||0) - (a.fecha?.seconds||0));
+        let total = 0;
+        el.innerHTML = items.map(g => {
+          const subtotal = (parseFloat(g.cantidad)||1) * (parseFloat(g.costo)||0);
+          total += subtotal;
+          const fecha = g.fecha ? new Date(g.fecha.seconds*1000).toLocaleDateString('es-HN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+          const color = catColors[g.categoria] || '#94a3b8';
+          return `<div style="background:rgba(255,255,255,.04); border-left:3px solid ${color}; border-radius:8px; padding:11px 12px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-size:.88rem; font-weight:700; color:#e2e8f0; margin-bottom:3px;">${g.descripcion || '—'}</div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:.75rem; color:#64748b;">
+                <span style="background:rgba(255,255,255,.06); color:${color}; border-radius:6px; padding:1px 8px;">${catLabels[g.categoria]||'—'}</span>
+                ${g.cantidad ? `<span>Cant: ${g.cantidad}</span>` : ''}
+                ${g.costo ? `<span>C/U: Lps. ${parseFloat(g.costo).toLocaleString('es-HN',{minimumFractionDigits:2})}</span>` : ''}
+                ${g.creadoPor ? `<span>✍️ ${g.creadoPor}</span>` : ''}
+                <span>${fecha}</span>
+              </div>
+            </div>
+            <div style="text-align:right; flex-shrink:0;">
+              <div style="font-size:.95rem; font-weight:700; color:#f1f5f9;">Lps. ${subtotal.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+              ${currentUser?.role === 'admin' ? `<button onclick="deleteGasto('${g.id}')" style="margin-top:4px; background:rgba(220,38,38,.15); color:#f87171; border:1px solid rgba(220,38,38,.2); border-radius:6px; padding:2px 8px; font-size:.7rem; cursor:pointer;">🗑️</button>` : ''}
+            </div>
+          </div>`;
+        }).join('');
+        document.getElementById('pvGastosTotal').style.display = 'block';
+        document.getElementById('pvGastosTotalVal').textContent = 'Lps. ' + total.toLocaleString('es-HN',{minimumFractionDigits:2});
+      } catch(e) {
+        el.innerHTML = `<div style="color:#f87171;font-size:.82rem;">Error: ${e.message}</div>`;
+      }
+    }
+
+    async function guardarGasto() {
+      if (_savingGasto) return;
+      const cat   = document.getElementById('pvGastoCat').value;
+      const desc  = document.getElementById('pvGastoDesc').value.trim();
+      const cant  = parseFloat(document.getElementById('pvGastoCant').value) || 1;
+      const costo = parseFloat(document.getElementById('pvGastoCosto').value) || 0;
+      if (!desc) { alert('Escribe la descripción del gasto'); return; }
+      if (!_pvVehiculoId) return;
+      _savingGasto = true;
+      const btn = document.getElementById('pvGastoGuardarBtn');
+      btn.disabled = true; btn.textContent = 'Guardando...';
+      try {
+        await db.collection('gastos_vehiculo').add({
+          vehiculoId: _pvVehiculoId,
+          categoria: cat,
+          descripcion: desc,
+          cantidad: cant,
+          costo,
+          creadoPor: currentUser?.nombre || currentUser?.username || '—',
+          fecha: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        document.getElementById('pvGastoDesc').value = '';
+        document.getElementById('pvGastoCant').value = '1';
+        document.getElementById('pvGastoCosto').value = '0';
+        togglePvForm('pvGastoForm');
+        await loadGastosVehiculo(_pvVehiculoId);
+      } catch(e) {
+        alert('Error al guardar: ' + e.message);
+      } finally {
+        _savingGasto = false;
+        btn.disabled = false; btn.textContent = '💾 Guardar';
+      }
+    }
+
+    async function deleteGasto(id) {
+      if (!confirm('¿Eliminar este gasto?')) return;
+      await db.collection('gastos_vehiculo').doc(id).delete();
+      await loadGastosVehiculo(_pvVehiculoId);
+    }
+    // ══════════════════════════════════════
 
     function renderOrdenes() {
       const html = ordenesData.map(o => `
