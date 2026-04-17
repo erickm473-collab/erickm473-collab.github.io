@@ -1415,22 +1415,19 @@
     let _forceCreateBuena = false;
 
     // ===== UTILITIES =====
-    function hashPassword(password) {
-      return CryptoJS.SHA256(password).toString();
+    async function hashPassword(pwd) {
+      const data = new TextEncoder().encode(pwd);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
 
     async function loadCurrentUser() {
-      const usuario = localStorage.getItem('inv_usuario');
-      const hash = localStorage.getItem('inv_hash');
-      if (!usuario || !hash) return null;
-
-      const snap = await fdb.collection('usuarios').where('usuario', '==', usuario).get();
-      if (snap.empty) return null;
-
-      const userData = snap.docs[0].data();
-      if (CryptoJS.SHA256(userData.password).toString() === hash) {
-        return userData;
-      }
+      const stored = localStorage.getItem('currentUser');
+      if (!stored) return null;
+      try {
+        const user = JSON.parse(stored);
+        if (user && user.username) return user;
+      } catch(e) {}
       return null;
     }
 
@@ -1488,11 +1485,11 @@
 
     // ===== LOGIN =====
     document.getElementById('login-btn').addEventListener('click', async () => {
-      const usuario = document.getElementById('login-usuario').value.trim();
+      const username = document.getElementById('login-usuario').value.trim();
       const password = document.getElementById('login-password').value;
       const errorEl = document.getElementById('login-error');
 
-      if (!usuario || !password) {
+      if (!username || !password) {
         errorEl.textContent = 'Usuario y contraseña requeridos';
         return;
       }
@@ -1501,28 +1498,29 @@
       errorEl.textContent = '';
 
       try {
-        const snap = await fdb.collection('usuarios').where('usuario', '==', usuario).get();
+        const snap = await fdb.collection('usuarios').where('username', '==', username).get();
         if (snap.empty) {
           errorEl.textContent = 'Usuario no encontrado';
           document.getElementById('login-btn').disabled = false;
           return;
         }
 
-        const userData = snap.docs[0].data();
-        const hash = CryptoJS.SHA256(password).toString();
+        const doc = snap.docs[0];
+        const userData = doc.data();
+        const hashedPwd = await hashPassword(password);
 
-        if (CryptoJS.SHA256(userData.password).toString() !== hash) {
+        if (userData.passwordHash !== hashedPwd) {
           errorEl.textContent = 'Contraseña incorrecta';
           document.getElementById('login-btn').disabled = false;
           return;
         }
 
-        localStorage.setItem('inv_usuario', usuario);
-        localStorage.setItem('inv_hash', hash);
-        currentUser = userData;
+        const userObj = { id: doc.id, ...userData };
+        localStorage.setItem('currentUser', JSON.stringify(userObj));
+        currentUser = userObj;
 
         hideLoginOverlay();
-        document.getElementById('user-name').textContent = userData.nombre || usuario;
+        document.getElementById('user-name').textContent = userData.nombre || username;
         await loadDashboard();
         await loadPartes();
         await loadBuenas();
@@ -1536,8 +1534,7 @@
     });
 
     document.getElementById('logout-btn').addEventListener('click', () => {
-      localStorage.removeItem('inv_usuario');
-      localStorage.removeItem('inv_hash');
+      localStorage.removeItem('currentUser');
       currentUser = null;
       showLoginOverlay();
       resetForms();
@@ -1720,7 +1717,7 @@
           estante,
           ubicacion,
           estado,
-          registradoPor: currentUser.nombre || currentUser.usuario,
+          registradoPor: currentUser.nombre || currentUser.username,
           updatedAt: new Date()
         };
 
@@ -1878,7 +1875,7 @@
           estante,
           ubicacion,
           estado,
-          registradoPor: currentUser.nombre || currentUser.usuario,
+          registradoPor: currentUser.nombre || currentUser.username,
           updatedAt: new Date()
         };
 
@@ -2364,7 +2361,7 @@
       if (user) {
         currentUser = user;
         hideLoginOverlay();
-        document.getElementById('user-name').textContent = user.nombre || user.usuario;
+        document.getElementById('user-name').textContent = user.nombre || user.username;
         await loadDashboard();
         await loadPartes();
         await loadBuenas();
@@ -2373,11 +2370,6 @@
         showLoginOverlay();
       }
     })();
-
-    // Load CryptoJS
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.0/crypto-js.min.js';
-    document.head.appendChild(script);
   </script>
 </body>
 </html>
