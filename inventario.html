@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Inventario - YONKER EL TRIANGULO</title>
+  <title>Inventario - YONKER EL TRIANGULO v2.4</title>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -1231,6 +1231,13 @@
       <div class="sidebar-header">
         <h1>🖥️ Inventario</h1>
         <p>YONKER EL TRIANGULO</p>
+        <div style="margin-top:4px;font-size:.65rem;color:#475569;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span style="background:rgba(99,102,241,.2);color:#a5b4fc;padding:1px 7px;border-radius:8px;">v2.4</span>
+          <button onclick="testBusquedaLocal()" title="Probar base de datos local"
+            style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);color:#4ade80;border-radius:6px;padding:2px 8px;font-size:.63rem;cursor:pointer;">
+            🧪 Test BD
+          </button>
+        </div>
       </div>
 
       <div class="nav-section">
@@ -3560,9 +3567,22 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
         const { modulo, prefijo: prefijoModulo, completo, original, serie } = extraerSegmentos(codigo);
 
         // ── PASO 0: Base de datos local + OEM Nissan (instantáneo) ──────────────
-        setStatus(`🔍 Buscando <strong>${completo}</strong>…`);
+        setStatus(`🔍 Buscando <strong>${completo}</strong> (módulo: ${modulo})…`);
+        console.log('[BUSQUEDA v2.4]', { original, completo, modulo, serie });
+
         // Primero OEM Nissan 23710-XXXXX, luego MEC/patrón local
-        let infoLocal = busquedaOEM(original) || busquedaOEM(completo) || busquedaLocal(completo) || busquedaLocal(modulo);
+        const r_oemOrig  = busquedaOEM(original);
+        const r_oemComp  = r_oemOrig  || busquedaOEM(completo);
+        const r_locComp  = r_oemComp  || busquedaLocal(completo);
+        const r_locMod   = r_locComp  || busquedaLocal(modulo);
+        let infoLocal = r_locMod;
+
+        console.log('[RESULTADO LOCAL]', {
+          oemOrig: !!r_oemOrig, oemComp: !!busquedaOEM(completo),
+          locComp: !!busquedaLocal(completo), locMod: !!busquedaLocal(modulo),
+          resultado: infoLocal ? infoLocal.modelo : 'NULL → va a Claude'
+        });
+
         if (infoLocal) {
           // Completar número OEM y serie si están en el código original
           if (!infoLocal.numeroOEM)               infoLocal.numeroOEM = completo;
@@ -3571,27 +3591,35 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
           // NUNCA permitir que Claude sobreescriba marca, modelo o motor ya conocidos
           const camposVacios = ['ano','fabricante','numeroSerie','descripcion']
             .filter(k => !infoLocal[k]);
-          if (camposVacios.length > 0) {
-            setStatus(`✅ Base local: <strong>${infoLocal.modelo}</strong>. Completando datos…`);
+          console.log('[CAMPOS VACIOS]', camposVacios);
+          if (camposVacios.length > 0 && apiKey) {
+            setStatus(`✅ BD local: <strong>${infoLocal.modelo}</strong> — completando con IA…`);
             try {
               const enriched = await llamarClaude(
                 `${completo} — es un ${infoLocal.tipo} ${infoLocal.marca} ${infoLocal.modelo} motor ${infoLocal.motor}. ` +
                 `Completa SOLO los campos vacíos: ${camposVacios.join(', ')}. ` +
                 `NO cambies marca="${infoLocal.marca}", modelo="${infoLocal.modelo}", motor="${infoLocal.motor}". ` +
                 `Devuelve JSON con los mismos campos.`, apiKey);
+              console.log('[ENRICHED]', enriched);
               // Solo llenar campos VACÍOS — la base local tiene prioridad total
               for (const k of camposVacios) {
                 if (enriched[k] && !infoLocal[k]) infoLocal[k] = enriched[k];
               }
-            } catch { /* si falla la API igual mostramos datos locales */ }
+            } catch(enrichErr) {
+              console.warn('[ENRICH FALLIDO]', enrichErr.message);
+              /* si falla la API igual mostramos datos locales */
+            }
+          } else if (camposVacios.length === 0) {
+            setStatus(`✅ BD local: <strong>${infoLocal.modelo}</strong> — datos completos`);
           }
-          infoLocal.fuente = '📋 Base de datos local';
+          // Preservar la fuente correcta (OEM CSV vs local)
+          if (!infoLocal.fuente) infoLocal.fuente = '📋 Base de datos local';
           mostrarTarjetaIA(infoLocal, prefijo, codigo);
           return;
         }
 
         // ── PASO 1: API con código completo limpio ─────────────────
-        setStatus(`🤖 Consultando Claude: <strong>${completo}</strong>…`);
+        setStatus(`🤖 No en BD local → Consultando Claude: <strong>${completo}</strong>…`);
         let info = await llamarClaude(completo, apiKey);
 
         // ── PASO 2: API con solo el código del módulo (MEC63) ──────
@@ -3614,7 +3642,25 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
         if (!info.numeroSerie && serie) info.numeroSerie = serie;
         if (!info.numeroOEM) info.numeroOEM = completo;
 
-        info.fuente = 'Claude AI';
+        // ── FILTRO ANTI-SENTRA: si Claude devuelve Sentra pero el código no es MEC63/MEC32/MEC37/MEC101 ──
+        const mecMatch = modulo.match(/^MEC(\d+)/i);
+        if (mecMatch && info.modelo && info.modelo.toLowerCase().includes('sentra')) {
+          const mecNum = parseInt(mecMatch[1]);
+          const mecNoSentra = [35,38,43,70,76,80,83,88,90,93,110,120,200,13,20,23,30,31,36];
+          if (mecNoSentra.includes(mecNum)) {
+            console.warn('[FILTRO ANTI-SENTRA]', modulo, '→ Claude dijo Sentra pero debería ser otro modelo. Ignorando modelo de Claude.');
+            // Forzar búsqueda local como fallback
+            const fallback = busquedaLocal(modulo);
+            if (fallback) {
+              fallback.fuente = '📋 Base de datos local (corrección anti-Sentra)';
+              mostrarTarjetaIA(fallback, prefijo, codigo);
+              return;
+            }
+          }
+        }
+
+        console.log('[CLAUDE RESULT]', info);
+        info.fuente = '🤖 Claude AI';
         mostrarTarjetaIA(info, prefijo, codigo);
 
       } catch(e) {
@@ -3707,6 +3753,44 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       document.getElementById(`ia-card-${prefijo}`).innerHTML =
         `<div style="margin-top:6px;font-size:.78rem;color:#34d399;padding:4px 0;">✅ Campos aplicados</div>`;
       setTimeout(() => { const c = document.getElementById(`ia-card-${prefijo}`); if(c) c.innerHTML=''; }, 2500);
+    }
+
+    // ===== DIAGNÓSTICO / TEST DE BASE DE DATOS LOCAL =====
+    function testBusquedaLocal() {
+      const casos = [
+        'MEC35-522',   // → Altima L31
+        'MEC35-752',   // → Pathfinder R51
+        'MEC63-130',   // → Sentra B16
+        'MEC88-001',   // → Altima L32 / Maxima
+        'MEC90-680',   // → Tiida C11
+        'MEC83-100',   // → Murano / Quest
+        'MEC70-001',   // → Pathfinder R51
+        '23710-9J507', // → Altima L31 (OEM)
+        '23710-ZG53A', // → Sentra B15 (OEM)
+      ];
+      let html = '<div style="font-family:monospace;font-size:.73rem;line-height:1.7;">';
+      html += '<div style="font-weight:700;color:#a5b4fc;margin-bottom:6px;">🧪 TEST BASE DE DATOS LOCAL v2.4</div>';
+      let ok = 0, fail = 0;
+      casos.forEach(c => {
+        const { modulo, completo, original } = extraerSegmentos(c);
+        const r = busquedaOEM(original) || busquedaOEM(completo) || busquedaLocal(completo) || busquedaLocal(modulo);
+        const color = r ? '#4ade80' : '#f87171';
+        const icon  = r ? '✅' : '❌';
+        if (r) ok++; else fail++;
+        html += `<div style="color:${color};">${icon} <b>${c}</b> → ${r ? r.modelo : 'NO ENCONTRADO (→ Claude)'}</div>`;
+      });
+      html += `<div style="margin-top:8px;color:#94a3b8;">Resultado: ${ok}/${casos.length} en base local`;
+      if (fail > 0) html += ` | ${fail} irán a Claude API`;
+      html += '</div></div>';
+
+      // Mostrar en un modal
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+      overlay.innerHTML = `<div style="background:#1e293b;border:1px solid #334155;border-radius:14px;padding:20px;max-width:480px;width:100%;max-height:80vh;overflow-y:auto;">
+        ${html}
+        <button onclick="this.closest('[style*=fixed]').remove()" style="margin-top:14px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;border-radius:8px;padding:8px 18px;cursor:pointer;font-size:.85rem;width:100%;">Cerrar</button>
+      </div>`;
+      document.body.appendChild(overlay);
     }
 
     // ===== BARCODE SCANNER — Compatible con iPhone/iOS Safari =====
