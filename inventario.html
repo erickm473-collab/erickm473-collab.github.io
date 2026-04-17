@@ -1349,6 +1349,7 @@
                           style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">🤖</button>
                       </div>
                       <div id="ia-card-partes"></div>
+                      <div id="ia-key-info-partes" style="margin-top:4px;font-size:.7rem;color:#475569;"></div>
                       <div class="duplicate-warning" id="dup-warning-partes">
                         <div class="duplicate-warning-text" id="dup-text-partes"></div>
                         <div class="duplicate-actions">
@@ -1524,6 +1525,7 @@
                           style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">🤖</button>
                       </div>
                       <div id="ia-card-buenas"></div>
+                      <div id="ia-key-info-buenas" style="margin-top:4px;font-size:.7rem;color:#475569;"></div>
                       <div class="duplicate-warning" id="dup-warning-buenas">
                         <div class="duplicate-warning-text" id="dup-text-buenas"></div>
                         <div class="duplicate-actions">
@@ -1877,6 +1879,7 @@
 
         hideLoginOverlay();
         document.getElementById('user-name').textContent = userData.nombre || username;
+        mostrarEstadoClave();
         await loadDashboard();
         await loadPartes();
         await loadBuenas();
@@ -2906,7 +2909,25 @@
       }
     })();
 
-    // ===== BUSCADOR INTELIGENTE (sin configuración) =====
+    // ===== BUSCADOR INTELIGENTE =====
+    function mostrarEstadoClave() {
+      const key = localStorage.getItem('inv_ai_key');
+      ['partes','buenas'].forEach(p => {
+        const el = document.getElementById(`ia-key-info-${p}`);
+        if (!el) return;
+        if (key) {
+          const preview = key.length > 12 ? key.substring(0,10) + '...' + key.slice(-4) : key;
+          el.innerHTML = `🔑 Clave activa: <span style="color:#475569;font-family:monospace;">${preview}</span>
+            <button onclick="cambiarClaveIA('${p}','${p}-numero')"
+              style="background:none;border:none;color:#6366f1;cursor:pointer;font-size:.7rem;padding:0 4px;text-decoration:underline;">
+              Cambiar clave
+            </button>`;
+        } else {
+          el.innerHTML = `<span style="color:#6366f1;cursor:pointer;" onclick="mostrarSetupKey('${p}','${p}-numero')">🔑 Configurar clave IA</span>`;
+        }
+      });
+    }
+
     const IA_FIELDS = {
       partes: {
         marca:'partes-marca', modelo:'partes-modelo', ano:'partes-ano',
@@ -3079,15 +3100,24 @@
       await ejecutarClaudeIA(codigo, prefijo, apiKey);
     }
 
+    // Permite cambiar la clave desde el botón 🤖 cuando ya está guardada
+    function cambiarClaveIA(prefijo, inputId) {
+      localStorage.removeItem('inv_ai_key');
+      mostrarSetupKey(prefijo, inputId);
+    }
+
     function mostrarSetupKey(prefijo, inputId) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
       cardEl.innerHTML = `
         <div style="margin-top:10px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:14px;">
-          <div style="font-size:.8rem;font-weight:700;color:#a5b4fc;margin-bottom:6px;">🔑 Ingresa tu clave de Anthropic una sola vez</div>
-          <div style="font-size:.75rem;color:#64748b;margin-bottom:10px;">Obtén una clave gratis en <strong style="color:#94a3b8;">console.anthropic.com</strong> → API Keys</div>
-          <div style="display:flex;gap:8px;">
-            <input id="key-input-${prefijo}" type="password" placeholder="sk-ant-api03-..."
-              style="flex:1;padding:9px 10px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:.83rem;"
+          <div style="font-size:.8rem;font-weight:700;color:#a5b4fc;margin-bottom:4px;">🔑 Clave de Anthropic</div>
+          <div style="font-size:.73rem;color:#64748b;margin-bottom:10px;">
+            Obtén tu clave en <strong style="color:#94a3b8;">console.anthropic.com</strong> → API Keys<br>
+            <span style="color:#475569;">Empieza por <code style="color:#94a3b8;">sk-ant-</code></span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="key-input-${prefijo}" type="text" placeholder="sk-ant-api03-..."
+              style="flex:1;min-width:180px;padding:9px 10px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:.83rem;"
               onkeydown="if(event.key==='Enter') guardarKeyYBuscar('${prefijo}','${inputId}')">
             <button onclick="guardarKeyYBuscar('${prefijo}','${inputId}')"
               style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap;">
@@ -3100,8 +3130,8 @@
 
     function guardarKeyYBuscar(prefijo, inputId) {
       const key = document.getElementById(`key-input-${prefijo}`)?.value?.trim();
-      if (!key) return;
-      if (!key.startsWith('sk-ant-')) { alert('La clave debe empezar con sk-ant-'); return; }
+      if (!key) { alert('Ingresa una clave API.'); return; }
+      if (!key.startsWith('sk-')) { alert('La clave no parece válida. Debe empezar con sk-'); return; }
       localStorage.setItem('inv_ai_key', key);
       const codigo = document.getElementById(inputId)?.value?.trim();
       if (codigo) ejecutarClaudeIA(codigo, prefijo, key);
@@ -3127,75 +3157,128 @@
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 400,
+          max_tokens: 600,
           messages: [{
             role: 'user',
-            content: `Eres un experto en módulos electrónicos automotrices (ECU, TCM, BCM, PCM, ABS, Airbag, etc.). Analiza este número de parte de computadora de auto: "${texto}"
+            content: `Eres un experto en módulos electrónicos automotrices de LATINOAMÉRICA. El cliente tiene un taller de computadoras de autos en Honduras. Analiza este código de módulo automotriz: "${texto}"
 
-CONTEXTO: Los números de parte automotrices mezclan el código de módulo con el número de serie. Por ejemplo:
-- "DBMEC83-712A10000DB631423710" → módulo MEC83 = ECU/PCM Nissan Murano 2006 3.5L VQ35DE, fabricante Hitachi, OEM Nissan: 23710-CC20C, serie: DB631423710
-- "MEC83-051" → ECU Nissan Quest 2007 VQ35DE, fabricante Hitachi
-- "28384-ZQ00A" → módulo Nissan
-- "SH7058" → prefijo Hitachi/Renesas para ECUs Nissan/Infiniti
+IMPORTANTE: estos módulos son ECU/PCM/TCM/BCM de vehículos, NO computadoras de escritorio ni laptops.
 
-DEBES extraer TODOS estos datos del número de parte:
-1. marca: VEHÍCULO (Nissan, Toyota, Honda, Ford, Chevrolet, etc.)
-2. modelo: modelo del vehículo SIN motor (ej: "Murano", "Quest", "Altima")
-3. ano: año del vehículo
-4. tipo: ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
-5. motor: código del motor (ej: "3.5L VQ35DE", "2.5L QR25DE", "1.8L MR18DE")
-6. fabricante: fabricante del MÓDULO electrónico (Hitachi, Bosch, Denso, Siemens, Delphi, Continental, Mitsubishi Electric, etc.)
-7. numeroOEM: número de parte OEM oficial del fabricante del vehículo (ej: "23710-CC20C")
-8. numeroSerie: número de serie interno del módulo (ej: "DB631423710") — suele ser el segmento alfanumérico largo al final del código
-9. descripcion: descripción corta en español máx 90 chars (ej: "ECU Nissan Murano 2006 3.5L VQ35DE")
+GUÍA DE IDENTIFICACIÓN (usa esta base de conocimiento):
+- MEC83 / MEC90 / MEC88 = Nissan (Quest, Murano, Pathfinder 3.5L VQ35DE) — fabricante: Hitachi
+- ME17.9 / ME7.x = Bosch ECU (muchas marcas europeas y asiáticas)
+- SH7058 / SH7055 = Renesas chip → Nissan/Infiniti Hitachi ECU
+- MR479 / MR523 = Toyota/Lexus ECU — fabricante: Denso
+- 0261S / 0261E = Bosch ECU genérico
+- 237xx-xxxxx = numeración OEM Nissan
+- 89661-xxxxx = numeración OEM Toyota
+- 37820-xxx = numeración OEM Honda
+- PCM-003 / TCM-xxx = código genérico de reconstructor
 
-Responde ÚNICAMENTE con JSON válido (sin markdown, sin texto extra):
+INSTRUCCIONES:
+- Analiza el prefijo/código para inferir marca del VEHÍCULO y tipo de módulo
+- Si el número tiene guión, lo de antes del guión suele ser el modelo del módulo y lo de después suele mezclar configuración + número de serie
+- El número de serie suele ser el bloque alfanumérico largo (>8 chars) al final
+
+Devuelve SOLO este JSON (sin markdown, sin explicación):
 {"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
 
-Si no conoces algún dato con certeza, devuelve "" o null para ese campo. Nunca inventes datos.`
+Campos:
+- marca: marca del VEHÍCULO (Nissan/Toyota/Honda/Ford/Chevrolet/Hyundai/Kia/Mazda/Dodge/Mitsubishi/Volkswagen/etc.)
+- modelo: modelo del vehículo (Murano/Altima/Sentra/Corolla/Camry/Civic/etc.)
+- ano: año como número entero, o null
+- tipo: ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
+- motor: cilindrada y código motor (ej: "3.5L VQ35DE")
+- fabricante: quién fabricó el módulo (Hitachi/Bosch/Denso/Delphi/Siemens/Continental/Mitsubishi Electric/etc.)
+- numeroOEM: número de parte del fabricante del vehículo si lo puedes deducir
+- numeroSerie: número de serie del módulo si está en el código
+- descripcion: descripción breve en español (máx 90 chars)
+
+Si un campo es desconocido, pon "" o null. No inventes lo que no sabes.`
           }]
         })
       });
+
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        if (resp.status === 401) { localStorage.removeItem('inv_ai_key'); throw new Error('Clave API inválida. Toca 🤖 de nuevo.'); }
-        if (resp.status === 429) throw new Error('Límite de consultas alcanzado. Intenta en un momento.');
-        throw new Error(err?.error?.message || `Error ${resp.status}`);
+        const body = await resp.text().catch(() => '');
+        let msg = `Error HTTP ${resp.status}`;
+        try { const j = JSON.parse(body); msg = j?.error?.message || msg; } catch {}
+        if (resp.status === 401) {
+          localStorage.removeItem('inv_ai_key');
+          throw new Error(`Clave API inválida o expirada (401). Toca 🤖 para ingresar una nueva clave.`);
+        }
+        if (resp.status === 429) throw new Error('Límite de consultas alcanzado. Espera un momento e intenta de nuevo.');
+        if (resp.status === 400) throw new Error(`Error de solicitud (400): ${msg}`);
+        throw new Error(msg);
       }
+
       const data = await resp.json();
-      const raw  = data.content?.[0]?.text || '{}';
-      try { return JSON.parse(raw.match(/\{[\s\S]*?\}/)?.[0] || '{}'); } catch { return {}; }
+      const raw = data.content?.[0]?.text?.trim() || '{}';
+      console.log('[Claude raw]', raw);
+
+      // Extraer JSON aunque venga con texto extra
+      const match = raw.match(/\{[\s\S]*\}/);
+      if (!match) return {};
+      try { return JSON.parse(match[0]); }
+      catch { return {}; }
     }
 
     async function ejecutarClaudeIA(codigo, prefijo, apiKey) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
+      const inputId = prefijo + '-numero';
+
       cardEl.innerHTML = `
         <div style="margin-top:10px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;">
           <div style="width:18px;height:18px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
-          <span style="font-size:.83rem;color:#a5b4fc;">Consultando Claude para <strong>${codigo}</strong>…</span>
+          <span id="ia-status-${prefijo}" style="font-size:.83rem;color:#a5b4fc;">🤖 Analizando <strong>${codigo}</strong>…</span>
         </div>`;
+
+      const setStatus = (txt) => {
+        const el = document.getElementById(`ia-status-${prefijo}`);
+        if (el) el.innerHTML = txt;
+      };
 
       try {
         const { modelo, completo } = extraerSegmentos(codigo);
 
         // 1er intento: número completo
+        setStatus(`🤖 Consultando Claude con <strong>${completo}</strong>…`);
         let info = await llamarClaude(completo, apiKey);
 
-        // 2do intento: solo el segmento de modelo si el completo no dio resultados
+        // 2do intento: solo el segmento modelo si no devolvió resultados útiles
         const hayInfo = info.marca || info.modelo || info.tipo || info.motor || info.fabricante || info.numeroOEM;
         if (!hayInfo && modelo !== completo) {
-          cardEl.querySelector('span').textContent = `Probando con modelo "${modelo}"…`;
-          info = await llamarClaude(modelo, apiKey);
-          if (info.modelo && !info.modelo.includes(modelo)) info.modelo = modelo + ' — ' + info.modelo;
+          setStatus(`🔁 Segundo intento con segmento <strong>${modelo}</strong>…`);
+          const info2 = await llamarClaude(modelo, apiKey);
+          // Combinar: priorizar info del completo donde exista
+          info = { ...info2, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v !== null && v !== '')) };
+          // Si no había número de serie en el resultado, intentar extraerlo del código original
+          if (!info.numeroSerie) {
+            const partes = codigo.split(/[-_\/\s]+/);
+            const serie = partes.find(p => p.length > 8 && /[A-Z].*[0-9]|[0-9].*[A-Z]/.test(p));
+            if (serie) info.numeroSerie = serie;
+          }
         }
 
         info.fuente = 'Claude AI';
         mostrarTarjetaIA(info, prefijo, codigo);
 
       } catch(e) {
+        console.error('[IA error]', e);
+        const esClaveInvalida = e.message.includes('401') || e.message.includes('nválida') || e.message.includes('expirada');
         cardEl.innerHTML = `
-          <div style="margin-top:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 12px;font-size:.82rem;color:#fca5a5;">
-            ❌ ${e.message}
+          <div style="margin-top:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 14px;">
+            <div style="font-size:.82rem;color:#fca5a5;margin-bottom:8px;">❌ ${e.message}</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button onclick="ejecutarClaudeIA('${codigo}','${prefijo}','${apiKey}')"
+                style="background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);color:#a5b4fc;border-radius:7px;padding:6px 12px;font-size:.78rem;cursor:pointer;">
+                🔁 Reintentar
+              </button>
+              ${esClaveInvalida ? `<button onclick="cambiarClaveIA('${prefijo}','${inputId}')"
+                style="background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:7px;padding:6px 12px;font-size:.78rem;cursor:pointer;">
+                🔑 Cambiar clave
+              </button>` : ''}
+            </div>
           </div>`;
       }
     }
