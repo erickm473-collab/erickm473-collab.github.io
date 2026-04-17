@@ -3162,6 +3162,12 @@
       { p:/^MEC93/i,    marca:'Nissan', modelos:'Maxima A35',                      motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2009-2014', oem:'' },
       { p:/^MEC101/i,   marca:'Nissan', modelos:'Sentra B17 / Versa N18',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2012-2019', oem:'' },
       { p:/^MEC110/i,   marca:'Nissan', modelos:'Rogue T32 / X-Trail T32',         motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2014-2020', oem:'' },
+      { p:/^MEC120/i,   marca:'Nissan', modelos:'Versa N17 / March K13',           motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2011-2018', oem:'' },
+      { p:/^MEC200/i,   marca:'Nissan', modelos:'Sentra B18 / Versa N19',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2019-2024', oem:'' },
+      { p:/^A56/i,      marca:'Nissan', modelos:'(ver número — posible BCM/IPDM)', motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
+      { p:/^284B2/i,    marca:'Nissan', modelos:'(BCM Nissan — ver número)',        motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
+      { p:/^31036|^31037|^31038/i, marca:'Nissan', modelos:'(TCM Nissan — ver número)', motor:'',                         tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
+      { p:/^23710/i,    marca:'Nissan', modelos:'(ECU Nissan — ver número completo)', motor:'',                            tipo:'ECU', fab:'Hitachi', anos:'',          oem:'' },
       // ZG53A CONFIRMADO: Nissan Sentra B15 1.8L QG18DE
       { p:/^ZG53/i,     marca:'Nissan', modelos:'Sentra B15',                      motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
       // 9J507 = referencia al OEM 23710-9J507 → ECU Nissan Altima 2.5L QR25DE
@@ -3351,6 +3357,19 @@ INSTRUCCIONES CRÍTICAS:
 - El número de serie suele ser el bloque alfanumérico largo (>8 chars) al final
 - Para Chrysler/Dodge/Jeep: el tipo casi siempre es PCM salvo que sea 056xxxx (BCM) o 068xxxx (TCM)
 
+⚠️ REGLA ANTI-ERROR NISSAN (MUY IMPORTANTE):
+- NO digas "Sentra" si el código es MEC35, MEC83, MEC88, MEC90, MEC93, MEC110 — esos son otros modelos
+- MEC35 / MEC35-522 = ALTIMA (NO Sentra)
+- MEC83 = MURANO / QUEST (NO Sentra)
+- MEC88 = ALTIMA L32 / MAXIMA (NO Sentra)
+- MEC90 = PATHFINDER / FRONTIER (NO Sentra)
+- MEC93 = MAXIMA (NO Sentra)
+- MEC110 = ROGUE / X-TRAIL (NO Sentra)
+- Solo MEC32, MEC37, MEC63, MEC76, MEC101 tienen relación con Sentra
+- Si el código tiene ZG53 o ZG53A → es Sentra B15 (NO Frontier, NO Xterra)
+- Si el código tiene 9J507 → es Altima L31 (NO TCM, NO Sentra)
+- NUNCA pongas modelo="Sentra" para un código MEC que no esté en la lista Sentra de arriba
+
 Devuelve SOLO este JSON (sin markdown, sin explicación):
 {"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
 
@@ -3416,22 +3435,28 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
         setStatus(`🔍 Buscando <strong>${completo}</strong>…`);
         let infoLocal = busquedaLocal(completo) || busquedaLocal(modulo);
         if (infoLocal) {
-          // Completar con número OEM y serie si están en el código
-          if (!infoLocal.numeroOEM)   infoLocal.numeroOEM = completo;
-          if (!infoLocal.numeroSerie && serie) infoLocal.numeroSerie = serie;
-          // Enriquecer con Claude para llenar huecos
-          setStatus(`✅ Base local: <strong>${infoLocal.modelo}</strong>. Enriqueciendo con IA…`);
-          try {
-            const enriched = await llamarClaude(`${completo} — ya sé que es ${infoLocal.tipo} ${infoLocal.marca} ${infoLocal.modelo} ${infoLocal.motor}. Completa o corrige los campos que puedas.`, apiKey);
-            // Solo tomar campos que la IA haya llenado y la base local no tiene
-            for (const k of ['modelo','ano','motor','fabricante','numeroOEM','numeroSerie','descripcion']) {
-              if (!infoLocal[k] && enriched[k]) infoLocal[k] = enriched[k];
-              if (enriched[k] && String(enriched[k]).length > String(infoLocal[k]||'').length) {
-                // Si Claude dio más detalle, preferir Claude
-                if (['modelo','descripcion','motor'].includes(k)) infoLocal[k] = enriched[k];
+          // Completar número OEM y serie si están en el código original
+          if (!infoLocal.numeroOEM)               infoLocal.numeroOEM = completo;
+          if (!infoLocal.numeroSerie && serie)     infoLocal.numeroSerie = serie;
+          // Enriquecer con Claude SOLO para campos que la base local dejó vacíos
+          // NUNCA permitir que Claude sobreescriba marca, modelo o motor ya conocidos
+          const camposVacios = ['ano','fabricante','numeroSerie','descripcion']
+            .filter(k => !infoLocal[k]);
+          if (camposVacios.length > 0) {
+            setStatus(`✅ Base local: <strong>${infoLocal.modelo}</strong>. Completando datos…`);
+            try {
+              const enriched = await llamarClaude(
+                `${completo} — es un ${infoLocal.tipo} ${infoLocal.marca} ${infoLocal.modelo} motor ${infoLocal.motor}. ` +
+                `Completa SOLO los campos vacíos: ${camposVacios.join(', ')}. ` +
+                `NO cambies marca="${infoLocal.marca}", modelo="${infoLocal.modelo}", motor="${infoLocal.motor}". ` +
+                `Devuelve JSON con los mismos campos.`, apiKey);
+              // Solo llenar campos VACÍOS — la base local tiene prioridad total
+              for (const k of camposVacios) {
+                if (enriched[k] && !infoLocal[k]) infoLocal[k] = enriched[k];
               }
-            }
-          } catch { /* si falla la API igual mostramos datos locales */ }
+            } catch { /* si falla la API igual mostramos datos locales */ }
+          }
+          infoLocal.fuente = '📋 Base de datos local';
           mostrarTarjetaIA(infoLocal, prefijo, codigo);
           return;
         }
