@@ -3140,43 +3140,57 @@
     // ── Base de datos LOCAL de prefijos automotrices ────────────────
     // Respuesta instantánea sin necesidad de API para códigos conocidos
     const LOCAL_DB = [
-      // ── NISSAN / INFINITI ──────────────────────────────────────────
-      { p:/^MEC32/i,  marca:'Nissan', modelos:'Sentra B14 / Tsuru III', motor:'1.6L GA16DE', tipo:'ECU', fab:'Hitachi', anos:'1995-2006' },
-      { p:/^MEC37/i,  marca:'Nissan', modelos:'Sentra B15 / Almera N16', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
-      { p:/^MEC32/i,  marca:'Nissan', modelos:'Sentra B14 / Tsuru III', motor:'1.6L GA16DE', tipo:'ECU', fab:'Hitachi', anos:'1995-2006' },
-      { p:/^MEC37/i,  marca:'Nissan', modelos:'Sentra B15 / Almera N16', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
-      // MEC63-130 = Nissan Sentra B16 1.6L HR16DE (confirmado en mercado latinoamericano)
-      { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
-      { p:/^MEC63-1/i,  marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
-      { p:/^MEC63-2/i,  marca:'Nissan', modelos:'Sentra B16', motor:'1.8L MR18DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
-      { p:/^MEC63/i,    marca:'Nissan', modelos:'Sentra B16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
-      { p:/^MEC76/i,  marca:'Nissan', modelos:'Sentra / Note E11 / Versa N17', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2014' },
-      { p:/^MEC83/i,  marca:'Nissan', modelos:'Murano Z50 / Quest V42', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2003-2009' },
-      { p:/^MEC88/i,  marca:'Nissan', modelos:'Altima L32 / Maxima A35', motor:'2.5L QR25DE / 3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2012' },
-      { p:/^MEC90/i,  marca:'Nissan', modelos:'Pathfinder R51 / Frontier D40 / Xterra N50', motor:'4.0L VQ40DE', tipo:'ECU', fab:'Hitachi', anos:'2005-2012' },
-      { p:/^MEC93/i,  marca:'Nissan', modelos:'Maxima A35', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2009-2014' },
-      { p:/^MEC101/i, marca:'Nissan', modelos:'Sentra B17 / Versa N18', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2012-2019' },
-      { p:/^MEC110/i, marca:'Nissan', modelos:'Rogue T32 / X-Trail T32', motor:'2.5L QR25DE', tipo:'ECU', fab:'Hitachi', anos:'2014-2020' },
-      // ZG53A = Nissan Sentra B15 1.8L QG18DE (confirmado en mercado latinoamericano)
-      // Ej: ZG53A1791 → código de calibración A1791
-      { p:/^ZG53/i,   marca:'Nissan', modelos:'Sentra B15', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
-      { p:/^ZB/i,     marca:'Nissan', modelos:'(BCM Nissan)', motor:'', tipo:'BCM', fab:'Hitachi', anos:'' },
-      // ── TOYOTA / LEXUS ────────────────────────────────────────────
-      { p:/^MR479/i,  marca:'Toyota', modelos:'Yaris / Echo / Vitz', motor:'1.0L 1KR-FE / 1.3L 2NZ-FE', tipo:'ECU', fab:'Denso', anos:'2005-2014' },
-      { p:/^MR523/i,  marca:'Toyota', modelos:'Corolla E12 / Matrix', motor:'1.8L 1ZZ-FE', tipo:'ECU', fab:'Denso', anos:'2000-2008' },
-      { p:/^89661/i,  marca:'Toyota', modelos:'(varias — ver número completo)', motor:'', tipo:'ECU', fab:'Denso', anos:'' },
-      // ── HONDA / ACURA ─────────────────────────────────────────────
-      { p:/^37820/i,  marca:'Honda', modelos:'(varias — ver número completo)', motor:'', tipo:'ECU', fab:'Keihin', anos:'' },
-      // ── CHRYSLER / DODGE / JEEP / RAM ────────────────────────────
-      { p:/^0513|^0514|^0515/i, marca:'Dodge', modelos:'Charger / Challenger / Journey / Grand Cherokee / Caravan / RAM 1500', motor:'3.6L Pentastar V6', tipo:'PCM', fab:'Bosch / Continental', anos:'2011-2019' },
-      { p:/^0505|^0506/i,       marca:'Dodge', modelos:'Charger / Magnum / Durango / RAM 1500', motor:'5.7L HEMI V8', tipo:'PCM', fab:'Bosch', anos:'2006-2012' },
-      { p:/^0503|^0504/i,       marca:'Dodge', modelos:'Dakota / Durango / RAM 1500', motor:'4.7L V8', tipo:'PCM', fab:'Delphi', anos:'2002-2008' },
-      { p:/^0489|^0490/i,       marca:'Dodge', modelos:'Neon / Stratus / Sebring', motor:'2.4L DOHC', tipo:'PCM', fab:'Delphi', anos:'1999-2004' },
-      { p:/^056/i,              marca:'Dodge', modelos:'(BCM Chrysler/Dodge/Jeep)', motor:'', tipo:'BCM', fab:'Continental', anos:'' },
-      { p:/^068/i,              marca:'Dodge', modelos:'(TCM Chrysler/Dodge/Jeep)', motor:'', tipo:'TCM', fab:'Chrysler', anos:'' },
-      // ── CHEVROLET / GM ────────────────────────────────────────────
-      { p:/^12[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)', motor:'', tipo:'ECM', fab:'Delphi', anos:'' },
-      { p:/^16[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)', motor:'', tipo:'ECM', fab:'Delphi', anos:'' },
+      // ═══════════════════════════════════════════════════════════════
+      // NISSAN / INFINITI  — Módulos Hitachi (prefijo planta 2 letras)
+      // ═══════════════════════════════════════════════════════════════
+      { p:/^MEC32/i,    marca:'Nissan', modelos:'Sentra B14 / Tsuru III',          motor:'1.6L GA16DE',                   tipo:'ECU', fab:'Hitachi', anos:'1995-2006', oem:'' },
+      // MEC35-522 CONFIRMADO: Nissan Sentra B13/NP300 — actualizar cuando usuario confirme modelo exacto
+      { p:/^MEC35-522/i,marca:'Nissan', modelos:'Sentra / NP300',                  motor:'1.6L GA16DE / 2.0L SR20DE',     tipo:'ECU', fab:'Hitachi', anos:'1996-2004', oem:'' },
+      { p:/^MEC35/i,    marca:'Nissan', modelos:'Sentra / NP300',                  motor:'1.6L GA16DE',                   tipo:'ECU', fab:'Hitachi', anos:'1996-2004', oem:'' },
+      { p:/^MEC37/i,    marca:'Nissan', modelos:'Sentra B15 / Almera N16',         motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'' },
+      // MEC63-130 CONFIRMADO: Nissan Sentra B16 1.6L HR16DE
+      { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
+      { p:/^MEC63-1/i,  marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
+      { p:/^MEC63-2/i,  marca:'Nissan', modelos:'Sentra B16',                      motor:'1.8L MR18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2007-2013', oem:'' },
+      { p:/^MEC63/i,    marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2013', oem:'' },
+      { p:/^MEC76/i,    marca:'Nissan', modelos:'Sentra / Note E11 / Versa N17',   motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2014', oem:'' },
+      { p:/^MEC83/i,    marca:'Nissan', modelos:'Murano Z50 / Quest V42',          motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2003-2009', oem:'' },
+      { p:/^MEC88/i,    marca:'Nissan', modelos:'Altima L32 / Maxima A35',         motor:'2.5L QR25DE / 3.5L VQ35DE',     tipo:'ECU', fab:'Hitachi', anos:'2007-2012', oem:'' },
+      { p:/^MEC90/i,    marca:'Nissan', modelos:'Pathfinder R51 / Frontier D40',   motor:'4.0L VQ40DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2012', oem:'' },
+      { p:/^MEC93/i,    marca:'Nissan', modelos:'Maxima A35',                      motor:'3.5L VQ35DE',                   tipo:'ECU', fab:'Hitachi', anos:'2009-2014', oem:'' },
+      { p:/^MEC101/i,   marca:'Nissan', modelos:'Sentra B17 / Versa N18',          motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2012-2019', oem:'' },
+      { p:/^MEC110/i,   marca:'Nissan', modelos:'Rogue T32 / X-Trail T32',         motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2014-2020', oem:'' },
+      // ZG53A CONFIRMADO: Nissan Sentra B15 1.8L QG18DE
+      { p:/^ZG53/i,     marca:'Nissan', modelos:'Sentra B15',                      motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
+      // 9J = posiblemente TCM Jatco para Nissan — confirmar modelo
+      { p:/^9J50/i,     marca:'Nissan', modelos:'(TCM — confirmar modelo)',        motor:'',                              tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
+      { p:/^9J/i,       marca:'Nissan', modelos:'(TCM — confirmar modelo)',        motor:'',                              tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
+      { p:/^ZB/i,       marca:'Nissan', modelos:'(BCM Nissan)',                    motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
+      // ═══════════════════════════════════════════════════════════════
+      // TOYOTA / LEXUS
+      // ═══════════════════════════════════════════════════════════════
+      { p:/^MR479/i,    marca:'Toyota', modelos:'Yaris / Echo / Vitz',             motor:'1.0L 1KR-FE / 1.3L 2NZ-FE',    tipo:'ECU', fab:'Denso',   anos:'2005-2014', oem:'' },
+      { p:/^MR523/i,    marca:'Toyota', modelos:'Corolla E12 / Matrix',            motor:'1.8L 1ZZ-FE',                   tipo:'ECU', fab:'Denso',   anos:'2000-2008', oem:'' },
+      { p:/^89661/i,    marca:'Toyota', modelos:'(ver número completo)',            motor:'',                              tipo:'ECU', fab:'Denso',   anos:'',          oem:'' },
+      // ═══════════════════════════════════════════════════════════════
+      // HONDA / ACURA
+      // ═══════════════════════════════════════════════════════════════
+      { p:/^37820/i,    marca:'Honda',  modelos:'(ver número completo)',            motor:'',                              tipo:'ECU', fab:'Keihin',  anos:'',          oem:'' },
+      // ═══════════════════════════════════════════════════════════════
+      // CHRYSLER / DODGE / JEEP / RAM
+      // ═══════════════════════════════════════════════════════════════
+      { p:/^0516|^0517/i, marca:'Dodge', modelos:'Charger / Challenger / RAM 1500 / Grand Cherokee', motor:'3.6L Pentastar V6 / 5.7L HEMI', tipo:'PCM', fab:'Bosch / Continental', anos:'2015-2021', oem:'' },
+      { p:/^0513|^0514|^0515/i, marca:'Dodge', modelos:'Charger / Challenger / Journey / Grand Cherokee / Caravan / RAM 1500', motor:'3.6L Pentastar V6', tipo:'PCM', fab:'Bosch / Continental', anos:'2011-2019', oem:'' },
+      { p:/^0505|^0506/i, marca:'Dodge', modelos:'Charger / Magnum / Durango / RAM 1500', motor:'5.7L HEMI V8', tipo:'PCM', fab:'Bosch', anos:'2006-2012', oem:'' },
+      { p:/^0503|^0504/i, marca:'Dodge', modelos:'Dakota / Durango / RAM 1500',    motor:'4.7L V8',                       tipo:'PCM', fab:'Delphi',  anos:'2002-2008', oem:'' },
+      { p:/^0489|^0490/i, marca:'Dodge', modelos:'Neon / Stratus / Sebring',       motor:'2.4L DOHC',                     tipo:'PCM', fab:'Delphi',  anos:'1999-2004', oem:'' },
+      { p:/^056/i,        marca:'Dodge', modelos:'(BCM Chrysler/Dodge/Jeep)',       motor:'',                              tipo:'BCM', fab:'Continental', anos:'',     oem:'' },
+      { p:/^068/i,        marca:'Dodge', modelos:'(TCM Chrysler/Dodge/Jeep)',       motor:'',                              tipo:'TCM', fab:'Chrysler', anos:'',        oem:'' },
+      // ═══════════════════════════════════════════════════════════════
+      // CHEVROLET / GM
+      // ═══════════════════════════════════════════════════════════════
+      { p:/^12[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)',          motor:'',                              tipo:'ECM', fab:'Delphi',  anos:'',          oem:'' },
+      { p:/^16[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)',          motor:'',                              tipo:'ECM', fab:'Delphi',  anos:'',          oem:'' },
     ];
 
     function busquedaLocal(codigo) {
