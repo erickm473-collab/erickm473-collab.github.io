@@ -3137,32 +3137,81 @@
       if (codigo) ejecutarClaudeIA(codigo, prefijo, key);
     }
 
-    // Extrae el segmento de modelo de un número que puede incluir serial
+    // ── Base de datos LOCAL de prefijos automotrices ────────────────
+    // Respuesta instantánea sin necesidad de API para códigos conocidos
+    const LOCAL_DB = [
+      // ── NISSAN / INFINITI ──────────────────────────────────────────
+      { p:/^MEC32/i,  marca:'Nissan', modelos:'Sentra B14 / Tsuru III', motor:'1.6L GA16DE', tipo:'ECU', fab:'Hitachi', anos:'1995-2006' },
+      { p:/^MEC37/i,  marca:'Nissan', modelos:'Sentra B15 / Almera N16', motor:'1.8L QG18DE', tipo:'ECU', fab:'Hitachi', anos:'2000-2006' },
+      { p:/^MEC63-1/i,marca:'Nissan', modelos:'Tiida C11 / Versa N16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2004-2012' },
+      { p:/^MEC63-2/i,marca:'Nissan', modelos:'Tiida C11 / Versa N16', motor:'1.8L MR18DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2012' },
+      { p:/^MEC63/i,  marca:'Nissan', modelos:'Tiida C11 / Versa N16', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2004-2012' },
+      { p:/^MEC76/i,  marca:'Nissan', modelos:'Note E11 / Versa N17 / Tiida', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2006-2014' },
+      { p:/^MEC83/i,  marca:'Nissan', modelos:'Murano Z50 / Quest V42', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2003-2009' },
+      { p:/^MEC88/i,  marca:'Nissan', modelos:'Altima L32 / Maxima', motor:'2.5L QR25DE / 3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2007-2012' },
+      { p:/^MEC90/i,  marca:'Nissan', modelos:'Pathfinder R51 / Frontier D40 / Xterra', motor:'4.0L VQ40DE', tipo:'ECU', fab:'Hitachi', anos:'2005-2012' },
+      { p:/^MEC93/i,  marca:'Nissan', modelos:'Maxima A35', motor:'3.5L VQ35DE', tipo:'ECU', fab:'Hitachi', anos:'2009-2014' },
+      { p:/^MEC101/i, marca:'Nissan', modelos:'Sentra B17 / Versa N18', motor:'1.6L HR16DE', tipo:'ECU', fab:'Hitachi', anos:'2012-2019' },
+      { p:/^MEC110/i, marca:'Nissan', modelos:'Rogue T32', motor:'2.5L QR25DE', tipo:'ECU', fab:'Hitachi', anos:'2014-2020' },
+      { p:/^ZG53/i,   marca:'Nissan', modelos:'Frontier D22 / Xterra WD22 / Pathfinder R50', motor:'3.3L VG33E', tipo:'ECU', fab:'Hitachi', anos:'1999-2004' },
+      { p:/^ZB/i,     marca:'Nissan', modelos:'(BCM Nissan)', motor:'', tipo:'BCM', fab:'Hitachi', anos:'' },
+      // ── TOYOTA / LEXUS ────────────────────────────────────────────
+      { p:/^MR479/i,  marca:'Toyota', modelos:'Yaris / Echo / Vitz', motor:'1.0L 1KR-FE / 1.3L 2NZ-FE', tipo:'ECU', fab:'Denso', anos:'2005-2014' },
+      { p:/^MR523/i,  marca:'Toyota', modelos:'Corolla E12 / Matrix', motor:'1.8L 1ZZ-FE', tipo:'ECU', fab:'Denso', anos:'2000-2008' },
+      { p:/^89661/i,  marca:'Toyota', modelos:'(varias — ver número completo)', motor:'', tipo:'ECU', fab:'Denso', anos:'' },
+      // ── HONDA / ACURA ─────────────────────────────────────────────
+      { p:/^37820/i,  marca:'Honda', modelos:'(varias — ver número completo)', motor:'', tipo:'ECU', fab:'Keihin', anos:'' },
+      // ── CHRYSLER / DODGE / JEEP / RAM ────────────────────────────
+      { p:/^0513|^0514|^0515/i, marca:'Dodge', modelos:'Charger / Challenger / Journey / Grand Cherokee / Caravan / RAM 1500', motor:'3.6L Pentastar V6', tipo:'PCM', fab:'Bosch / Continental', anos:'2011-2019' },
+      { p:/^0505|^0506/i,       marca:'Dodge', modelos:'Charger / Magnum / Durango / RAM 1500', motor:'5.7L HEMI V8', tipo:'PCM', fab:'Bosch', anos:'2006-2012' },
+      { p:/^0503|^0504/i,       marca:'Dodge', modelos:'Dakota / Durango / RAM 1500', motor:'4.7L V8', tipo:'PCM', fab:'Delphi', anos:'2002-2008' },
+      { p:/^0489|^0490/i,       marca:'Dodge', modelos:'Neon / Stratus / Sebring', motor:'2.4L DOHC', tipo:'PCM', fab:'Delphi', anos:'1999-2004' },
+      { p:/^056/i,              marca:'Dodge', modelos:'(BCM Chrysler/Dodge/Jeep)', motor:'', tipo:'BCM', fab:'Continental', anos:'' },
+      { p:/^068/i,              marca:'Dodge', modelos:'(TCM Chrysler/Dodge/Jeep)', motor:'', tipo:'TCM', fab:'Chrysler', anos:'' },
+      // ── CHEVROLET / GM ────────────────────────────────────────────
+      { p:/^12[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)', motor:'', tipo:'ECM', fab:'Delphi', anos:'' },
+      { p:/^16[0-9]{6}/i, marca:'Chevrolet', modelos:'(GM — ver número)', motor:'', tipo:'ECM', fab:'Delphi', anos:'' },
+    ];
+
+    function busquedaLocal(codigo) {
+      const c = codigo.toUpperCase();
+      const hit = LOCAL_DB.find(e => e.p.test(c));
+      if (!hit) return null;
+      return {
+        marca: hit.marca,
+        modelo: hit.modelos,
+        ano: hit.anos || null,
+        tipo: hit.tipo,
+        motor: hit.motor,
+        fabricante: hit.fab,
+        numeroOEM: '',
+        numeroSerie: '',
+        descripcion: `${hit.tipo} ${hit.marca} ${hit.modelos} ${hit.motor}`.trim().substring(0, 90),
+        fuente: '📋 Base de datos local'
+      };
+    }
+
+    // Extrae segmentos clave del código de parte
     function extraerSegmentos(codigo) {
       let limpio = codigo.trim().toUpperCase();
 
       // ── Chrysler/Dodge/Jeep/RAM: quitar prefijo P ──────────────────
-      // Ej: P05150657AA → 05150657AA
-      if (/^P0[456]\d{7}[A-Z]{0,2}$/.test(limpio)) {
-        limpio = limpio.slice(1);
-      }
+      if (/^P0[456]\d{7}[A-Z]{0,2}$/.test(limpio)) limpio = limpio.slice(1);
 
       // ── Nissan/Infiniti: quitar prefijo de 2 letras de planta ──────
-      // Ej: DBMEC83-xxx → MEC83-xxx
-      //     XYMEC63-xxx → MEC63-xxx
-      //     ABMEC90-xxx → MEC90-xxx
-      const nisModuleMatch = limpio.match(/^[A-Z]{2}(MEC\d{2}[A-Z]?[-_].+)$/);
-      if (nisModuleMatch) {
-        limpio = nisModuleMatch[1];
-      }
-
-      // ── Nissan ZGxxx / ZBxxx / ZKxxx: formato OEM Nissan JDM ──────
-      // Ej: ZG53A1791 → queda igual, lo mandamos completo a Claude
-      // No hay que modificar, Claude lo reconoce
+      // XYMEC63-130... → MEC63-130...   DB MEC83-xxx → MEC83-xxx
+      const m = limpio.match(/^[A-Z]{2}(MEC\d{2,3}[A-Z]?[-_].+)$/);
+      if (m) limpio = m[1];
 
       const partes = limpio.split(/[-_\/\s]+/);
-      const modelo = partes[0] || limpio;
-      return { modelo, completo: limpio, original: codigo };
+      // prefijo = primeros dos segmentos, ej: MEC63-130
+      const prefijo = partes.length > 1 ? partes[0] + '-' + partes[1].substring(0,3) : partes[0];
+      const modulo  = partes[0];   // solo primer segmento: MEC63
+
+      // Intentar extraer número de serie: segmento alfanumérico largo (>8 chars)
+      const serie = partes.find(p => p.length > 8 && /[A-Z].*[0-9]|[0-9].*[A-Z]/.test(p)) || '';
+
+      return { modulo, prefijo, completo: limpio, original: codigo, serie };
     }
 
     async function llamarClaude(texto, apiKey) {
@@ -3332,34 +3381,55 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       };
 
       try {
-        const { modelo, completo, original } = extraerSegmentos(codigo);
+        const { modulo, prefijo: prefijoModulo, completo, original, serie } = extraerSegmentos(codigo);
 
-        // 1er intento: número limpio (sin prefijos de planta)
-        setStatus(`🤖 Analizando <strong>${completo}</strong>…`);
+        // ── PASO 0: Base de datos local (instantáneo) ──────────────
+        setStatus(`🔍 Buscando <strong>${completo}</strong>…`);
+        let infoLocal = busquedaLocal(completo) || busquedaLocal(modulo);
+        if (infoLocal) {
+          // Completar con número OEM y serie si están en el código
+          if (!infoLocal.numeroOEM)   infoLocal.numeroOEM = completo;
+          if (!infoLocal.numeroSerie && serie) infoLocal.numeroSerie = serie;
+          // Enriquecer con Claude para llenar huecos
+          setStatus(`✅ Base local: <strong>${infoLocal.modelo}</strong>. Enriqueciendo con IA…`);
+          try {
+            const enriched = await llamarClaude(`${completo} — ya sé que es ${infoLocal.tipo} ${infoLocal.marca} ${infoLocal.modelo} ${infoLocal.motor}. Completa o corrige los campos que puedas.`, apiKey);
+            // Solo tomar campos que la IA haya llenado y la base local no tiene
+            for (const k of ['modelo','ano','motor','fabricante','numeroOEM','numeroSerie','descripcion']) {
+              if (!infoLocal[k] && enriched[k]) infoLocal[k] = enriched[k];
+              if (enriched[k] && String(enriched[k]).length > String(infoLocal[k]||'').length) {
+                // Si Claude dio más detalle, preferir Claude
+                if (['modelo','descripcion','motor'].includes(k)) infoLocal[k] = enriched[k];
+              }
+            }
+          } catch { /* si falla la API igual mostramos datos locales */ }
+          mostrarTarjetaIA(infoLocal, prefijo, codigo);
+          return;
+        }
+
+        // ── PASO 1: API con código completo limpio ─────────────────
+        setStatus(`🤖 Consultando Claude: <strong>${completo}</strong>…`);
         let info = await llamarClaude(completo, apiKey);
 
-        // 2do intento: solo el segmento del módulo si el completo no dio resultados
-        const hayInfo = info.marca || info.modelo || info.tipo || info.motor || info.fabricante || info.numeroOEM;
-        if (!hayInfo && modelo !== completo) {
-          setStatus(`🔁 Intentando con código de módulo <strong>${modelo}</strong>…`);
-          const info2 = await llamarClaude(modelo, apiKey);
-          info = { ...info2, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v !== null && v !== '')) };
+        // ── PASO 2: API con solo el código del módulo (MEC63) ──────
+        const hayInfo = info.marca || info.modelo || info.motor || info.fabricante;
+        if (!hayInfo) {
+          setStatus(`🔁 Intentando con módulo <strong>${modulo}</strong>…`);
+          const i2 = await llamarClaude(modulo, apiKey);
+          info = { ...i2, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v)) };
         }
 
-        // 3er intento: número original si aún no hay resultados
-        const hayInfo2 = info.marca || info.modelo || info.tipo || info.motor;
-        if (!hayInfo2 && original && original.toUpperCase() !== completo) {
-          setStatus(`🔁 Probando con código original <strong>${original}</strong>…`);
-          const info3 = await llamarClaude(original, apiKey);
-          info = { ...info3, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v !== null && v !== '')) };
+        // ── PASO 3: API con código original ───────────────────────
+        const hayInfo2 = info.marca || info.modelo || info.motor;
+        if (!hayInfo2 && original.toUpperCase() !== completo) {
+          setStatus(`🔁 Probando original <strong>${original}</strong>…`);
+          const i3 = await llamarClaude(original, apiKey);
+          info = { ...i3, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v)) };
         }
 
-        // Extraer número de serie del código si la IA no lo devolvió
-        if (!info.numeroSerie) {
-          const partes = completo.split(/[-_\/\s]+/);
-          const serie = partes.find(p => p.length > 8 && /[A-Z].*[0-9]|[0-9].*[A-Z]/.test(p));
-          if (serie) info.numeroSerie = serie;
-        }
+        // Poner número de serie si no lo devolvió la IA
+        if (!info.numeroSerie && serie) info.numeroSerie = serie;
+        if (!info.numeroOEM) info.numeroOEM = completo;
 
         info.fuente = 'Claude AI';
         mostrarTarjetaIA(info, prefijo, codigo);
