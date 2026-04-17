@@ -1925,7 +1925,7 @@
         if (preview.children.length >= 6) break;
         try {
           const compressed = await compressImage(file, 1200, 0.80);
-          const thumbnail = await compressImage(file, 200, 0.40);
+          const thumbnail = await compressImage(file, 600, 0.75);
 
           const photoEl = document.createElement('div');
           photoEl.className = 'photo-preview';
@@ -2048,7 +2048,7 @@
         // Cargar primera foto de cada item
         for (const item of _catItems) {
           const fotos = await loadPhotosFromFirestore(item.id, item.origen === 'partes' ? 'inv_parte' : 'inv_buena');
-          item._thumb = fotos.length > 0 ? fotos[0].thumbnail : null;
+          item._thumb = fotos.length > 0 ? (fotos[0].data || fotos[0].thumbnail) : null;
         }
 
         renderCatalogo();
@@ -2541,7 +2541,7 @@
 
       for (const parte of partes) {
         const photos = await loadPhotosFromFirestore(parte.id, 'inv_parte');
-        const photoSrc = photos.length > 0 ? photos[0].thumbnail : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
+        const photoSrc = photos.length > 0 ? (photos[0].data || photos[0].thumbnail) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -2675,7 +2675,7 @@
 
       for (const buena of buenas) {
         const photos = await loadPhotosFromFirestore(buena.id, 'inv_buena');
-        const photoSrc = photos.length > 0 ? photos[0].thumbnail : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
+        const photoSrc = photos.length > 0 ? (photos[0].data || photos[0].thumbnail) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2020/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
