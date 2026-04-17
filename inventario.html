@@ -3139,13 +3139,26 @@
 
     // Extrae el segmento de modelo de un número que puede incluir serial
     function extraerSegmentos(codigo) {
-      let limpio = codigo.trim();
+      let limpio = codigo.trim().toUpperCase();
 
-      // Chrysler/Dodge/Jeep/RAM: prefijo P o 4/5/6 dígitos iniciales
+      // ── Chrysler/Dodge/Jeep/RAM: quitar prefijo P ──────────────────
       // Ej: P05150657AA → 05150657AA
-      if (/^P0[456]\d{7}[A-Z]{0,2}$/i.test(limpio)) {
-        limpio = limpio.replace(/^P/i, '');
+      if (/^P0[456]\d{7}[A-Z]{0,2}$/.test(limpio)) {
+        limpio = limpio.slice(1);
       }
+
+      // ── Nissan/Infiniti: quitar prefijo de 2 letras de planta ──────
+      // Ej: DBMEC83-xxx → MEC83-xxx
+      //     XYMEC63-xxx → MEC63-xxx
+      //     ABMEC90-xxx → MEC90-xxx
+      const nisModuleMatch = limpio.match(/^[A-Z]{2}(MEC\d{2}[A-Z]?[-_].+)$/);
+      if (nisModuleMatch) {
+        limpio = nisModuleMatch[1];
+      }
+
+      // ── Nissan ZGxxx / ZBxxx / ZKxxx: formato OEM Nissan JDM ──────
+      // Ej: ZG53A1791 → queda igual, lo mandamos completo a Claude
+      // No hay que modificar, Claude lo reconoce
 
       const partes = limpio.split(/[-_\/\s]+/);
       const modelo = partes[0] || limpio;
@@ -3172,10 +3185,37 @@ IMPORTANTE: estos módulos son ECU/PCM/TCM/BCM de vehículos, NO computadoras de
 
 GUÍA DE IDENTIFICACIÓN (usa esta base de conocimiento):
 
-NISSAN / INFINITI:
-- MEC83 / MEC90 / MEC88 = Nissan (Quest, Murano, Pathfinder 3.5L VQ35DE) — fabricante: Hitachi
+NISSAN / INFINITI (MUY DETALLADO):
+Los números Nissan tienen prefijo de 2 letras de planta (DB, XY, AB, ZA, etc.) seguido del código del módulo.
+TABLA DE CÓDIGOS MEC (Hitachi/Renesas para Nissan):
+- MEC32 = Nissan Sentra B14 / Tsuru III 1.6L GA16DE (1995-2006)
+- MEC37 = Nissan Sentra B15 / Almera 1.8L QG18DE / 2.0L SR20DE (2000-2006)
+- MEC63 = Nissan Tiida C11 / Versa N16 1.6L HR16DE / 1.8L MR18DE (2004-2012)
+- MEC76 = Nissan Note E11 / Versa N17 1.6L HR16DE (2006-2014)
+- MEC83 = Nissan Quest V42 / Murano Z50 3.5L VQ35DE (2004-2009)
+- MEC88 = Nissan Altima L32 2.5L QR25DE / 3.5L VQ35DE (2007-2012)
+- MEC90 = Nissan Pathfinder R51 / Frontier D40 4.0L VQ40DE (2005-2012)
+- MEC93 = Nissan Maxima A35 3.5L VQ35DE (2009-2014)
+- MEC101 = Nissan Sentra B17 / Versa N18 1.6L HR16DE (2012-2019)
+- MEC110 = Nissan Rogue T32 2.5L QR25DE (2014-2020)
+Prefijo de 2 letras: DB / XY / AB / ZA / ZB = prefijo de planta/país de manufactura, NO es parte del código del módulo
+EJEMPLOS REALES:
+- XYMEC63-130C10000XY580423710 → módulo MEC63 = ECU Nissan Tiida/Versa 1.6L HR16DE, fabricante Hitachi, número de serie XY580423710
+- DBMEC83-712A10000DB631423710 → módulo MEC83 = ECU Nissan Murano/Quest 3.5L VQ35DE
+- DBMEC90-052A = ECU Nissan Pathfinder/Frontier 4.0L VQ40DE
+
+FORMATO ZG/ZB/ZK (OEM Nissan JDM/Export):
+- ZGxxx = Nissan, posiblemente Frontier/Pathfinder o modelos mexicanos/latinoamericanos
+- ZG53A = posible ECU Nissan Frontier D22 / Xterra 3.3L VG33E o similar
+- ZBxxx = Nissan módulo de carrocería (BCM)
+- Busca el patrón numérico: ZG53 puede relacionarse con motores VG33E (3.3L V6)
+
+NUMERACIÓN OEM NISSAN:
+- 237xx-xxxxx = ECU/PCM Nissan
+- 310xx-xxxxx = TCM Nissan
+- 284B2-xxxxx = BCM Nissan
+- 238xx-xxxxx = ECU Nissan (modelos nuevos)
 - SH7058 / SH7055 = Renesas chip → Nissan/Infiniti ECU (Hitachi)
-- 237xx-xxxxx = numeración OEM Nissan
 
 TOYOTA / LEXUS:
 - MR479 / MR523 / 89661 = Toyota/Lexus ECU — fabricante: Denso
@@ -3292,25 +3332,33 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       };
 
       try {
-        const { modelo, completo } = extraerSegmentos(codigo);
+        const { modelo, completo, original } = extraerSegmentos(codigo);
 
-        // 1er intento: número completo
-        setStatus(`🤖 Consultando Claude con <strong>${completo}</strong>…`);
+        // 1er intento: número limpio (sin prefijos de planta)
+        setStatus(`🤖 Analizando <strong>${completo}</strong>…`);
         let info = await llamarClaude(completo, apiKey);
 
-        // 2do intento: solo el segmento modelo si no devolvió resultados útiles
+        // 2do intento: solo el segmento del módulo si el completo no dio resultados
         const hayInfo = info.marca || info.modelo || info.tipo || info.motor || info.fabricante || info.numeroOEM;
         if (!hayInfo && modelo !== completo) {
-          setStatus(`🔁 Segundo intento con segmento <strong>${modelo}</strong>…`);
+          setStatus(`🔁 Intentando con código de módulo <strong>${modelo}</strong>…`);
           const info2 = await llamarClaude(modelo, apiKey);
-          // Combinar: priorizar info del completo donde exista
           info = { ...info2, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v !== null && v !== '')) };
-          // Si no había número de serie en el resultado, intentar extraerlo del código original
-          if (!info.numeroSerie) {
-            const partes = codigo.split(/[-_\/\s]+/);
-            const serie = partes.find(p => p.length > 8 && /[A-Z].*[0-9]|[0-9].*[A-Z]/.test(p));
-            if (serie) info.numeroSerie = serie;
-          }
+        }
+
+        // 3er intento: número original si aún no hay resultados
+        const hayInfo2 = info.marca || info.modelo || info.tipo || info.motor;
+        if (!hayInfo2 && original && original.toUpperCase() !== completo) {
+          setStatus(`🔁 Probando con código original <strong>${original}</strong>…`);
+          const info3 = await llamarClaude(original, apiKey);
+          info = { ...info3, ...Object.fromEntries(Object.entries(info).filter(([,v]) => v !== null && v !== '')) };
+        }
+
+        // Extraer número de serie del código si la IA no lo devolvió
+        if (!info.numeroSerie) {
+          const partes = completo.split(/[-_\/\s]+/);
+          const serie = partes.find(p => p.length > 8 && /[A-Z].*[0-9]|[0-9].*[A-Z]/.test(p));
+          if (serie) info.numeroSerie = serie;
         }
 
         info.fuente = 'Claude AI';
