@@ -593,6 +593,161 @@
       display: none;
     }
 
+    /* ===== CATÁLOGO ===== */
+    .catalogo-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .catalogo-search {
+      flex: 1;
+      min-width: 220px;
+      position: relative;
+    }
+    .catalogo-search input {
+      width: 100%;
+      padding: 11px 16px 11px 40px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 10px;
+      color: #e2e8f0;
+      font-size: .9rem;
+      box-sizing: border-box;
+    }
+    .catalogo-search input:focus { outline: none; border-color: #6366f1; }
+    .catalogo-search-icon {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-size: 1rem;
+      pointer-events: none;
+    }
+    .catalogo-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .cat-filter-btn {
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.05);
+      color: #94a3b8;
+      font-size: .78rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-weight: 600;
+    }
+    .cat-filter-btn.active {
+      background: rgba(99,102,241,.3);
+      border-color: #6366f1;
+      color: #a5b4fc;
+    }
+    .cat-filter-btn:hover { background: rgba(99,102,241,.15); color: #c7d2fe; }
+    .catalogo-sort {
+      padding: 8px 12px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: .82rem;
+      cursor: pointer;
+    }
+    .catalogo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .cat-card {
+      background: linear-gradient(135deg, rgba(15,23,42,.9), rgba(30,41,59,.9));
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .cat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+      border-color: rgba(99,102,241,.4);
+    }
+    .cat-card-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: #1e293b;
+      display: block;
+    }
+    .cat-card-body {
+      padding: 12px;
+    }
+    .cat-card-numero {
+      font-size: .7rem;
+      color: #64748b;
+      font-family: monospace;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .cat-card-nombre {
+      font-size: .88rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+    .cat-card-sub {
+      font-size: .74rem;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .cat-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .cat-card-precio {
+      font-size: .95rem;
+      font-weight: 800;
+      color: #f59e0b;
+    }
+    .cat-card-badges {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .cat-badge {
+      font-size: .65rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+    .cat-badge-tipo { background: rgba(99,102,241,.25); color: #a5b4fc; }
+    .cat-badge-disponible { background: rgba(16,185,129,.2); color: #6ee7b7; }
+    .cat-badge-agotado { background: rgba(239,68,68,.2); color: #fca5a5; }
+    .cat-badge-reservado { background: rgba(245,158,11,.2); color: #fcd34d; }
+    .cat-badge-origen { background: rgba(100,116,139,.2); color: #94a3b8; }
+    .catalogo-empty {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      color: #475569;
+    }
+    .catalogo-empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .catalogo-stats {
+      font-size: .8rem;
+      color: #64748b;
+      margin-bottom: 16px;
+    }
+    @media (max-width: 600px) {
+      .catalogo-grid { grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; }
+    }
+
     /* ===== FORM BUTTONS ===== */
     .form-buttons {
       display: flex;
@@ -1081,6 +1236,7 @@
       <div class="nav-section">
         <div class="nav-section-title">Navegación</div>
         <a class="nav-item active" data-tab="dashboard">📊 Dashboard</a>
+        <a class="nav-item" data-tab="catalogo">🛒 Catálogo</a>
         <a class="nav-item" data-tab="partes">🔩 Partes</a>
         <a class="nav-item" data-tab="buenas">🖥️ Buenas</a>
         <a class="nav-item" data-tab="clientes">👥 Clientes</a>
@@ -1127,6 +1283,48 @@
                 <div class="stat-card">
                   <div class="stat-label">Agotados</div>
                   <div class="stat-value" id="stat-agotados">0</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CATÁLOGO TAB -->
+          <div id="catalogo-tab" class="tab-content">
+            <div style="padding:30px;">
+              <h2 class="dashboard-title">🛒 Catálogo de Venta</h2>
+
+              <div class="catalogo-toolbar">
+                <div class="catalogo-search">
+                  <span class="catalogo-search-icon">🔍</span>
+                  <input type="text" id="cat-search" placeholder="Buscar por número, marca, modelo, motor, OEM...">
+                </div>
+                <select class="catalogo-sort" id="cat-sort" onchange="renderCatalogo()">
+                  <option value="nombre">Ordenar: Marca A-Z</option>
+                  <option value="precio-asc">Precio ↑</option>
+                  <option value="precio-desc">Precio ↓</option>
+                  <option value="ano-desc">Año más reciente</option>
+                  <option value="estado">Estado</option>
+                </select>
+              </div>
+
+              <div class="catalogo-filters" id="cat-filters" style="margin-bottom:16px;">
+                <button class="cat-filter-btn active" data-filter="all" onclick="setCatFilter('all',this)">Todos</button>
+                <button class="cat-filter-btn" data-filter="partes" onclick="setCatFilter('partes',this)">🔩 Partes</button>
+                <button class="cat-filter-btn" data-filter="buenas" onclick="setCatFilter('buenas',this)">🖥️ Buenas</button>
+                <button class="cat-filter-btn" data-filter="Disponible" onclick="setCatFilter('Disponible',this)">✅ Disponible</button>
+                <button class="cat-filter-btn" data-filter="ECU" onclick="setCatFilter('ECU',this)">ECU</button>
+                <button class="cat-filter-btn" data-filter="TCM" onclick="setCatFilter('TCM',this)">TCM</button>
+                <button class="cat-filter-btn" data-filter="BCM" onclick="setCatFilter('BCM',this)">BCM</button>
+                <button class="cat-filter-btn" data-filter="PCM" onclick="setCatFilter('PCM',this)">PCM</button>
+                <button class="cat-filter-btn" data-filter="ABS" onclick="setCatFilter('ABS',this)">ABS</button>
+                <button class="cat-filter-btn" data-filter="Airbag" onclick="setCatFilter('Airbag',this)">Airbag</button>
+              </div>
+
+              <div class="catalogo-stats" id="cat-stats">Cargando...</div>
+              <div class="catalogo-grid" id="cat-grid">
+                <div class="catalogo-empty">
+                  <div class="catalogo-empty-icon">🛒</div>
+                  <div>Cargando catálogo...</div>
                 </div>
               </div>
             </div>
@@ -1710,6 +1908,9 @@
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById(tab + '-tab').classList.add('active');
 
+        // Cargar catálogo cuando se abre esa sección
+        if (tab === 'catalogo') loadCatalogo();
+
         // Cerrar sidebar en móvil al seleccionar sección
         closeSidebar();
       });
@@ -1821,6 +2022,142 @@
       _forceCreateBuena = true;
       document.getElementById('dup-warning-buenas').classList.remove('show');
     });
+
+    // ===== CATÁLOGO =====
+    let _catItems = [];           // todos los items cargados
+    let _catFilter = 'all';       // filtro activo
+    let _catSearch = '';          // texto de búsqueda
+
+    async function loadCatalogo() {
+      const grid = document.getElementById('cat-grid');
+      grid.innerHTML = `<div class="catalogo-empty"><div class="catalogo-empty-icon" style="font-size:2rem;">⏳</div><div>Cargando catálogo...</div></div>`;
+      document.getElementById('cat-stats').textContent = 'Cargando...';
+
+      try {
+        const [partesSnap, buenasSnap] = await Promise.all([
+          fdb.collection('inventario_partes').get(),
+          fdb.collection('inventario_buenas').get()
+        ]);
+
+        const partes = partesSnap.docs.map(d => ({ id: d.id, origen: 'partes', ...d.data() }));
+        const buenas = buenasSnap.docs.map(d => ({ id: d.id, origen: 'buenas', ...d.data() }));
+        _catItems = [...partes, ...buenas];
+
+        // Cargar primera foto de cada item
+        for (const item of _catItems) {
+          const fotos = await loadPhotosFromFirestore(item.id, item.origen === 'partes' ? 'inv_parte' : 'inv_buena');
+          item._thumb = fotos.length > 0 ? fotos[0].thumbnail : null;
+        }
+
+        renderCatalogo();
+      } catch(e) {
+        grid.innerHTML = `<div class="catalogo-empty"><div class="catalogo-empty-icon">❌</div><div>${e.message}</div></div>`;
+      }
+    }
+
+    function setCatFilter(f, btn) {
+      _catFilter = f;
+      document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderCatalogo();
+    }
+
+    function renderCatalogo() {
+      const search = (document.getElementById('cat-search')?.value || '').toLowerCase().trim();
+      const sort = document.getElementById('cat-sort')?.value || 'nombre';
+      const grid = document.getElementById('cat-grid');
+
+      const tipos = ['ECU','TCM','BCM','PCM','ABS','Airbag','Cluster','Inmovilizador','Radio','Otro'];
+
+      let items = _catItems.filter(item => {
+        // Filtro por categoría/tipo/estado
+        if (_catFilter === 'partes' && item.origen !== 'partes') return false;
+        if (_catFilter === 'buenas' && item.origen !== 'buenas') return false;
+        if (_catFilter === 'Disponible' && item.estado !== 'Disponible') return false;
+        if (tipos.includes(_catFilter) && item.tipoModulo !== _catFilter) return false;
+
+        // Búsqueda de texto
+        if (search) {
+          const haystack = [
+            item.numeroParte, item.marca, item.modelo, item.motor,
+            item.tipoModulo, item.fabricanteModulo, item.numeroOEM,
+            item.numeroSerie, item.descripcion, String(item.ano || '')
+          ].join(' ').toLowerCase();
+          if (!haystack.includes(search)) return false;
+        }
+        return true;
+      });
+
+      // Ordenar
+      items.sort((a, b) => {
+        if (sort === 'precio-asc') return (a.precio || 0) - (b.precio || 0);
+        if (sort === 'precio-desc') return (b.precio || 0) - (a.precio || 0);
+        if (sort === 'ano-desc') return (b.ano || 0) - (a.ano || 0);
+        if (sort === 'estado') return (a.estado || '').localeCompare(b.estado || '');
+        return (`${a.marca} ${a.modelo}`).localeCompare(`${b.marca} ${b.modelo}`);
+      });
+
+      const total = _catItems.length;
+      const disp = _catItems.filter(i => i.estado === 'Disponible').length;
+      document.getElementById('cat-stats').textContent =
+        `${items.length} resultado${items.length !== 1 ? 's' : ''} · ${total} total · ${disp} disponibles`;
+
+      if (items.length === 0) {
+        grid.innerHTML = `
+          <div class="catalogo-empty">
+            <div class="catalogo-empty-icon">🔍</div>
+            <div>No se encontraron productos</div>
+            <div style="font-size:.78rem;margin-top:6px;color:#475569;">Intenta con otros términos de búsqueda</div>
+          </div>`;
+        return;
+      }
+
+      const placeholder = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231e293b' width='100' height='100'/%3E%3Ctext x='50' y='52' font-size='36' fill='%23334155' text-anchor='middle' dy='.3em'%3E🖥️%3C/text%3E%3C/svg%3E`;
+
+      grid.innerHTML = items.map(item => {
+        const estadoBadge = item.estado === 'Disponible'
+          ? `<span class="cat-badge cat-badge-disponible">✅ Disponible</span>`
+          : item.estado === 'Agotado'
+          ? `<span class="cat-badge cat-badge-agotado">❌ Agotado</span>`
+          : item.estado === 'Reservado'
+          ? `<span class="cat-badge cat-badge-reservado">⏳ Reservado</span>`
+          : '';
+        const tipoBadge = item.tipoModulo
+          ? `<span class="cat-badge cat-badge-tipo">${item.tipoModulo}</span>` : '';
+        const origenBadge = `<span class="cat-badge cat-badge-origen">${item.origen === 'partes' ? '🔩' : '🖥️'}</span>`;
+        const sub = [item.motor, item.fabricanteModulo].filter(Boolean).join(' · ') || item.descripcion?.substring(0,50) || '';
+
+        return `
+          <div class="cat-card" onclick="window.abrirPerfilCatalogo('${item.id}','${item.origen}')">
+            <img class="cat-card-img" src="${item._thumb || placeholder}" alt="${item.numeroParte}"
+              onerror="this.src='${placeholder}'">
+            <div class="cat-card-body">
+              <div class="cat-card-numero">${item.numeroParte}</div>
+              <div class="cat-card-nombre">${item.marca || ''} ${item.modelo || ''} ${item.ano ? item.ano : ''}</div>
+              ${sub ? `<div class="cat-card-sub">${sub}</div>` : ''}
+              <div class="cat-card-footer">
+                <div class="cat-card-precio">L. ${(item.precio || 0).toLocaleString('es-HN', {minimumFractionDigits:2})}</div>
+                <div class="cat-card-badges">${origenBadge}${tipoBadge}</div>
+              </div>
+              <div style="margin-top:6px;">${estadoBadge}</div>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    // Búsqueda en tiempo real
+    document.addEventListener('DOMContentLoaded', () => {
+      const si = document.getElementById('cat-search');
+      if (si) si.addEventListener('input', renderCatalogo);
+    });
+    // Por si ya cargó antes del DOMContentLoaded
+    const _catSearchEl = document.getElementById('cat-search');
+    if (_catSearchEl) _catSearchEl.addEventListener('input', renderCatalogo);
+
+    window.abrirPerfilCatalogo = (id, origen) => {
+      if (origen === 'partes') window.viewPartePerfil(id);
+      else window.viewBuenaPerfil(id);
+    };
 
     // ===== PARTES FORM =====
     document.getElementById('form-partes').addEventListener('submit', async (e) => {
