@@ -1388,7 +1388,7 @@
 
                     <div class="form-group">
                       <label>Año del Vehículo</label>
-                      <input type="number" id="partes-ano" placeholder="2006">
+                      <input type="text" id="partes-ano" placeholder="ej: 2006 ó 2011-2019">
                     </div>
 
                     <div class="form-group">
@@ -1564,7 +1564,7 @@
 
                     <div class="form-group">
                       <label>Año del Vehículo</label>
-                      <input type="number" id="buenas-ano" placeholder="2006">
+                      <input type="text" id="buenas-ano" placeholder="ej: 2006 ó 2011-2019">
                     </div>
 
                     <div class="form-group">
@@ -2177,7 +2177,7 @@
         const numero = document.getElementById('partes-numero').value.trim();
         const marca = document.getElementById('partes-marca').value.trim();
         const modelo = document.getElementById('partes-modelo').value.trim();
-        const ano = parseInt(document.getElementById('partes-ano').value) || null;
+        const ano = document.getElementById('partes-ano').value.trim() || null;
         const tipoModulo = document.getElementById('partes-tipo-modulo').value;
         const motor = document.getElementById('partes-motor').value.trim();
         const fabricanteModulo = document.getElementById('partes-fabricante-modulo').value.trim();
@@ -3224,28 +3224,30 @@ FORD:
 BOSCH GENÉRICO:
 - ME17.9 / ME7.x / 0261S / 0261E = Bosch ECU (Ford, VW, Audi, Chevrolet, etc.)
 
-INSTRUCCIONES:
+INSTRUCCIONES CRÍTICAS:
 - Analiza el prefijo/código para inferir marca del VEHÍCULO y tipo de módulo
-- Para números Chrysler (05xxxxxxAA): el número completo ES el número OEM, las letras finales son la revisión. Busca en la guía de arriba el rango de número para inferir el vehículo.
-- Si el número tiene guión, lo de antes del guión suele ser el modelo del módulo y lo de después suele mezclar configuración + número de serie
+- Para números Chrysler (05xxxxxxAA): el número completo ES el número OEM. Usa los RANGOS OEM de arriba para determinar el motor y vehículos compatibles.
+- REGLA DE MODELO: Si el módulo es compatible con MÚLTIPLES modelos, ponlos TODOS en el campo "modelo" separados por " / ". NUNCA dejes el modelo vacío si puedes inferirlo del motor. Ejemplo: modelo:"Charger / Challenger / Grand Cherokee / Journey / RAM 1500"
+- REGLA DE MOTOR: Si conoces el rango OEM y puedes inferir el motor, SIEMPRE llena el campo motor. Para 0513-0515xxxx es OBLIGATORIO poner "3.6L Pentastar V6".
+- Si el número tiene guión: lo de antes del guión es el código del módulo, lo de después es configuración + serie
 - El número de serie suele ser el bloque alfanumérico largo (>8 chars) al final
-- Para Chrysler/Dodge/Jeep: el tipo casi siempre es PCM o ECU salvo que sea 056xxxx (BCM)
+- Para Chrysler/Dodge/Jeep: el tipo casi siempre es PCM salvo que sea 056xxxx (BCM) o 068xxxx (TCM)
 
 Devuelve SOLO este JSON (sin markdown, sin explicación):
 {"marca":"","modelo":"","ano":null,"tipo":"","motor":"","fabricante":"","numeroOEM":"","numeroSerie":"","descripcion":""}
 
-Campos:
-- marca: marca del VEHÍCULO (Nissan/Toyota/Honda/Ford/Chevrolet/Hyundai/Kia/Mazda/Dodge/Mitsubishi/Volkswagen/etc.)
-- modelo: modelo del vehículo (Murano/Altima/Sentra/Corolla/Camry/Civic/etc.)
-- ano: año como número entero, o null
+Campos (motor y modelo son PRIORITARIOS — nunca los dejes vacíos si puedes deducirlos):
+- marca: marca principal del vehículo. Si aplica a Dodge/Chrysler/Jeep/RAM pon "Dodge"
+- modelo: SI HAY VARIOS MODELOS COMPATIBLES ponlos TODOS separados por " / " (ej: "Charger / Challenger / Grand Cherokee / Journey / RAM 1500"). NUNCA vacío si el motor fue identificado.
+- ano: rango de años o año principal (ej: "2011-2019" o 2015)
 - tipo: ECU | TCM | BCM | PCM | ABS | Airbag | Cluster | Inmovilizador | Radio | Otro
-- motor: cilindrada y código motor (ej: "3.5L VQ35DE")
-- fabricante: quién fabricó el módulo (Hitachi/Bosch/Denso/Delphi/Siemens/Continental/Mitsubishi Electric/etc.)
-- numeroOEM: número de parte del fabricante del vehículo si lo puedes deducir
-- numeroSerie: número de serie del módulo si está en el código
-- descripcion: descripción breve en español (máx 90 chars)
+- motor: OBLIGATORIO si lo puedes deducir del rango OEM o del prefijo. Formato: "3.6L Pentastar V6" / "5.7L HEMI V8" / "3.5L VQ35DE" / etc.
+- fabricante: fabricante del módulo (Bosch/Hitachi/Denso/Delphi/Continental/Siemens/etc.)
+- numeroOEM: número completo sin prefijo P
+- numeroSerie: número de serie si está en el código
+- descripcion: en español con motor incluido, máx 90 chars (ej: "PCM Dodge/Jeep 3.6L Pentastar V6 2011-2019")
 
-Si un campo es desconocido, pon "" o null. No inventes lo que no sabes.`
+Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INFIERELOS del contexto.`
           }]
         })
       });
