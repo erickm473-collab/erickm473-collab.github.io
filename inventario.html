@@ -3163,7 +3163,7 @@
         },
         body: JSON.stringify({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 600,
+          max_tokens: 800,
           messages: [{
             role: 'user',
             content: `Eres un experto en módulos electrónicos automotrices de LATINOAMÉRICA. El cliente tiene un taller de computadoras de autos en Honduras. Analiza este código de módulo automotriz: "${texto}"
@@ -3186,13 +3186,32 @@ HONDA / ACURA:
 
 CHRYSLER / DODGE / JEEP / RAM (MUY IMPORTANTE):
 - Formato OEM Chrysler/FCA/Stellantis: 04xxxxxxAA / 05xxxxxxAA / 056xxxxxAA
-  - 04xxxx = módulos era 2000-2004 (Cherokee, Durango, RAM, Neon, Stratus)
-  - 05xxxx = módulos era 2004-2015 (Caliber, Charger, Challenger, Journey, Avenger, Grand Cherokee, Wrangler, RAM)
-  - 056xxxx = BCM/módulo de carrocería Chrysler
   - Letras al final (AA/AB/AC/BA) = revisión de calibración
-- El prefijo "P" antes del número (ej: P05150657AA) es solo el marcador de catálogo, el número real empieza en 0
-- Fabricantes de módulos Chrysler: Bosch, Delphi, Continental, Siemens/VDO
-- Ejemplos: 05150657AA = PCM Dodge Caliber/Jeep Compass/Patriot 2.4L; 04896xx = PCM Neon; 05017xxx = PCM Dodge Stratus/Sebring; 04793xx = PCM Cherokee
+  - El prefijo "P" antes del número (ej: P05150657AA) es solo el marcador de catálogo, el número real empieza en 0
+  - Fabricantes de módulos Chrysler: Bosch, Delphi, Continental, Siemens/VDO
+
+MOTORES CHRYSLER/DODGE/JEEP/RAM (CRÍTICO — identificar correctamente):
+  - 3.6L Pentastar V6 (código ERB / EZH / ETK): Dodge Charger, Challenger, Journey, Grand Caravan, Durango; Jeep Grand Cherokee, Wrangler, Cherokee; Chrysler 300, Town & Country; RAM 1500 — años 2011-2023
+  - 5.7L HEMI V8 (código EZB / ESF): Dodge Charger, Challenger, Durango, RAM 1500/2500; Jeep Grand Cherokee — años 2003-presente
+  - 6.4L HEMI V8 (código ESG): Dodge Charger/Challenger SRT, RAM HD, Jeep Grand Cherokee SRT — años 2011-presente
+  - 6.2L Hellcat V8 (código ESM): Dodge Charger/Challenger Hellcat — años 2015-presente
+  - 2.4L Tigershark (código ED6/EDG): Dodge Caliber, Jeep Compass/Patriot — años 2007-2017
+  - 2.0L (código ECN): Dodge Caliber, Jeep Compass/Patriot — años 2007-2012
+  - 3.8L V6 (código EGH): Chrysler Town & Country, Dodge Grand Caravan, Jeep Wrangler — años 2000-2011
+  - 4.7L V8 (código EKG): Dodge Dakota, Durango, RAM; Jeep Grand Cherokee/Commander — años 1999-2009
+  - 5.9L Diesel Cummins: RAM 2500/3500 — años 1998-2007
+  - 6.7L Diesel Cummins: RAM 2500/3500 — años 2007-presente
+
+RANGOS OEM CHRYSLER POR NÚMERO:
+  - 0513xxxx / 0514xxxx / 0515xxxx = PCM 3.6L Pentastar (2011-2019) — MOTOR 3.6L Pentastar V6
+  - 0516xxxx / 0517xxxx = PCM 3.6L Pentastar o 5.7L HEMI (2015-2021)
+  - 0512xxxx = PCM 5.7L HEMI o 3.6L (2011-2015)
+  - 0505xxxx / 0506xxxx = PCM 5.7L HEMI (2006-2012)
+  - 0503xxxx / 0504xxxx = PCM 4.7L V8 (2002-2008)
+  - 0500xxxx = PCM 3.8L o 2.4L (2000-2005)
+  - 0489xxxx / 0490xxxx = PCM Neon/Stratus/Sebring 2.4L (1999-2004)
+  - 056xxxxx = BCM (Body Control Module) Chrysler
+  - 068xxxxx = TCM (Transmission Control Module) Chrysler
 
 CHEVROLET / GM:
 - 12xxx / 16xxx = ECM/PCM GM — fabricante: Delphi o Bosch
