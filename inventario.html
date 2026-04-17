@@ -1251,9 +1251,15 @@
                       <label class="photo-label">Fotos (hasta 6)</label>
                       <div class="photo-count" id="partes-photo-count">0 / 6 fotos</div>
                       <div class="photo-preview-grid" id="partes-photo-preview"></div>
-                      <div class="file-input-wrapper">
-                        <label class="file-input-label" for="partes-photo-input">+ Agregar foto</label>
-                        <input type="file" id="partes-photo-input" accept="image/*" multiple>
+                      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <div class="file-input-wrapper">
+                          <label class="file-input-label" for="partes-camera-input" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border-color:#0ea5e9;">📷 Tomar foto</label>
+                          <input type="file" id="partes-camera-input" accept="image/*" capture="environment">
+                        </div>
+                        <div class="file-input-wrapper">
+                          <label class="file-input-label" for="partes-photo-input">🖼️ Galería</label>
+                          <input type="file" id="partes-photo-input" accept="image/*" multiple>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1420,9 +1426,15 @@
                       <label class="photo-label">Fotos (hasta 6)</label>
                       <div class="photo-count" id="buenas-photo-count">0 / 6 fotos</div>
                       <div class="photo-preview-grid" id="buenas-photo-preview"></div>
-                      <div class="file-input-wrapper">
-                        <label class="file-input-label" for="buenas-photo-input">+ Agregar foto</label>
-                        <input type="file" id="buenas-photo-input" accept="image/*" multiple>
+                      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <div class="file-input-wrapper">
+                          <label class="file-input-label" for="buenas-camera-input" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border-color:#0ea5e9;">📷 Tomar foto</label>
+                          <input type="file" id="buenas-camera-input" accept="image/*" capture="environment">
+                        </div>
+                        <div class="file-input-wrapper">
+                          <label class="file-input-label" for="buenas-photo-input">🖼️ Galería</label>
+                          <input type="file" id="buenas-photo-input" accept="image/*" multiple>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1704,47 +1716,44 @@
     });
 
     // ===== PHOTO HANDLERS =====
-    ['partes', 'buenas'].forEach(prefix => {
-      const input = document.getElementById(`${prefix}-photo-input`);
+    async function handlePhotoFiles(files, prefix, inputEl) {
       const preview = document.getElementById(`${prefix}-photo-preview`);
-      const countEl = document.getElementById(`${prefix}-photo-count`);
+      for (const file of Array.from(files)) {
+        if (preview.children.length >= 6) break;
+        try {
+          const compressed = await compressImage(file, 1200, 0.80);
+          const thumbnail = await compressImage(file, 200, 0.40);
 
-      input.addEventListener('change', async (e) => {
-        const files = Array.from(e.target.files);
-        const currentCount = preview.children.length;
-
-        for (const file of files) {
-          if (currentCount + preview.children.length >= 6) break;
-
-          try {
-            const compressed = await compressImage(file, 1200, 0.80);
-            const thumbnail = await compressImage(file, 200, 0.40);
-
-            const photoEl = document.createElement('div');
-            photoEl.className = 'photo-preview';
-            photoEl.innerHTML = `
-              <img src="${thumbnail}">
-              <button type="button" class="photo-remove">✕</button>
-            `;
-
-            photoEl.dataset.full = compressed;
-            photoEl.dataset.thumb = thumbnail;
-
-            photoEl.querySelector('.photo-remove').addEventListener('click', (evt) => {
-              evt.preventDefault();
-              photoEl.remove();
-              updatePhotoCount(prefix);
-            });
-
-            preview.appendChild(photoEl);
-          } catch (err) {
-            console.error('Error compressing image:', err);
-          }
+          const photoEl = document.createElement('div');
+          photoEl.className = 'photo-preview';
+          photoEl.innerHTML = `
+            <img src="${thumbnail}">
+            <button type="button" class="photo-remove">✕</button>
+          `;
+          photoEl.dataset.full = compressed;
+          photoEl.dataset.thumb = thumbnail;
+          photoEl.querySelector('.photo-remove').addEventListener('click', (evt) => {
+            evt.preventDefault();
+            photoEl.remove();
+            updatePhotoCount(prefix);
+          });
+          preview.appendChild(photoEl);
+        } catch (err) {
+          console.error('Error compressing image:', err);
         }
+      }
+      updatePhotoCount(prefix);
+      if (inputEl) inputEl.value = '';
+    }
 
-        updatePhotoCount(prefix);
-        input.value = '';
-      });
+    ['partes', 'buenas'].forEach(prefix => {
+      // Galería (múltiples)
+      const photoInput = document.getElementById(`${prefix}-photo-input`);
+      photoInput.addEventListener('change', (e) => handlePhotoFiles(e.target.files, prefix, photoInput));
+
+      // Cámara (una foto por vez)
+      const cameraInput = document.getElementById(`${prefix}-camera-input`);
+      cameraInput.addEventListener('change', (e) => handlePhotoFiles(e.target.files, prefix, cameraInput));
     });
 
     function updatePhotoCount(prefix) {
