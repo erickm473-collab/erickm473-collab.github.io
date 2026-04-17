@@ -3144,9 +3144,11 @@
       // NISSAN / INFINITI  — Módulos Hitachi (prefijo planta 2 letras)
       // ═══════════════════════════════════════════════════════════════
       { p:/^MEC32/i,    marca:'Nissan', modelos:'Sentra B14 / Tsuru III',          motor:'1.6L GA16DE',                   tipo:'ECU', fab:'Hitachi', anos:'1995-2006', oem:'' },
-      // MEC35-522 CONFIRMADO: Nissan Sentra B13/NP300 — actualizar cuando usuario confirme modelo exacto
-      { p:/^MEC35-522/i,marca:'Nissan', modelos:'Sentra / NP300',                  motor:'1.6L GA16DE / 2.0L SR20DE',     tipo:'ECU', fab:'Hitachi', anos:'1996-2004', oem:'' },
-      { p:/^MEC35/i,    marca:'Nissan', modelos:'Sentra / NP300',                  motor:'1.6L GA16DE',                   tipo:'ECU', fab:'Hitachi', anos:'1996-2004', oem:'' },
+      // MEC35-522 CONFIRMADO: Nissan Altima L31 2005-2006, 2.5L QR25DE — OEM: 23710-9J507
+      // Número completo: 5BMEC35-522A100005B473023710 → planta 5B, módulo MEC35-522, serie 5B473023710
+      // 9J507 en el número hace referencia al OEM 23710-9J507
+      { p:/^MEC35-522/i,marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
+      { p:/^MEC35/i,    marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2004-2006', oem:'23710-9J507' },
       { p:/^MEC37/i,    marca:'Nissan', modelos:'Sentra B15 / Almera N16',         motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'' },
       // MEC63-130 CONFIRMADO: Nissan Sentra B16 1.6L HR16DE
       { p:/^MEC63-130/i,marca:'Nissan', modelos:'Sentra B16',                      motor:'1.6L HR16DE',                   tipo:'ECU', fab:'Hitachi', anos:'2006-2012', oem:'23710-ZG53A' },
@@ -3162,9 +3164,10 @@
       { p:/^MEC110/i,   marca:'Nissan', modelos:'Rogue T32 / X-Trail T32',         motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2014-2020', oem:'' },
       // ZG53A CONFIRMADO: Nissan Sentra B15 1.8L QG18DE
       { p:/^ZG53/i,     marca:'Nissan', modelos:'Sentra B15',                      motor:'1.8L QG18DE',                   tipo:'ECU', fab:'Hitachi', anos:'2000-2006', oem:'23710-ZG53A' },
-      // 9J = posiblemente TCM Jatco para Nissan — confirmar modelo
-      { p:/^9J50/i,     marca:'Nissan', modelos:'(TCM — confirmar modelo)',        motor:'',                              tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
-      { p:/^9J/i,       marca:'Nissan', modelos:'(TCM — confirmar modelo)',        motor:'',                              tipo:'TCM', fab:'Jatco',   anos:'',          oem:'' },
+      // 9J507 = referencia al OEM 23710-9J507 → ECU Nissan Altima 2.5L QR25DE
+      // Ej: 9J5070079 → número OEM 23710-9J507, revisión 0079
+      { p:/^9J507/i,    marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
+      { p:/^9J/i,       marca:'Nissan', modelos:'Altima L31',                      motor:'2.5L QR25DE',                   tipo:'ECU', fab:'Hitachi', anos:'2005-2006', oem:'23710-9J507' },
       { p:/^ZB/i,       marca:'Nissan', modelos:'(BCM Nissan)',                    motor:'',                              tipo:'BCM', fab:'Hitachi', anos:'',          oem:'' },
       // ═══════════════════════════════════════════════════════════════
       // TOYOTA / LEXUS
@@ -3260,6 +3263,10 @@ Los números Nissan tienen prefijo de 2 letras de planta (DB, XY, AB, ZA, ZG, et
 
 TABLA COMPLETA CÓDIGOS MEC (Hitachi ECU para Nissan Latinoamérica):
 - MEC32 = Nissan Sentra B14 / Tsuru III — motor: 1.6L GA16DE — años: 1995-2006
+- MEC35-522 = Nissan Altima L31 — motor: 2.5L QR25DE — años: 2005-2006 — OEM: 23710-9J507 — CONFIRMADO
+         EJEMPLO CONFIRMADO: 5BMEC35-522A100005B473023710 = ECU Nissan Altima L31 2.5L QR25DE, fabricante Hitachi, número de serie 5B473023710, OEM 23710-9J507
+         NOTA: 9J507 en el número largo hace referencia al part number OEM 23710-9J507 (NO es un TCM)
+- MEC35 = Nissan Altima L31 — motor: 2.5L QR25DE — años: 2004-2006 — OEM: 23710-9J507
 - MEC37 = Nissan Sentra B15 / Almera N16 — motor: 1.8L QG18DE — años: 2000-2006
 - MEC63 = Nissan SENTRA B16 mercado latinoamericano — motor: 1.6L HR16DE — años: 2006-2012 — OEM: 23710-ZG53A
          EJEMPLO CONFIRMADO: XYMEC63-130C10000XY580423710 = ECU Nissan Sentra B16 1.6L HR16DE, fabricante Hitachi, número de serie XY580423710, OEM 23710-ZG53A
