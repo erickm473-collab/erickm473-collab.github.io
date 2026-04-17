@@ -3709,83 +3709,107 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       setTimeout(() => { const c = document.getElementById(`ia-card-${prefijo}`); if(c) c.innerHTML=''; }, 2500);
     }
 
-    // ===== BARCODE SCANNER =====
-    let _scanTarget = null;   // el ID del input donde poner el resultado
-    let _scanStream = null;
-    let _scanDetector = null;
-    let _scanAnimId = null;
+    // ===== BARCODE SCANNER — Compatible con iPhone/iOS Safari =====
+    // Usa html5-qrcode (ZXing) que funciona en iOS, Android y Desktop
+    let _scanTarget = null;
+    let _html5Scanner = null;
+    let _scanResultado = null;
+    let _scanActivo = false;
 
     function abrirEscaner(targetInputId) {
       _scanTarget = targetInputId;
+      _scanResultado = null;
       document.getElementById('scanner-overlay').style.display = 'flex';
-      iniciarCamara();
-    }
-
-    function cerrarEscaner() {
-      if (_scanAnimId) { cancelAnimationFrame(_scanAnimId); _scanAnimId = null; }
-      if (_scanStream) { _scanStream.getTracks().forEach(t => t.stop()); _scanStream = null; }
-      document.getElementById('scanner-overlay').style.display = 'none';
-      document.getElementById('scanner-result').textContent = '';
       document.getElementById('scanner-result-box').style.display = 'none';
+      document.getElementById('scanner-result').textContent = '';
+      document.getElementById('scanner-manual-section').style.display = 'none';
+      document.getElementById('scanner-status').textContent = 'Iniciando cámara…';
+      // Pequeño delay para que el overlay sea visible antes de iniciar cámara
+      setTimeout(iniciarCamaraH5, 200);
     }
 
-    async function iniciarCamara() {
-      const video = document.getElementById('scanner-video');
-      const statusEl = document.getElementById('scanner-status');
-      statusEl.textContent = 'Iniciando cámara...';
-      try {
-        _scanStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-        video.srcObject = _scanStream;
-        await video.play();
-        statusEl.textContent = '';
+    async function cerrarEscaner() {
+      _scanActivo = false;
+      if (_html5Scanner) {
+        try {
+          if (_html5Scanner.isScanning) await _html5Scanner.stop();
+          _html5Scanner.clear();
+        } catch(e) {}
+        _html5Scanner = null;
+      }
+      document.getElementById('scanner-qr-container').innerHTML = '';
+      document.getElementById('scanner-overlay').style.display = 'none';
+    }
 
-        if ('BarcodeDetector' in window) {
-          _scanDetector = new BarcodeDetector({ formats: [
-            'code_128','code_39','code_93','ean_13','ean_8','upc_a','upc_e',
-            'qr_code','data_matrix','pdf417','aztec','itf','codabar'
-          ]});
-          escanearLoop();
+    async function iniciarCamaraH5() {
+      const statusEl = document.getElementById('scanner-status');
+      const container = document.getElementById('scanner-qr-container');
+      container.innerHTML = '';
+
+      // Verificar que la librería esté cargada
+      if (typeof Html5Qrcode === 'undefined') {
+        statusEl.textContent = '❌ Librería de escáner no cargada. Usa entrada manual.';
+        document.getElementById('scanner-manual-section').style.display = 'block';
+        return;
+      }
+
+      try {
+        _html5Scanner = new Html5Qrcode('scanner-qr-container', { verbose: false });
+        _scanActivo = true;
+
+        const config = {
+          fps: 15,
+          qrbox: (w, h) => {
+            const size = Math.min(w, h) * 0.72;
+            return { width: Math.round(size), height: Math.round(size * 0.55) };
+          },
+          aspectRatio: 1.5,
+          supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+          rememberLastUsedCamera: true,
+          showTorchButtonIfSupported: true,
+        };
+
+        await _html5Scanner.start(
+          { facingMode: 'environment' },
+          config,
+          (decodedText) => {
+            if (!_scanActivo) return;
+            _scanActivo = false; // evitar múltiples detecciones
+            if (navigator.vibrate) navigator.vibrate([80, 30, 80]);
+            _scanResultado = decodedText;
+            document.getElementById('scanner-result').textContent = decodedText;
+            document.getElementById('scanner-result-box').style.display = 'block';
+            statusEl.textContent = '✅ ¡Código detectado!';
+            // Pausar escaneo para que el usuario vea el resultado
+            try { _html5Scanner.pause(true); } catch(e) {}
+          },
+          () => { /* errores de frame — ignorar */ }
+        );
+
+        statusEl.textContent = 'Apunta la cámara al código…';
+
+      } catch(err) {
+        const msg = err.message || String(err);
+        if (msg.includes('Permission') || msg.includes('ermission') || msg.includes('NotAllowed')) {
+          statusEl.textContent = '❌ Permiso de cámara denegado. Actívalo en Ajustes → Safari → Cámara.';
         } else {
-          statusEl.textContent = '⚠️ Escáner automático no disponible en este navegador. Usa entrada manual.';
-          document.getElementById('scanner-manual-section').style.display = 'block';
+          statusEl.textContent = '❌ No se pudo iniciar la cámara: ' + msg.substring(0,80);
         }
-      } catch(e) {
-        statusEl.textContent = '❌ No se pudo acceder a la cámara: ' + e.message;
         document.getElementById('scanner-manual-section').style.display = 'block';
       }
     }
 
-    function escanearLoop() {
-      const video = document.getElementById('scanner-video');
-      if (!_scanStream || !_scanDetector) return;
-      _scanAnimId = requestAnimationFrame(async () => {
-        if (video.readyState === video.HAVE_ENOUGH_DATA) {
-          try {
-            const barcodes = await _scanDetector.detect(video);
-            if (barcodes.length > 0) {
-              const codigo = barcodes[0].rawValue;
-              mostrarResultadoEscan(codigo);
-              return; // detener loop al encontrar
-            }
-          } catch(e) {}
-        }
-        escanearLoop(); // continuar loop
-      });
-    }
-
     function mostrarResultadoEscan(codigo) {
-      if (_scanAnimId) { cancelAnimationFrame(_scanAnimId); _scanAnimId = null; }
-      // Vibrar en móvil
-      if (navigator.vibrate) navigator.vibrate(100);
+      _scanResultado = codigo;
       document.getElementById('scanner-result').textContent = codigo;
       document.getElementById('scanner-result-box').style.display = 'block';
       document.getElementById('scanner-status').textContent = '✅ Código detectado';
+      if (navigator.vibrate) navigator.vibrate([80, 30, 80]);
     }
 
     function confirmarCodigo() {
-      const codigo = document.getElementById('scanner-result').textContent.trim();
+      const codigo = (_scanResultado || document.getElementById('scanner-result').textContent).trim();
+      cerrarEscaner();
       if (codigo && _scanTarget) {
         const el = document.getElementById(_scanTarget);
         if (el) {
@@ -3793,12 +3817,8 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
           el.dispatchEvent(new Event('input', { bubbles: true }));
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
-      }
-      cerrarEscaner();
-      // Auto-trigger AI lookup after scan
-      if (codigo && _scanTarget) {
         const prefijo = _scanTarget.startsWith('partes') ? 'partes' : 'buenas';
-        setTimeout(() => buscarConIA(_scanTarget, prefijo), 300);
+        setTimeout(() => buscarConIA(_scanTarget, prefijo), 350);
       }
     }
 
@@ -3808,48 +3828,50 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       mostrarResultadoEscan(val);
     }
 
-    function escanearOtro() {
+    async function escanearOtro() {
+      _scanResultado = null;
+      _scanActivo = true;
       document.getElementById('scanner-result-box').style.display = 'none';
       document.getElementById('scanner-result').textContent = '';
-      document.getElementById('scanner-status').textContent = 'Apunta la cámara al código...';
-      if (_scanDetector) escanearLoop();
+      document.getElementById('scanner-status').textContent = 'Apunta la cámara al código…';
+      try { if (_html5Scanner) _html5Scanner.resume(); } catch(e) {}
     }
   </script>
 
+  <!-- ── html5-qrcode: compatible iOS Safari, Android, Desktop ── -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
   <!-- SCANNER OVERLAY -->
-  <div id="scanner-overlay" style="display:none; position:fixed; inset:0; background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:flex-start;">
+  <div id="scanner-overlay" style="display:none; position:fixed; inset:0; background:#0a0a0a; z-index:9999; flex-direction:column; align-items:center; justify-content:flex-start; overflow-y:auto;">
+
     <!-- Header -->
-    <div style="width:100%; background:rgba(0,0,0,.8); padding:14px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0;">
-      <div style="color:#f59e0b; font-weight:800; font-size:1rem;">📷 Escanear Código de Barras</div>
-      <button onclick="cerrarEscaner()" style="background:rgba(255,255,255,.15); color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:.85rem; font-weight:700; cursor:pointer;">✕ Cerrar</button>
+    <div style="width:100%; background:rgba(0,0,0,.9); padding:12px 16px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; position:sticky; top:0; z-index:1;">
+      <div style="color:#f59e0b; font-weight:800; font-size:.95rem;">📷 Escanear Código / QR</div>
+      <button onclick="cerrarEscaner()" style="background:rgba(239,68,68,.3); color:#fca5a5; border:1px solid rgba(239,68,68,.4); border-radius:8px; padding:6px 14px; font-size:.85rem; font-weight:700; cursor:pointer;">✕ Cerrar</button>
     </div>
 
-    <!-- Video -->
-    <div style="position:relative; width:100%; max-width:520px; flex:1; min-height:0; overflow:hidden; background:#111;">
-      <video id="scanner-video" autoplay playsinline muted style="width:100%; height:100%; object-fit:cover; display:block;"></video>
-      <!-- Visor -->
-      <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none;">
-        <div style="width:75%; max-width:320px; height:160px; border:3px solid #f59e0b; border-radius:12px; box-shadow:0 0 0 9999px rgba(0,0,0,.45);"></div>
-      </div>
+    <!-- Contenedor html5-qrcode (crea el video aquí automáticamente) -->
+    <div style="width:100%; max-width:520px; padding:0; background:#111; flex-shrink:0; min-height:320px;">
+      <div id="scanner-qr-container" style="width:100%;"></div>
     </div>
 
     <!-- Controles -->
-    <div style="width:100%; max-width:520px; padding:14px 16px; background:#0f172a; flex-shrink:0;">
-      <div id="scanner-status" style="color:#94a3b8; font-size:.82rem; text-align:center; margin-bottom:10px; min-height:18px;">Apunta la cámara al código...</div>
+    <div style="width:100%; max-width:520px; padding:12px 16px; background:#0f172a; flex-shrink:0;">
+      <div id="scanner-status" style="color:#94a3b8; font-size:.82rem; text-align:center; margin-bottom:10px; min-height:18px;"></div>
 
-      <!-- Resultado -->
+      <!-- Resultado detectado -->
       <div id="scanner-result-box" style="display:none; background:#1e293b; border:2px solid #f59e0b; border-radius:10px; padding:12px 14px; margin-bottom:12px;">
-        <div style="font-size:.7rem; font-weight:700; color:#f59e0b; text-transform:uppercase; margin-bottom:4px;">Código detectado:</div>
-        <div id="scanner-result" style="font-size:1.1rem; font-weight:800; color:#fff; letter-spacing:1px; word-break:break-all;"></div>
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button onclick="confirmarCodigo()" style="flex:1; background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px; font-weight:700; font-size:.9rem; cursor:pointer;">✅ Usar este código</button>
-          <button onclick="escanearOtro()" style="background:rgba(255,255,255,.1); color:#94a3b8; border:none; border-radius:8px; padding:10px 14px; font-size:.85rem; cursor:pointer;">🔄 Otro</button>
+        <div style="font-size:.7rem; font-weight:700; color:#f59e0b; text-transform:uppercase; margin-bottom:4px;">✅ Código detectado:</div>
+        <div id="scanner-result" style="font-size:1.05rem; font-weight:800; color:#fff; letter-spacing:1px; word-break:break-all; margin-bottom:12px;"></div>
+        <div style="display:flex; gap:8px;">
+          <button onclick="confirmarCodigo()" style="flex:1; background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:11px; font-weight:800; font-size:.9rem; cursor:pointer;">✅ Usar este código</button>
+          <button onclick="escanearOtro()" style="background:rgba(255,255,255,.1); color:#94a3b8; border:none; border-radius:8px; padding:11px 14px; font-size:.85rem; cursor:pointer;">🔄 Otro</button>
         </div>
       </div>
 
-      <!-- Entrada manual -->
-      <div id="scanner-manual-section" style="display:none;">
-        <div style="color:#64748b; font-size:.78rem; text-align:center; margin-bottom:8px;">Entrada manual de código</div>
+      <!-- Entrada manual (siempre disponible) -->
+      <div id="scanner-manual-section" style="display:none; margin-bottom:10px;">
+        <div style="color:#64748b; font-size:.78rem; text-align:center; margin-bottom:8px;">Escribir código manualmente</div>
         <div style="display:flex; gap:8px;">
           <input id="scanner-manual-input" type="text" placeholder="Escribe o pega el código aquí..."
             style="flex:1; padding:10px 12px; background:#1e293b; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.9rem;"
@@ -3858,15 +3880,29 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
         </div>
       </div>
 
-      <!-- Activar manual -->
-      <div style="text-align:center; margin-top:10px;">
-        <button onclick="document.getElementById('scanner-manual-section').style.display = document.getElementById('scanner-manual-section').style.display==='none'?'block':'none'"
+      <div style="text-align:center;">
+        <button onclick="document.getElementById('scanner-manual-section').style.display=document.getElementById('scanner-manual-section').style.display==='none'?'block':'none'"
           style="background:none; border:none; color:#475569; font-size:.78rem; cursor:pointer; text-decoration:underline;">
           ⌨️ Ingresar código manualmente
         </button>
       </div>
     </div>
   </div>
+
+  <!-- Estilos para ocultar branding de html5-qrcode y ajustar al tema oscuro -->
+  <style>
+    #scanner-qr-container video { width:100% !important; border-radius:0 !important; }
+    #scanner-qr-container img[alt="Info icon"] { display:none !important; }
+    #html5-qrcode-anchor-scan-type-change { color:#f59e0b !important; }
+    #html5-qrcode-select-camera { background:#1e293b; color:#e2e8f0; border:1px solid #334155; border-radius:6px; padding:4px 8px; font-size:.8rem; }
+    #html5-qrcode-button-camera-permission { background:#f59e0b !important; color:#1c1008 !important; border:none !important; border-radius:8px !important; padding:10px 20px !important; font-weight:700 !important; cursor:pointer !important; font-size:.9rem !important; margin:10px auto !important; display:block !important; }
+    #html5-qrcode-button-camera-stop { background:rgba(239,68,68,.2) !important; color:#fca5a5 !important; border:1px solid rgba(239,68,68,.3) !important; border-radius:8px !important; padding:7px 14px !important; cursor:pointer !important; font-size:.8rem !important; }
+    #html5qr-code-full-region { border:none !important; background:#111 !important; }
+    #html5qr-code-full-region__header_message { color:#94a3b8 !important; font-size:.78rem !important; }
+    #html5qr-code-full-region__scan_region { background:#000 !important; }
+    #html5qr-code-full-region__dashboard { background:#0f172a !important; padding:8px !important; }
+    #html5qr-code-full-region__dashboard_section_csr span { color:#94a3b8 !important; font-size:.78rem !important; }
+  </style>
 
 </body>
 </html>
