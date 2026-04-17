@@ -2601,37 +2601,101 @@
       const codigo = document.getElementById(inputId)?.value?.trim();
       if (!codigo) { alert('Primero ingresa o escanea un número de parte.'); return; }
 
+      const apiKey = localStorage.getItem('inv_ai_key');
+      if (!apiKey) {
+        mostrarSetupKey(prefijo, inputId);
+        return;
+      }
+      await ejecutarClaudeIA(codigo, prefijo, apiKey);
+    }
+
+    function mostrarSetupKey(prefijo, inputId) {
+      const cardEl = document.getElementById(`ia-card-${prefijo}`);
+      cardEl.innerHTML = `
+        <div style="margin-top:10px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:14px;">
+          <div style="font-size:.8rem;font-weight:700;color:#a5b4fc;margin-bottom:6px;">🔑 Ingresa tu clave de Anthropic una sola vez</div>
+          <div style="font-size:.75rem;color:#64748b;margin-bottom:10px;">Obtén una clave gratis en <strong style="color:#94a3b8;">console.anthropic.com</strong> → API Keys</div>
+          <div style="display:flex;gap:8px;">
+            <input id="key-input-${prefijo}" type="password" placeholder="sk-ant-api03-..."
+              style="flex:1;padding:9px 10px;background:#0f172a;border:1px solid #334155;border-radius:8px;color:#e2e8f0;font-size:.83rem;"
+              onkeydown="if(event.key==='Enter') guardarKeyYBuscar('${prefijo}','${inputId}')">
+            <button onclick="guardarKeyYBuscar('${prefijo}','${inputId}')"
+              style="background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-weight:700;cursor:pointer;font-size:.85rem;white-space:nowrap;">
+              Guardar y buscar
+            </button>
+          </div>
+        </div>`;
+      setTimeout(() => document.getElementById(`key-input-${prefijo}`)?.focus(), 100);
+    }
+
+    function guardarKeyYBuscar(prefijo, inputId) {
+      const key = document.getElementById(`key-input-${prefijo}`)?.value?.trim();
+      if (!key) return;
+      if (!key.startsWith('sk-ant-')) { alert('La clave debe empezar con sk-ant-'); return; }
+      localStorage.setItem('inv_ai_key', key);
+      const codigo = document.getElementById(inputId)?.value?.trim();
+      if (codigo) ejecutarClaudeIA(codigo, prefijo, key);
+    }
+
+    async function ejecutarClaudeIA(codigo, prefijo, apiKey) {
       const cardEl = document.getElementById(`ia-card-${prefijo}`);
       cardEl.innerHTML = `
         <div style="margin-top:10px;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;">
           <div style="width:18px;height:18px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
-          <span style="font-size:.83rem;color:#a5b4fc;">Buscando <strong>${codigo}</strong>…</span>
+          <span style="font-size:.83rem;color:#a5b4fc;">Consultando Claude para <strong>${codigo}</strong>…</span>
         </div>`;
 
-      // 1. Patrón local (instantáneo)
-      const c = codigo.toUpperCase().trim();
-      let local = {};
-      for (const p of PATRONES) {
-        if (p.r.test(c) || p.r.test(codigo)) {
-          local = { marca: p.marca, tipo: p.tipo, descripcion: p.desc, fuente: 'Local' };
-          break;
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 350,
+            messages: [{
+              role: 'user',
+              content: `Identifica este número de parte o código de barras de computadora/electrónica: "${codigo}"
+
+Responde SOLO con JSON válido, sin markdown ni texto extra:
+{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
+
+- marca: fabricante exacto (Intel, AMD, Samsung, Dell, HP, Lenovo, Seagate, WD, Kingston, Crucial, NVIDIA, ASUS, MSI, Gigabyte, Corsair, etc.)
+- modelo: nombre de modelo específico (ej: "Core i5-12400", "970 EVO Plus 500GB")
+- ano: año de lanzamiento como número entero o null
+- tipo: CPU | RAM | SSD | HDD | GPU | Motherboard | Fuente de Poder | Pantalla | Laptop | Batería | Otro
+- descripcion: descripción breve en español, máx 90 caracteres
+Si el código es irreconocible, devuelve campos vacíos/null.`
+            }]
+          })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          if (resp.status === 401) {
+            localStorage.removeItem('inv_ai_key');
+            throw new Error('Clave inválida. Toca 🤖 de nuevo para ingresar una nueva.');
+          }
+          throw new Error(err?.error?.message || `Error ${resp.status}`);
         }
+
+        const data = await resp.json();
+        const raw  = data.content?.[0]?.text || '{}';
+        let info = {};
+        try { info = JSON.parse(raw.match(/\{[\s\S]*?\}/)?.[0] || '{}'); } catch {}
+        info.fuente = 'Claude AI';
+        mostrarTarjetaIA(info, prefijo, codigo);
+
+      } catch(e) {
+        cardEl.innerHTML = `
+          <div style="margin-top:10px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 12px;font-size:.82rem;color:#fca5a5;">
+            ❌ ${e.message}
+          </div>`;
       }
-
-      // 2. UPC lookup gratuito en paralelo
-      const upcPromise = lookupUPC(codigo);
-      const upcResult  = await upcPromise;
-
-      // Fusionar: UPC gana en modelo/desc si lo tiene, local aporta tipo/marca si falta
-      const info = {
-        marca:       upcResult?.marca       || local.marca       || '',
-        modelo:      upcResult?.modelo      || '',
-        tipo:        upcResult?.tipo        || local.tipo        || '',
-        descripcion: upcResult?.descripcion || local.descripcion || '',
-        fuente:      upcResult ? 'Catálogo en línea' : (local.marca ? 'Base local' : ''),
-      };
-
-      mostrarTarjetaIA(info, prefijo, codigo);
     }
 
     function mostrarTarjetaIA(info, prefijo, codigo) {
@@ -2650,8 +2714,9 @@
       const rows = [
         { label:'Marca',       val: info.marca,       id: fields.marca },
         { label:'Modelo',      val: info.modelo,      id: fields.modelo },
+        { label:'Año',         val: info.ano,         id: fields.ano },
         { label:'Descripción', val: info.descripcion, id: fields.descripcion },
-      ].filter(r => r.val);
+      ].filter(r => r.val !== null && r.val !== undefined && r.val !== '');
 
       const checkboxes = rows.map(r => `
         <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;">
@@ -2663,7 +2728,7 @@
           </span>
         </label>`).join('');
 
-      const fuenteColor = info.fuente === 'Catálogo en línea' ? '#34d399' : info.fuente === 'Base local' ? '#a5b4fc' : '#94a3b8';
+      const fuenteColor = info.fuente === 'Claude AI' ? '#34d399' : info.fuente === 'Catálogo en línea' ? '#60a5fa' : '#a5b4fc';
 
       cardEl.innerHTML = `
         <div id="ia-result-card-${prefijo}" style="margin-top:10px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.35);border-radius:12px;padding:12px 14px;">
