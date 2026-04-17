@@ -955,6 +955,8 @@
       color: #e2e8f0;
     }
 
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     @media (max-width: 600px) {
       #bottom-nav a {
         padding: 4px 8px;
@@ -1085,6 +1087,9 @@
       </div>
 
       <div class="sidebar-footer">
+        <button onclick="mostrarModalApiKey('partes-numero','partes')" style="width:100%; padding:10px 16px; background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.25); border-radius:8px; cursor:pointer; font-size:13px; margin-bottom:8px; font-weight:600;">
+          🤖 Configurar IA
+        </button>
         <button id="logout-btn">🚪 Cerrar sesión</button>
       </div>
     </aside>
@@ -1144,10 +1149,11 @@
                       <div style="display:flex; gap:8px; align-items:center;">
                         <input type="text" id="partes-numero" placeholder="ej: PT-001" required style="flex:1;">
                         <button type="button" onclick="abrirEscaner('partes-numero')" title="Escanear código de barras"
-                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">
-                          <span style="font-size:1.1rem;">󠀠󠀠</span>📷
-                        </button>
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                        <button type="button" onclick="buscarConIA('partes-numero','partes')" title="Buscar con IA"
+                          style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">🤖</button>
                       </div>
+                      <div id="ia-card-partes"></div>
                       <div class="duplicate-warning" id="dup-warning-partes">
                         <div class="duplicate-warning-text" id="dup-text-partes"></div>
                         <div class="duplicate-actions">
@@ -1275,10 +1281,11 @@
                       <div style="display:flex; gap:8px; align-items:center;">
                         <input type="text" id="buenas-numero" placeholder="ej: PC-001" required style="flex:1;">
                         <button type="button" onclick="abrirEscaner('buenas-numero')" title="Escanear código de barras"
-                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">
-                          📷
-                        </button>
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                        <button type="button" onclick="buscarConIA('buenas-numero','buenas')" title="Buscar con IA"
+                          style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">🤖</button>
                       </div>
+                      <div id="ia-card-buenas"></div>
                       <div class="duplicate-warning" id="dup-warning-buenas">
                         <div class="duplicate-warning-text" id="dup-text-buenas"></div>
                         <div class="duplicate-actions">
@@ -2442,6 +2449,171 @@
       }
     })();
 
+    // ===== AI LOOKUP =====
+    const IA_FIELDS = {
+      partes: { marca:'partes-marca', modelo:'partes-modelo', ano:'partes-ano', descripcion:'partes-descripcion' },
+      buenas: { marca:'buenas-marca', modelo:'buenas-modelo', ano:'buenas-ano', descripcion:'buenas-descripcion' }
+    };
+
+    async function buscarConIA(inputId, prefijo) {
+      const codigo = document.getElementById(inputId)?.value?.trim();
+      if (!codigo) { alert('Primero ingresa o escanea un número de parte.'); return; }
+
+      let apiKey = localStorage.getItem('inv_ai_key');
+      if (!apiKey) {
+        mostrarModalApiKey(inputId, prefijo);
+        return;
+      }
+      _ejecutarBusquedaIA(codigo, prefijo, apiKey);
+    }
+
+    async function _ejecutarBusquedaIA(codigo, prefijo, apiKey) {
+      const cardEl = document.getElementById(`ia-card-${prefijo}`);
+      cardEl.innerHTML = `
+        <div style="margin-top:10px; background:rgba(99,102,241,.12); border:1px solid rgba(99,102,241,.3); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px;">
+          <div style="width:20px;height:20px;border:3px solid #6366f1;border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;"></div>
+          <span style="font-size:.83rem; color:#a5b4fc;">Consultando IA para <strong>${codigo}</strong>…</span>
+        </div>`;
+
+      try {
+        const resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 400,
+            messages: [{
+              role: 'user',
+              content: `Eres una base de datos de componentes de computadoras y electrónica. Identifica este número de parte o código de barras: "${codigo}"
+
+Responde ÚNICAMENTE con un objeto JSON válido, sin markdown ni explicación:
+{"marca":"","modelo":"","ano":null,"tipo":"","descripcion":""}
+
+Reglas:
+- marca: fabricante (Intel, AMD, Samsung, Dell, HP, Lenovo, Seagate, WD, Kingston, Crucial, NVIDIA, etc.) o ""
+- modelo: nombre/número de modelo específico o ""
+- ano: año de lanzamiento como número o null
+- tipo: uno de estos valores exactos: CPU, RAM, SSD, HDD, GPU, Motherboard, Fuente de Poder, Pantalla, Teclado, Mouse, Batería, Cargador, Otro
+- descripcion: descripción breve en español máx 100 caracteres, o ""
+Si el código es completamente irreconocible devuelve campos vacíos.`
+            }]
+          })
+        });
+
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          if (resp.status === 401) throw new Error('API key inválida. Verifica tu clave en ⚙️.');
+          throw new Error(err?.error?.message || `Error ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        const raw = data.content?.[0]?.text || '{}';
+        let info;
+        try {
+          info = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}');
+        } catch { info = {}; }
+
+        mostrarTarjetaIA(info, prefijo, codigo);
+      } catch(e) {
+        cardEl.innerHTML = `
+          <div style="margin-top:10px; background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); border-radius:10px; padding:10px 12px; font-size:.82rem; color:#fca5a5;">
+            ❌ ${e.message}
+            ${e.message.includes('API key') ? `<button onclick="localStorage.removeItem('inv_ai_key');mostrarModalApiKey('${prefijo}-numero','${prefijo}')" style="margin-left:8px;background:rgba(99,102,241,.2);color:#a5b4fc;border:none;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.78rem;">Cambiar clave</button>` : ''}
+          </div>`;
+      }
+    }
+
+    function mostrarTarjetaIA(info, prefijo, codigo) {
+      const cardEl = document.getElementById(`ia-card-${prefijo}`);
+      const fields = IA_FIELDS[prefijo];
+      const hayInfo = info.marca || info.modelo || info.tipo || info.descripcion;
+
+      if (!hayInfo) {
+        cardEl.innerHTML = `
+          <div style="margin-top:10px; background:rgba(100,116,139,.1); border:1px solid rgba(100,116,139,.2); border-radius:10px; padding:10px 12px; font-size:.82rem; color:#94a3b8;">
+            🔍 No se encontró información para <strong>${codigo}</strong>. Llena los campos manualmente.
+          </div>`;
+        return;
+      }
+
+      const rows = [
+        { key:'marca',       label:'Marca',       val: info.marca,       id: fields.marca },
+        { key:'modelo',      label:'Modelo',      val: info.modelo,      id: fields.modelo },
+        { key:'ano',         label:'Año',         val: info.ano,         id: fields.ano },
+        { key:'descripcion', label:'Descripción', val: info.descripcion, id: fields.descripcion },
+      ].filter(r => r.val);
+
+      const checkboxes = rows.map(r => `
+        <label style="display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.06); cursor:pointer;">
+          <input type="checkbox" data-field="${r.id}" data-val="${String(r.val).replace(/"/g,'&quot;')}" checked
+            style="margin-top:3px; accent-color:#6366f1; width:15px; height:15px; flex-shrink:0;">
+          <span style="font-size:.82rem; color:#cbd5e1; flex:1;">
+            <span style="color:#94a3b8; font-size:.72rem; font-weight:700; text-transform:uppercase; display:block; margin-bottom:1px;">${r.label}</span>
+            ${String(r.val)}
+          </span>
+        </label>`).join('');
+
+      cardEl.innerHTML = `
+        <div id="ia-result-card-${prefijo}" style="margin-top:10px; background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.35); border-radius:12px; padding:12px 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:.78rem; font-weight:800; color:#a5b4fc; text-transform:uppercase; letter-spacing:.5px;">
+              🤖 Sugerencia IA ${info.tipo ? `· <span style="background:rgba(99,102,241,.25);padding:1px 8px;border-radius:10px;">${info.tipo}</span>` : ''}
+            </div>
+            <button onclick="document.getElementById('ia-card-${prefijo}').innerHTML=''" style="background:none;border:none;color:#475569;cursor:pointer;font-size:1rem;">✕</button>
+          </div>
+          <div>${checkboxes}</div>
+          <div style="display:flex; gap:8px; margin-top:10px;">
+            <button onclick="aplicarCamposIA('${prefijo}')" style="flex:1; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; padding:9px; font-size:.85rem; font-weight:700; cursor:pointer;">✅ Aplicar campos seleccionados</button>
+          </div>
+        </div>`;
+    }
+
+    function aplicarCamposIA(prefijo) {
+      const card = document.getElementById(`ia-result-card-${prefijo}`);
+      if (!card) return;
+      card.querySelectorAll('input[type=checkbox]:checked').forEach(cb => {
+        const el = document.getElementById(cb.dataset.field);
+        if (el) {
+          el.value = cb.dataset.val;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          // Flash animation
+          el.style.transition = 'background .3s';
+          el.style.background = 'rgba(99,102,241,.25)';
+          setTimeout(() => { el.style.background = ''; }, 800);
+        }
+      });
+      document.getElementById(`ia-card-${prefijo}`).innerHTML =
+        `<div style="margin-top:6px; font-size:.78rem; color:#34d399; padding:4px 0;">✅ Campos aplicados correctamente</div>`;
+      setTimeout(() => { const c = document.getElementById(`ia-card-${prefijo}`); if(c) c.innerHTML=''; }, 2500);
+    }
+
+    function mostrarModalApiKey(inputId, prefijo) {
+      document.getElementById('api-key-modal').style.display = 'flex';
+      document.getElementById('api-key-modal').dataset.inputId = inputId;
+      document.getElementById('api-key-modal').dataset.prefijo = prefijo;
+    }
+
+    function cerrarModalApiKey() {
+      document.getElementById('api-key-modal').style.display = 'none';
+    }
+
+    function guardarApiKey() {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (!key.startsWith('sk-ant-')) { alert('La clave debe comenzar con sk-ant-'); return; }
+      localStorage.setItem('inv_ai_key', key);
+      const modal = document.getElementById('api-key-modal');
+      const inputId = modal.dataset.inputId;
+      const prefijo = modal.dataset.prefijo;
+      cerrarModalApiKey();
+      const codigo = document.getElementById(inputId)?.value?.trim();
+      if (codigo) _ejecutarBusquedaIA(codigo, prefijo, key);
+    }
+
     // ===== BARCODE SCANNER =====
     let _scanTarget = null;   // el ID del input donde poner el resultado
     let _scanStream = null;
@@ -2528,6 +2700,11 @@
         }
       }
       cerrarEscaner();
+      // Auto-trigger AI lookup after scan
+      if (codigo && _scanTarget) {
+        const prefijo = _scanTarget.startsWith('partes') ? 'partes' : 'buenas';
+        setTimeout(() => buscarConIA(_scanTarget, prefijo), 300);
+      }
     }
 
     function usarManual() {
@@ -2543,6 +2720,33 @@
       if (_scanDetector) escanearLoop();
     }
   </script>
+
+  <!-- API KEY MODAL -->
+  <div id="api-key-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:10500; align-items:center; justify-content:center; padding:20px;">
+    <div style="background:#1e293b; border:1px solid rgba(99,102,241,.4); border-radius:16px; padding:28px; width:100%; max-width:420px; box-shadow:0 24px 60px rgba(0,0,0,.6);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div style="font-size:1.1rem; font-weight:800; color:#a5b4fc;">🤖 Configurar IA</div>
+        <button onclick="cerrarModalApiKey()" style="background:rgba(255,255,255,.08); border:none; color:#94a3b8; border-radius:8px; padding:4px 10px; cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:.85rem; color:#94a3b8; line-height:1.6; margin-bottom:16px;">
+        Para usar el buscador con IA necesitas una clave de la API de Anthropic (Claude). La clave se guarda solo en este dispositivo.
+      </p>
+      <div style="background:rgba(99,102,241,.1); border:1px solid rgba(99,102,241,.2); border-radius:10px; padding:12px; margin-bottom:16px; font-size:.8rem; color:#a5b4fc;">
+        📌 Obtén tu clave gratis en: <strong>console.anthropic.com</strong> → API Keys
+      </div>
+      <label style="font-size:.78rem; font-weight:700; color:#64748b; text-transform:uppercase; display:block; margin-bottom:6px;">Clave API (sk-ant-...)</label>
+      <input id="api-key-input" type="password" placeholder="sk-ant-api03-..."
+        style="width:100%; padding:11px 12px; background:#0f172a; border:1px solid #334155; border-radius:8px; color:#e2e8f0; font-size:.88rem; margin-bottom:16px;"
+        onkeydown="if(event.key==='Enter') guardarApiKey()">
+      <div style="display:flex; gap:10px;">
+        <button onclick="cerrarModalApiKey()" style="flex:1; padding:11px; background:rgba(255,255,255,.06); color:#94a3b8; border:none; border-radius:8px; cursor:pointer; font-size:.88rem;">Cancelar</button>
+        <button onclick="guardarApiKey()" style="flex:2; padding:11px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border:none; border-radius:8px; font-weight:700; cursor:pointer; font-size:.88rem;">Guardar y buscar</button>
+      </div>
+      <div style="margin-top:12px; font-size:.75rem; color:#475569; text-align:center;">
+        🔒 La clave se guarda localmente en tu dispositivo y nunca se envía a nuestros servidores.
+      </div>
+    </div>
+  </div>
 
   <!-- SCANNER OVERLAY -->
   <div id="scanner-overlay" style="display:none; position:fixed; inset:0; background:#000; z-index:9999; flex-direction:column; align-items:center; justify-content:flex-start;">
