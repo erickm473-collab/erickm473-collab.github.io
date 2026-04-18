@@ -1239,6 +1239,7 @@
         <a class="nav-item" data-tab="partes">🔩 Partes</a>
         <a class="nav-item" data-tab="buenas">🖥️ Buenas</a>
         <a class="nav-item" data-tab="clientes">👥 Clientes</a>
+        <a class="nav-item" id="contabInvNavItem" data-tab="contabilidad_inv" style="display:none;">💵 Contabilidad</a>
       </div>
 
       <div class="sidebar-footer">
@@ -1420,6 +1421,11 @@
                       <input type="number" id="partes-precio" placeholder="0.00" step="0.01" min="0">
                     </div>
 
+                    <div class="form-group" id="grpPartesTotalCobrado" style="display:none;">
+                      <label style="color:#16a34a;font-weight:700;">💵 Total Cobrado (L.) — Admin</label>
+                      <input type="number" id="partes-total-cobrado" placeholder="0.00" step="0.01" min="0" style="border-color:#16a34a;">
+                    </div>
+
                     <div class="form-group">
                       <label>Cantidad</label>
                       <input type="number" id="partes-cantidad" placeholder="0" min="0" value="1">
@@ -1596,6 +1602,11 @@
                       <input type="number" id="buenas-precio" placeholder="0.00" step="0.01" min="0">
                     </div>
 
+                    <div class="form-group" id="grpBuenasTotalCobrado" style="display:none;">
+                      <label style="color:#16a34a;font-weight:700;">💵 Total Cobrado (L.) — Admin</label>
+                      <input type="number" id="buenas-total-cobrado" placeholder="0.00" step="0.01" min="0" style="border-color:#16a34a;">
+                    </div>
+
                     <div class="form-group">
                       <label>Cantidad</label>
                       <input type="number" id="buenas-cantidad" placeholder="0" min="0" value="1">
@@ -1677,6 +1688,44 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- CONTABILIDAD TAB -->
+          <div id="contabilidad_inv-tab" class="tab-content">
+            <div style="padding:30px;">
+              <h2 class="dashboard-title">💵 Contabilidad — Inventario</h2>
+              <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
+                <select id="periodoContabInv" style="padding:8px 12px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#e2e8f0;font-size:13px;" onchange="renderContabilidadInv()">
+                  <option value="mes">Este mes</option>
+                  <option value="semana">Esta semana</option>
+                  <option value="anio">Este año</option>
+                  <option value="todo">Todo el tiempo</option>
+                </select>
+                <button onclick="exportarContabilidadInvCSV()" style="padding:8px 16px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📥 Exportar CSV</button>
+              </div>
+              <div id="contabInvKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;"></div>
+              <div style="background:#1e293b;border-radius:12px;padding:20px;margin-bottom:20px;">
+                <div style="font-weight:700;font-size:.9rem;color:#f59e0b;margin-bottom:14px;">📊 Ventas por Mes</div>
+                <div id="contabInvGrafico" style="overflow-x:auto;"></div>
+              </div>
+              <div style="background:#1e293b;border-radius:12px;overflow:hidden;">
+                <div style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:700;color:#e2e8f0;font-size:.88rem;">📋 Items Vendidos</div>
+                <div style="overflow-x:auto;">
+                  <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                      <tr>
+                        <th style="background:rgba(255,255,255,.04);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,.06);">Módulo</th>
+                        <th style="background:rgba(255,255,255,.04);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,.06);">Marca/Modelo</th>
+                        <th style="background:rgba(255,255,255,.04);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,.06);">Tipo</th>
+                        <th style="background:rgba(255,255,255,.04);padding:10px 14px;text-align:right;font-size:.75rem;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,.06);">Precio Lista</th>
+                        <th style="background:rgba(255,255,255,.04);padding:10px 14px;text-align:right;font-size:.75rem;font-weight:700;color:#64748b;border-bottom:1px solid rgba(255,255,255,.06);">Total Cobrado</th>
+                      </tr>
+                    </thead>
+                    <tbody id="contabInvDetalleBody"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -1879,6 +1928,12 @@
         hideLoginOverlay();
         document.getElementById('user-name').textContent = userData.nombre || username;
         mostrarEstadoClave();
+        // Mostrar campos admin
+        if (userObj.role === 'admin' || userObj.role === 'gerente') {
+          document.getElementById('contabInvNavItem').style.display = '';
+          document.getElementById('grpPartesTotalCobrado').style.display = '';
+          document.getElementById('grpBuenasTotalCobrado').style.display = '';
+        }
         await loadDashboard();
         await loadPartes();
         await loadBuenas();
@@ -1912,6 +1967,7 @@
 
         // Cargar catálogo cuando se abre esa sección
         if (tab === 'catalogo') loadCatalogo();
+        if (tab === 'contabilidad_inv') renderContabilidadInv();
 
         // Cerrar sidebar en móvil al seleccionar sección
         closeSidebar();
@@ -2208,6 +2264,8 @@
           }
         }
 
+        const totalCobradoParte = (currentUser?.role === 'admin' || currentUser?.role === 'gerente') ?
+          (parseFloat(document.getElementById('partes-total-cobrado').value) || null) : null;
         const data = {
           numeroParte: numero,
           marca,
@@ -2224,6 +2282,7 @@
           estante,
           ubicacion,
           estado,
+          totalCobrado: totalCobradoParte,
           registradoPor: currentUser.nombre || currentUser.username,
           updatedAt: new Date()
         };
@@ -2302,6 +2361,7 @@
       document.getElementById('partes-numero-serie').value = data.numeroSerie || '';
       document.getElementById('partes-descripcion').value = data.descripcion || '';
       document.getElementById('partes-precio').value = data.precio || '';
+      document.getElementById('partes-total-cobrado').value = data.totalCobrado || '';
       document.getElementById('partes-cantidad').value = data.cantidad || 1;
       document.getElementById('partes-estante').value = data.estante || '';
       document.getElementById('partes-ubicacion').value = data.ubicacion || '';
@@ -2381,6 +2441,8 @@
           }
         }
 
+        const totalCobradoBuena = (currentUser?.role === 'admin' || currentUser?.role === 'gerente') ?
+          (parseFloat(document.getElementById('buenas-total-cobrado').value) || null) : null;
         const data = {
           numeroParte: numero,
           marca,
@@ -2397,6 +2459,7 @@
           estante,
           ubicacion,
           estado,
+          totalCobrado: totalCobradoBuena,
           registradoPor: currentUser.nombre || currentUser.username,
           updatedAt: new Date()
         };
@@ -2475,6 +2538,7 @@
       document.getElementById('buenas-numero-serie').value = data.numeroSerie || '';
       document.getElementById('buenas-descripcion').value = data.descripcion || '';
       document.getElementById('buenas-precio').value = data.precio || '';
+      document.getElementById('buenas-total-cobrado').value = data.totalCobrado || '';
       document.getElementById('buenas-cantidad').value = data.cantidad || 1;
       document.getElementById('buenas-estante').value = data.estante || '';
       document.getElementById('buenas-ubicacion').value = data.ubicacion || '';
@@ -3633,6 +3697,136 @@ Si un campo es completamente desconocido pon "" o null. Pero motor y modelo: INF
       document.getElementById('scanner-status').textContent = 'Apunta la cámara al código…';
       try { if (_html5Scanner) _html5Scanner.resume(); } catch(e) {}
     }
+
+    // ══════════════════════════════════════════════════════
+    //  CONTABILIDAD INVENTARIO
+    // ══════════════════════════════════════════════════════
+    async function renderContabilidadInv() {
+      const periodo = document.getElementById('periodoContabInv')?.value || 'mes';
+      const now = new Date();
+      let desde = new Date(0);
+      if (periodo === 'semana') { desde = new Date(now); desde.setDate(now.getDate()-7); }
+      else if (periodo === 'mes') desde = new Date(now.getFullYear(), now.getMonth(), 1);
+      else if (periodo === 'anio') desde = new Date(now.getFullYear(), 0, 1);
+
+      // Cargar partes y buenas con totalCobrado
+      const kpiEl = document.getElementById('contabInvKPIs');
+      const detalleEl = document.getElementById('contabInvDetalleBody');
+      kpiEl.innerHTML = '<div style="color:#64748b;font-size:.85rem;padding:10px;">Cargando...</div>';
+      try {
+        const [partesSnap, buenasSnap] = await Promise.all([
+          fdb.collection('inventario_partes').get(),
+          fdb.collection('inventario_buenas').get()
+        ]);
+        const partes = partesSnap.docs.map(d => ({id:d.id, tipo:'Parte', ...d.data()}));
+        const buenas = buenasSnap.docs.map(d => ({id:d.id, tipo:'Buena', ...d.data()}));
+        const todos = [...partes, ...buenas];
+
+        // Filtrar por período (usar updatedAt)
+        const filtrados = todos.filter(i => {
+          if (!i.totalCobrado) return false;
+          if (periodo === 'todo') return true;
+          const d = i.updatedAt ? new Date(i.updatedAt.seconds ? i.updatedAt.seconds*1000 : i.updatedAt) : null;
+          return d && d >= desde;
+        });
+
+        const totalCobrado = filtrados.reduce((s,i) => s + (parseFloat(i.totalCobrado)||0), 0);
+        const vendidos = filtrados.filter(i => i.estado === 'vendido').length;
+        const ahora = new Date();
+        const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+        const revMes = todos.filter(i => i.totalCobrado && i.updatedAt && new Date(i.updatedAt.seconds ? i.updatedAt.seconds*1000 : i.updatedAt) >= inicioMes)
+          .reduce((s,i) => s + (parseFloat(i.totalCobrado)||0), 0);
+
+        kpiEl.innerHTML = `
+          <div class="stat-card" style="border-left:4px solid #16a34a;">
+            <div class="stat-label">💵 Total Cobrado</div>
+            <div class="stat-value" style="color:#16a34a;font-size:1.3rem;">L. ${totalCobrado.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+            <div class="stat-trend">${filtrados.length} items con cobro</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #2563eb;">
+            <div class="stat-label">✅ Vendidos</div>
+            <div class="stat-value" style="color:#2563eb;">${vendidos}</div>
+            <div class="stat-trend">Marcados como vendido</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #f59e0b;">
+            <div class="stat-label">💰 Promedio</div>
+            <div class="stat-value" style="color:#f59e0b;font-size:1.3rem;">L. ${filtrados.length ? (totalCobrado/filtrados.length).toLocaleString('es-HN',{minimumFractionDigits:2}) : '0.00'}</div>
+            <div class="stat-trend">Por item</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #7c3aed;">
+            <div class="stat-label">🗓️ Este Mes</div>
+            <div class="stat-value" style="color:#7c3aed;font-size:1.3rem;">L. ${revMes.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+          </div>
+        `;
+
+        // Gráfico — todos los items con cobro agrupados por mes (usando updatedAt)
+        const porMes = {};
+        todos.filter(i => i.totalCobrado && i.updatedAt).forEach(i => {
+          const d = new Date(i.updatedAt.seconds ? i.updatedAt.seconds*1000 : i.updatedAt);
+          const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+          const label = d.toLocaleDateString('es-HN',{month:'short',year:'numeric'});
+          if (!porMes[key]) porMes[key] = { label, total: 0 };
+          porMes[key].total += parseFloat(i.totalCobrado)||0;
+        });
+        const mesesSorted = Object.entries(porMes).sort((a,b) => a[0].localeCompare(b[0])).slice(-12);
+        const maxVal = Math.max(...mesesSorted.map(([,d]) => d.total), 1);
+        document.getElementById('contabInvGrafico').innerHTML = mesesSorted.length ? `
+          <div style="display:flex;align-items:flex-end;gap:8px;height:160px;padding-bottom:24px;overflow-x:auto;">
+            ${mesesSorted.map(([,d]) => `
+              <div style="flex:1;min-width:50px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="font-size:.7rem;color:#94a3b8;font-weight:600;">L.${Math.round(d.total/1000)}k</div>
+                <div style="width:100%;background:#f59e0b;border-radius:4px 4px 0 0;height:${Math.round(d.total/maxVal*120)+4}px;min-height:4px;"></div>
+                <div style="font-size:.7rem;color:#94a3b8;white-space:nowrap;">${d.label}</div>
+              </div>`).join('')}
+          </div>` : '<div style="color:#475569;text-align:center;padding:20px;font-size:.85rem;">Sin datos de cobros aún</div>';
+
+        // Detalle
+        const rows = filtrados.sort((a,b) => {
+          const da = a.updatedAt ? new Date(a.updatedAt.seconds ? a.updatedAt.seconds*1000 : a.updatedAt) : new Date(0);
+          const db = b.updatedAt ? new Date(b.updatedAt.seconds ? b.updatedAt.seconds*1000 : b.updatedAt) : new Date(0);
+          return db - da;
+        }).map(i => {
+          const total = parseFloat(i.totalCobrado)||0;
+          return `<tr>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:#e2e8f0;">${i.numeroParte||'—'}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:#e2e8f0;">${i.marca||''} ${i.modelo||''}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;"><span style="background:${i.tipo==='Buena'?'rgba(99,102,241,.2)':'rgba(245,158,11,.2)'};color:${i.tipo==='Buena'?'#a5b4fc':'#fbbf24'};padding:2px 8px;border-radius:8px;font-size:.72rem;font-weight:700;">${i.tipo}</span></td>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;text-align:right;color:#94a3b8;">L. ${(parseFloat(i.precio)||0).toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;text-align:right;font-weight:700;color:#16a34a;">L. ${total.toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
+          </tr>`;
+        });
+        detalleEl.innerHTML = rows.length ? rows.join('') + `
+          <tr style="background:rgba(255,255,255,.03);">
+            <td colspan="4" style="padding:10px 14px;font-weight:700;font-size:.85rem;color:#e2e8f0;">TOTAL</td>
+            <td style="padding:10px 14px;font-weight:800;color:#16a34a;text-align:right;">L. ${totalCobrado.toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
+          </tr>` : '<tr><td colspan="5" style="text-align:center;padding:20px;color:#64748b;">Sin cobros en este período</td></tr>';
+
+      } catch(e) {
+        kpiEl.innerHTML = `<div style="color:#f87171;padding:10px;">Error: ${e.message}</div>`;
+      }
+    }
+
+    function exportarContabilidadInvCSV() {
+      // This runs async but we can't easily await here, so use a self-executing async
+      (async () => {
+        const [partesSnap, buenasSnap] = await Promise.all([
+          fdb.collection('inventario_partes').get(),
+          fdb.collection('inventario_buenas').get()
+        ]);
+        const partes = partesSnap.docs.map(d => ({tipo:'Parte', ...d.data()}));
+        const buenas = buenasSnap.docs.map(d => ({tipo:'Buena', ...d.data()}));
+        let csv = 'Tipo,Número de Parte,Marca,Modelo,Tipo Módulo,Precio Lista,Total Cobrado,Estado\n';
+        [...partes, ...buenas].filter(i => i.totalCobrado).forEach(i => {
+          csv += `"${i.tipo}","${i.numeroParte||''}","${i.marca||''}","${i.modelo||''}","${i.tipoModulo||''}","${i.precio||0}","${i.totalCobrado||0}","${i.estado||''}"\n`;
+        });
+        const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url;
+        a.download = `contabilidad-inventario-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click(); URL.revokeObjectURL(url);
+      })();
+    }
+    // ══════════════════════════════════════════════════════
   </script>
 
   <!-- ── html5-qrcode: compatible iOS Safari, Android, Desktop ── -->

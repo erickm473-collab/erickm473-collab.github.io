@@ -207,6 +207,10 @@
           <div class="nav-icon">👥</div>
           <span>Clientes</span>
         </div>
+        <div class="nav-item" id="contabCompNavItem" style="display: none;" onclick="switchSection('contabilidad_comp', this)">
+          <div class="nav-icon">💵</div>
+          <span>Contabilidad</span>
+        </div>
         <div class="nav-item" id="usersNavItem" style="display: none;" onclick="switchSection('usuarios', this)">
           <div class="nav-icon">👤</div>
           <span>Usuarios</span>
@@ -312,6 +316,45 @@
               </thead>
               <tbody id="usuariosTableBody"></tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- CONTABILIDAD COMPUTADORAS -->
+        <div class="section" id="contabilidad_comp">
+          <div class="section-header">
+            <h2>💵 Contabilidad — Computadoras</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <select id="periodoContabComp" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;" onchange="renderContabilidadComp()">
+                <option value="mes">Este mes</option>
+                <option value="semana">Esta semana</option>
+                <option value="anio">Este año</option>
+                <option value="todo">Todo el tiempo</option>
+              </select>
+              <button onclick="exportarContabilidadCompCSV()" style="background:#16a34a;">📥 Exportar CSV</button>
+            </div>
+          </div>
+          <div id="contabCompKPIs" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;"></div>
+          <div style="background:white;border-radius:8px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,.1);margin-bottom:24px;">
+            <div style="font-weight:700;font-size:1rem;color:#0f172a;margin-bottom:16px;">📊 Ingresos por Mes</div>
+            <div id="contabCompGrafico" style="overflow-x:auto;"></div>
+          </div>
+          <div style="background:white;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.1);">
+            <div style="padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-weight:700;color:#1e293b;font-size:.9rem;">📋 Historial de Cobros</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:left;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Fecha</th>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:left;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Equipo</th>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:left;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Cliente</th>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:left;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Estado</th>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:right;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Diag.</th>
+                    <th style="background:#f9fafb;padding:10px 16px;text-align:right;font-weight:600;font-size:12px;color:#6b7280;border-bottom:1px solid #e5e7eb;">Total Cobrado</th>
+                  </tr>
+                </thead>
+                <tbody id="contabCompDetalleBody"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
@@ -427,6 +470,10 @@
         <div class="form-group">
           <label>Precio de Diagnóstico</label>
           <input type="number" id="precioEstimado" step="0.01">
+        </div>
+        <div class="form-group" id="grpTotalCobradoComp" style="display:none;">
+          <label style="color:#16a34a;font-weight:700;">💵 Total Cobrado (Lps.)</label>
+          <input type="number" id="totalCobradoComp" step="0.01" min="0" placeholder="0.00" style="border-color:#16a34a;">
         </div>
       </div>
 
@@ -659,8 +706,12 @@
       if (currentUser.role === 'admin' || currentUser.role === 'gerente') {
         document.getElementById('usersNavItem').style.display = currentUser.role === 'admin' ? '' : 'none';
         document.getElementById('backupNavItem').style.display = '';
+        document.getElementById('contabCompNavItem').style.display = '';
         setTimeout(checkAndAutoBackup, 3000);
       }
+      // Mostrar campo Total Cobrado en formulario solo para admins/gerentes
+      const grpTC = document.getElementById('grpTotalCobradoComp');
+      if (grpTC && (currentUser.role === 'admin' || currentUser.role === 'gerente')) grpTC.style.display = '';
     }
 
     function updateDate() {
@@ -702,7 +753,7 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
@@ -710,6 +761,7 @@
       if (section === 'clientes') renderClientes();
       if (section === 'usuarios') renderUsuarios();
       if (section === 'respaldos') renderBackups();
+      if (section === 'contabilidad_comp') renderContabilidadComp();
     }
 
     function renderDashboard() {
@@ -718,6 +770,11 @@
       const enReparacion = ingresosData.filter(i => i.estado === 'En reparación').length;
       const listos = ingresosData.filter(i => i.estado === 'Listo').length;
       const entregados = ingresosData.filter(i => i.estado === 'Entregado').length;
+      const esAdmin = currentUser?.role === 'admin' || currentUser?.role === 'gerente';
+      const now = new Date();
+      const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
+      const revMes = ingresosData.filter(i => i.totalCobrado && i.creado && new Date(i.creado.seconds*1000) >= inicioMes)
+        .reduce((s,i) => s + (parseFloat(i.totalCobrado)||0), 0);
       const html = `
         <div class="stat-card">
           <div class="stat-label">Ingresos Totales</div>
@@ -739,6 +796,10 @@
           <div class="stat-label">Entregados</div>
           <div class="stat-value">${entregados}</div>
         </div>
+        ${esAdmin ? `<div class="stat-card" style="border-left:4px solid #7c3aed;">
+          <div class="stat-label">💵 Cobrado Este Mes</div>
+          <div class="stat-value" style="color:#7c3aed;font-size:1.2rem;">Lps. ${revMes.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+        </div>` : ''}
       `;
       document.getElementById('dashboardStats').innerHTML = html;
     }
@@ -900,6 +961,7 @@
       set('vienAbierta', ing.vienAbierta);
       setToggle('vienAbierta', ing.vienAbierta);
       set('precioEstimado', ing.precioEstimado);
+      set('totalCobradoComp', ing.totalCobrado || '');
       document.getElementById('clienteSelect').value = ing.clienteId || '';
       document.getElementById('quienRegistro').textContent = ing.creadoPor || currentUser.nombre;
       loadPhotosFromFirestore(ing.id);
@@ -942,6 +1004,7 @@
         estado: v('estado'),
         clienteId,
         precioEstimado: v('precioEstimado') ? parseFloat(v('precioEstimado')) : null,
+        totalCobrado: (currentUser?.role === 'admin' || currentUser?.role === 'gerente') && v('totalCobradoComp') ? parseFloat(v('totalCobradoComp')) : null,
         creadoPor: currentUser.nombre
       };
       if (editingIngreso) {
@@ -1530,6 +1593,114 @@ ${ing.observaciones ? `<div class="section-title">Observaciones</div><div class=
         closeLightbox();
       }
     });
+
+    // ══════════════════════════════════════════════════════
+    //  CONTABILIDAD COMPUTADORAS
+    // ══════════════════════════════════════════════════════
+    function renderContabilidadComp() {
+      const periodo = document.getElementById('periodoContabComp')?.value || 'mes';
+      const now = new Date();
+      let desde = new Date(0);
+      if (periodo === 'semana') { desde = new Date(now); desde.setDate(now.getDate()-7); }
+      else if (periodo === 'mes') desde = new Date(now.getFullYear(), now.getMonth(), 1);
+      else if (periodo === 'anio') desde = new Date(now.getFullYear(), 0, 1);
+
+      const filtrados = ingresosData.filter(i => {
+        if (periodo === 'todo') return true;
+        const d = i.creado ? new Date(i.creado.seconds*1000) : null;
+        return d && d >= desde;
+      });
+
+      const conCobro = filtrados.filter(i => i.totalCobrado && i.totalCobrado > 0);
+      const totalCobrado = conCobro.reduce((s,i) => s + (parseFloat(i.totalCobrado)||0), 0);
+      const entregados = filtrados.filter(i => i.estado === 'Entregado').length;
+      const ahora = new Date();
+      const inicioMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+      const revMes = ingresosData.filter(i => i.totalCobrado && i.creado && new Date(i.creado.seconds*1000) >= inicioMes)
+        .reduce((s,i) => s + (parseFloat(i.totalCobrado)||0), 0);
+
+      document.getElementById('contabCompKPIs').innerHTML = `
+        <div class="stat-card" style="border-left:4px solid #7c3aed;">
+          <div class="stat-label">💵 Total Cobrado</div>
+          <div class="stat-value" style="color:#7c3aed;font-size:1.3rem;">Lps. ${totalCobrado.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+          <div class="stat-trend">${conCobro.length} registros con cobro</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #16a34a;">
+          <div class="stat-label">✅ Entregados</div>
+          <div class="stat-value" style="color:#16a34a;">${entregados}</div>
+          <div class="stat-trend">En el período</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <div class="stat-label">💰 Promedio por Cobro</div>
+          <div class="stat-value" style="color:#f59e0b;font-size:1.3rem;">Lps. ${conCobro.length ? (totalCobrado/conCobro.length).toLocaleString('es-HN',{minimumFractionDigits:2}) : '0.00'}</div>
+          <div class="stat-trend">Ticket promedio</div>
+        </div>
+        <div class="stat-card" style="border-left:4px solid #2563eb;">
+          <div class="stat-label">🗓️ Cobrado Este Mes</div>
+          <div class="stat-value" style="color:#2563eb;font-size:1.3rem;">Lps. ${revMes.toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+          <div class="stat-trend">Mes actual</div>
+        </div>
+      `;
+
+      // Gráfico mensual
+      const porMes = {};
+      ingresosData.filter(i => i.totalCobrado && i.creado).forEach(i => {
+        const d = new Date(i.creado.seconds*1000);
+        const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+        const label = d.toLocaleDateString('es-HN',{month:'short',year:'numeric'});
+        if (!porMes[key]) porMes[key] = { label, total: 0 };
+        porMes[key].total += parseFloat(i.totalCobrado)||0;
+      });
+      const mesesSorted = Object.entries(porMes).sort((a,b) => a[0].localeCompare(b[0])).slice(-12);
+      const maxVal = Math.max(...mesesSorted.map(([,d]) => d.total), 1);
+      document.getElementById('contabCompGrafico').innerHTML = mesesSorted.length ? `
+        <div style="display:flex;align-items:flex-end;gap:8px;height:180px;padding-bottom:24px;overflow-x:auto;">
+          ${mesesSorted.map(([,d]) => `
+            <div style="flex:1;min-width:50px;display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <div style="font-size:.7rem;color:#64748b;font-weight:600;">Lps.${Math.round(d.total/1000)}k</div>
+              <div style="width:100%;background:#7c3aed;border-radius:4px 4px 0 0;height:${Math.round(d.total/maxVal*140)+4}px;min-height:4px;"></div>
+              <div style="font-size:.7rem;color:#374151;white-space:nowrap;">${d.label}</div>
+            </div>`).join('')}
+        </div>` : '<div style="color:#94a3b8;text-align:center;padding:20px;">Sin datos de cobros registrados</div>';
+
+      // Detalle
+      const rows = filtrados.sort((a,b) => (b.creado?.seconds||0) - (a.creado?.seconds||0)).map(i => {
+        const cliente = clientesData.find(c => c.id === i.clienteId);
+        const fecha = i.creado ? new Date(i.creado.seconds*1000).toLocaleDateString('es-HN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+        const tipo = i.tipoModulo === 'Otra' ? i.tipoOtra : i.tipoModulo;
+        const estadoColor = {'En diagnóstico':'#fef3c7','En reparación':'#dbeafe','Listo':'#d1fae5','Entregado':'#f0fdf4'}[i.estado] || '#f3f4f6';
+        const estadoTxtColor = {'En diagnóstico':'#92400e','En reparación':'#1e40af','Listo':'#065f46','Entregado':'#14532d'}[i.estado] || '#374151';
+        return `<tr>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;">${fecha}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;">${tipo||'—'} · ${i.marcaVehiculo||''} ${i.modeloVehiculo||''}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;">${cliente?.nombre||'—'}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;"><span style="background:${estadoColor};color:${estadoTxtColor};padding:2px 8px;border-radius:12px;font-size:.75rem;font-weight:600;">${i.estado||'—'}</span></td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;text-align:right;">${i.precioEstimado ? 'Lps. '+parseFloat(i.precioEstimado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '—'}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid #f3f4f6;font-size:.85rem;text-align:right;font-weight:700;color:#7c3aed;">${i.totalCobrado ? 'Lps. '+parseFloat(i.totalCobrado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '—'}</td>
+        </tr>`;
+      });
+      document.getElementById('contabCompDetalleBody').innerHTML = rows.length ? rows.join('') + `
+        <tr style="background:#f8fafc;">
+          <td colspan="5" style="padding:10px 16px;font-weight:700;font-size:.85rem;">TOTAL COBRADO</td>
+          <td style="padding:10px 16px;font-weight:800;color:#7c3aed;text-align:right;">Lps. ${totalCobrado.toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
+        </tr>` : '<tr><td colspan="6" style="text-align:center;padding:20px;color:#64748b;">Sin registros en este período</td></tr>';
+    }
+
+    function exportarContabilidadCompCSV() {
+      let csv = 'Fecha,Equipo,Cliente,Estado,Precio Diag.,Total Cobrado\n';
+      ingresosData.forEach(i => {
+        const cliente = clientesData.find(c => c.id === i.clienteId);
+        const fecha = i.creado ? new Date(i.creado.seconds*1000).toLocaleDateString('es-HN') : '';
+        const tipo = i.tipoModulo === 'Otra' ? i.tipoOtra : i.tipoModulo;
+        csv += `"${fecha}","${tipo||''} ${i.marcaVehiculo||''} ${i.modeloVehiculo||''}","${cliente?.nombre||''}","${i.estado||''}","${i.precioEstimado||0}","${i.totalCobrado||0}"\n`;
+      });
+      const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url;
+      a.download = `contabilidad-computadoras-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click(); URL.revokeObjectURL(url);
+    }
+    // ══════════════════════════════════════════════════════
   </script>
 
   <nav id="bottom-nav">
