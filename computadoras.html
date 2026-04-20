@@ -567,6 +567,7 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
         <button id="pvBtnLlamarComp" style="display:none;background:#3b82f6;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;" onclick="llamarClienteComp()">📞 Llamar</button>
         <button id="pvBtnWaComp" style="display:none;background:#25d366;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;" onclick="waClienteComp()">💬 WhatsApp</button>
+        <button id="pvBtnFinalizarComp" style="display:none;background:#16a34a;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;" onclick="abrirModalFinalizarComp()">🏁 Finalizar Reparación</button>
         <button class="print-btn-main" onclick="imprimirRecibo()" style="background:#10b981;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">🖨️ Imprimir Recibo</button>
         <button onclick="closeIngresoProfile()" style="background:#475569;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">✕ Cerrar</button>
       </div>
@@ -574,6 +575,40 @@
     <div class="profile-content" id="perfilContent"></div>
   </div>
 
+
+  <!-- MODAL FINALIZAR REPARACIÓN -->
+  <div id="finalizarCompModal" class="modal" style="z-index:1500;">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">🏁 Finalizar Reparación</div>
+      <div id="finalizarCompInfo" style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;margin-bottom:16px;font-size:.88rem;color:#15803d;font-weight:600;"></div>
+
+      <div class="form-group">
+        <label style="color:#16a34a;font-weight:700;">💵 Total Cobrado al Cliente (L.) *</label>
+        <input type="number" id="finalizarCompTotal" step="0.01" min="0" placeholder="0.00" style="border-color:#16a34a;font-size:1.1rem;font-weight:700;">
+      </div>
+      <div class="form-group">
+        <label>Método de Pago</label>
+        <select id="finalizarCompMetodo">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas de Cierre (opcional)</label>
+        <textarea id="finalizarCompNotas" rows="2" placeholder="Observaciones al entregar el equipo..." style="resize:vertical;"></textarea>
+      </div>
+
+      <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:.8rem;color:#92400e;">
+        ⚠️ Al finalizar, el equipo pasará a estado <strong>Entregado</strong>. Esta acción registra el pago del cliente.
+      </div>
+      <div class="modal-footer" style="margin-top:0;">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('finalizarCompModal').classList.remove('active')">Cancelar</button>
+        <button type="button" class="btn-primary" id="btnConfirmarFinalizarComp" onclick="confirmarFinalizarComp()" style="background:#16a34a;">🏁 Confirmar</button>
+      </div>
+    </div>
+  </div>
 
   <div id="lightbox" class="lightbox">
     <div class="lightbox-content">
@@ -1234,6 +1269,7 @@
     function viewIngresoProfile(id) {
       const ing = ingresosData.find(i => i.id === id);
       if (!ing) return;
+      const esAdminComp = currentUser?.role === 'admin' || currentUser?.role === 'gerente';
       loadPhotosFromFirestore(id).then(() => {
         lightboxImages = ingresoPhotos.slice();
         const cliente = clientesData.find(c => c.id === ing.clienteId);
@@ -1295,13 +1331,22 @@
             </div>
             <div class="profile-field">
               <div class="profile-label">Precio de Diagnóstico:</div>
-              <div class="profile-value">${ing.precioEstimado ? `$${ing.precioEstimado.toFixed(2)}` : '-'}</div>
+              <div class="profile-value">${ing.precioEstimado ? 'L. ' + parseFloat(ing.precioEstimado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '-'}</div>
             </div>
             <div class="profile-field">
               <div class="profile-label">Registrado por:</div>
               <div class="profile-value">${ing.creadoPor || '-'}</div>
             </div>
           </div>
+          ${(esAdminComp && ing.totalCobrado) ? `
+          <div class="profile-card" style="border:2px solid #16a34a;background:#0f2d1a;">
+            <div class="profile-card-title" style="color:#4ade80;">💵 Total Cobrado al Cliente</div>
+            <div style="font-size:2rem;font-weight:900;color:#4ade80;margin:4px 0 8px;">L. ${parseFloat(ing.totalCobrado).toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+            <div class="profile-field"><div class="profile-label">Método de Pago:</div><div class="profile-value" style="color:#86efac;">${ing.metodoPago || '—'}</div></div>
+            ${ing.fechaFinalizacion ? `<div class="profile-field"><div class="profile-label">Fecha entrega:</div><div class="profile-value" style="color:#86efac;">${new Date(ing.fechaFinalizacion.seconds*1000).toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'})}</div></div>` : ''}
+            ${ing.finalizadoPor ? `<div class="profile-field"><div class="profile-label">Entregado por:</div><div class="profile-value" style="color:#86efac;">${ing.finalizadoPor}</div></div>` : ''}
+            ${ing.notasCierre ? `<div class="profile-field"><div class="profile-label">Notas cierre:</div><div class="profile-value" style="color:#86efac;">${ing.notasCierre}</div></div>` : ''}
+          </div>` : ''}
           <div class="profile-card">
             <div class="profile-card-title">Información del Cliente</div>
             <div class="profile-field">
@@ -1339,6 +1384,7 @@
         // guardar referencia para recibo
         window._reciboIngreso = ing;
         window._reciboCliente = cliente;
+        window._pvIngresoIdComp = id;
         // Botones contactar
         window._pvClienteContactoComp = cliente ? { nombre: cliente.nombre, telefono: cliente.telefono || '' } : null;
         const hasTelComp = !!(cliente?.telefono);
@@ -1346,6 +1392,9 @@
         const bWa = document.getElementById('pvBtnWaComp');
         if (bLl) bLl.style.display = hasTelComp ? '' : 'none';
         if (bWa) bWa.style.display = hasTelComp ? '' : 'none';
+        // Botón finalizar (solo admin/gerente, solo si no está entregado)
+        const bFin = document.getElementById('pvBtnFinalizarComp');
+        if (bFin) bFin.style.display = (esAdminComp && ing.estado !== 'Entregado') ? '' : 'none';
       });
     }
 
@@ -1363,6 +1412,55 @@
       if (!c?.telefono) return;
       const tel = c.telefono.replace(/\D/g, '');
       window.open('https://api.whatsapp.com/send?phone=504' + tel + '&text=' + encodeURIComponent('Hola ' + c.nombre + ', le contactamos de YONKER EL TRIANGULO en relación a su equipo electrónico que tenemos en reparación.'));
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  FINALIZAR REPARACIÓN (COMPUTADORAS)
+    // ══════════════════════════════════════════════════════
+    function abrirModalFinalizarComp() {
+      const id  = window._pvIngresoIdComp;
+      if (!id) return;
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      const cliente = clientesData.find(c => c.id === ing.clienteId);
+      const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
+      document.getElementById('finalizarCompInfo').innerHTML =
+        '💻 <strong>' + tipo + '</strong> — ' + ing.numeroParte +
+        (cliente ? '<br>👤 ' + cliente.nombre : '');
+      document.getElementById('finalizarCompTotal').value = ing.totalCobrado || '';
+      document.getElementById('finalizarCompMetodo').value = ing.metodoPago || 'Efectivo';
+      document.getElementById('finalizarCompNotas').value = '';
+      document.getElementById('finalizarCompModal').classList.add('active');
+    }
+
+    let _finalizandoComp = false;
+    async function confirmarFinalizarComp() {
+      if (_finalizandoComp) return;
+      const total = parseFloat(document.getElementById('finalizarCompTotal').value);
+      if (!total || total <= 0) { alert('Ingresa el total cobrado al cliente'); return; }
+      _finalizandoComp = true;
+      const btn = document.getElementById('btnConfirmarFinalizarComp');
+      btn.disabled = true; btn.textContent = '⏳ Finalizando...';
+      try {
+        const metodo = document.getElementById('finalizarCompMetodo').value;
+        const notas  = document.getElementById('finalizarCompNotas').value.trim();
+        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
+          estado:            'Entregado',
+          totalCobrado:      total,
+          metodoPago:        metodo,
+          notasCierre:       notas,
+          fechaFinalizacion: firebase.firestore.FieldValue.serverTimestamp(),
+          finalizadoPor:     currentUser?.nombre || currentUser?.username || '—'
+        });
+        document.getElementById('finalizarCompModal').classList.remove('active');
+        closeIngresoProfile();
+        alert('✅ Reparación finalizada. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
+      } catch(e) {
+        alert('Error al finalizar: ' + e.message);
+        btn.disabled = false; btn.textContent = '🏁 Confirmar';
+      } finally {
+        _finalizandoComp = false;
+      }
     }
 
     function imprimirReciboById(id) {
