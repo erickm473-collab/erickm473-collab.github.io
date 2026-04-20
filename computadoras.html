@@ -1230,12 +1230,13 @@
       const ing = ingresosData.find(i => i.id === id);
       if (!ing) return;
       loadPhotosFromFirestore(id).then(() => {
+        lightboxImages = ingresoPhotos.slice();
         const cliente = clientesData.find(c => c.id === ing.clienteId);
         const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
         let fotosHtml = '';
-        if (lightboxImages && lightboxImages.length > 0) {
+        if (ingresoPhotos && ingresoPhotos.length > 0) {
           fotosHtml = '<div class="profile-gallery">';
-          lightboxImages.forEach((img, idx) => {
+          ingresoPhotos.forEach((img, idx) => {
             fotosHtml += `<div class="gallery-item" onclick="viewLightboxProfile(${idx})"><img src="${img}" alt="Foto"></div>`;
           });
           fotosHtml += '</div>';
