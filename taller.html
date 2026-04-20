@@ -1583,13 +1583,12 @@
           ${cliente.telefono ? `<div style="font-size:.85rem; color:#93c5fd;">📞 ${cliente.telefono}</div>` : ''}
           ${cliente.email||cliente.correo ? `<div style="font-size:.85rem; color:#93c5fd;">✉️ ${cliente.email||cliente.correo}</div>` : ''}
           ${cliente.direccion ? `<div style="font-size:.85rem; color:#93c5fd;">📍 ${cliente.direccion}</div>` : ''}`;
-        // Botones contactar
+        // Botones contactar — siempre visibles cuando hay cliente
         window._pvClienteContacto = { nombre: cliente.nombre, telefono: cliente.telefono || '' };
-        const hasTel = !!cliente.telefono;
         const bLlamar = document.getElementById('pvBtnLlamar');
         const bWa    = document.getElementById('pvBtnWhatsapp');
-        if (bLlamar) bLlamar.style.display = hasTel ? '' : 'none';
-        if (bWa)     bWa.style.display     = hasTel ? '' : 'none';
+        if (bLlamar) bLlamar.style.display = '';
+        if (bWa)     bWa.style.display     = '';
       } else {
         clienteCard.style.display = 'none';
         window._pvClienteContacto = null;
@@ -3062,12 +3061,15 @@
     // ══════════════════════════════════════════════════════
     function llamarCliente() {
       const c = window._pvClienteContacto;
-      if (c?.telefono) window.location.href = 'tel:' + c.telefono;
+      if (!c) return;
+      if (!c.telefono) { alert('⚠️ El cliente ' + c.nombre + ' no tiene teléfono registrado.\nEdita el cliente para agregar su número.'); return; }
+      window.location.href = 'tel:' + c.telefono;
     }
 
     function mensajeWhatsappCliente() {
       const c = window._pvClienteContacto;
-      if (!c?.telefono) return;
+      if (!c) return;
+      if (!c.telefono) { alert('⚠️ El cliente ' + c.nombre + ' no tiene teléfono registrado.\nEdita el cliente para agregar su número.'); return; }
       const tel = c.telefono.replace(/\D/g, '');
       window.open(`https://api.whatsapp.com/send?phone=504${tel}&text=${encodeURIComponent(`Hola ${c.nombre}, le contactamos de YONKER EL TRIANGULO en relación a su vehículo que tenemos en el taller.`)}`);
     }
