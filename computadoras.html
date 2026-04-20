@@ -1319,6 +1319,16 @@
             </div>
           </div>
           ${fotosHtml ? `<div class="profile-card"><div class="profile-card-title">Fotos</div>${fotosHtml}</div>` : ''}
+          ${ing.firmaAceptada ? `
+          <div class="profile-card" style="border:2px solid #16a34a;">
+            <div class="profile-card-title" style="color:#16a34a;">✅ Términos Aceptados y Firmados</div>
+            <div class="profile-field"><div class="profile-label">Fecha de firma:</div><div class="profile-value">${ing.firmaFecha ? new Date(ing.firmaFecha.seconds*1000).toLocaleString('es-HN') : '—'}</div></div>
+            ${ing.firmaCliente ? `<div style="margin-top:10px;"><div class="profile-label" style="margin-bottom:6px;">Firma del cliente:</div><img src="${ing.firmaCliente}" style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;max-width:100%;height:auto;"></div>` : ''}
+          </div>` : `
+          <div class="profile-card" style="border:2px solid #f59e0b;">
+            <div class="profile-card-title" style="color:#b45309;">⚠️ Pendiente de firma del cliente</div>
+            <div style="color:#94a3b8;font-size:.85rem;">El cliente aún no ha firmado el recibo digital.</div>
+          </div>`}
         `;
         document.getElementById('perfilContent').innerHTML = html;
         document.getElementById('perfilTitulo').textContent = `${tipo} — ${ing.numeroParte}`;
@@ -1631,7 +1641,8 @@ ${ing.observaciones ? `<div class="section-title">Observaciones</div><div class=
         cliente: cliente?.nombre || '',
         tel: cliente?.telefono || '',
         email: cliente?.email || '',
-        tecnico: data.creadoPor || ''
+        tecnico: data.creadoPor || '',
+        id: docId
       };
 
       _qrReciboData = payload;
