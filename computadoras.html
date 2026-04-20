@@ -807,8 +807,8 @@
         const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
         const color = estadoColor[ing.estado] || '#6b7280';
         html += `
-          <div onclick="viewIngresoProfile('${ing.id}')" style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;cursor:pointer;transition:transform .15s,box-shadow .15s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
-            <div id="img-${ing.id}" style="width:100%;height:150px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;transition:box-shadow .15s;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
+            <div id="img-${ing.id}" style="width:100%;height:160px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             </div>
             <div style="padding:12px 14px 14px;">
@@ -819,10 +819,13 @@
               <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🚗 ${vehiculo}</div>
               <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🔩 ${ing.numeroParte}</div>
               <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:6px;">👤 ${cliente}</div>
-              <div style="display:flex;gap:6px;margin-top:10px;" onclick="event.stopPropagation()">
-                <button onclick="viewIngresoProfile('${ing.id}')" style="flex:1;padding:6px;border:none;border-radius:7px;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer;">🔍 Ver</button>
-                <button onclick="editIngreso('${ing.id}')" style="flex:1;padding:6px;border:none;border-radius:7px;background:#f3f4f6;color:#374151;font-size:.78rem;font-weight:600;cursor:pointer;">✏️ Editar</button>
-                <button onclick="deleteIngreso('${ing.id}')" style="padding:6px 10px;border:none;border-radius:7px;background:#fee2e2;color:#dc2626;font-size:.78rem;font-weight:600;cursor:pointer;">🗑️</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;">
+                <button onclick="viewIngresoProfile('${ing.id}')" style="padding:8px 4px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info</button>
+                <button onclick="imprimirReciboById('${ing.id}')" style="padding:8px 4px;border:none;border-radius:8px;background:#10b981;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">🖨️ Imprimir Recibo</button>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:6px;">
+                <button onclick="editIngreso('${ing.id}')" style="padding:7px 4px;border:none;border-radius:8px;background:#f3f4f6;color:#374151;font-size:.78rem;font-weight:600;cursor:pointer;">✏️ Editar</button>
+                <button onclick="deleteIngreso('${ing.id}')" style="padding:7px 12px;border:none;border-radius:8px;background:#fee2e2;color:#dc2626;font-size:.78rem;font-weight:700;cursor:pointer;">🗑️</button>
               </div>
             </div>
           </div>`;
@@ -1324,6 +1327,15 @@
 
     function closeIngresoProfile() {
       document.getElementById('ingresoPerfilScreen').classList.remove('active');
+    }
+
+    function imprimirReciboById(id) {
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      const cliente = clientesData.find(c => c.id === ing.clienteId);
+      window._reciboIngreso = ing;
+      window._reciboCliente = cliente;
+      imprimirRecibo();
     }
 
     // ── Impresora de red ──────────────────────────────────────
