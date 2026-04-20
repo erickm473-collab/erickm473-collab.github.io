@@ -632,27 +632,6 @@
     </div>
   </div>
 
-  <!-- MODAL CONTACTAR CLIENTE (TALLER) -->
-  <div class="modal-overlay" id="contactoClienteModal" style="z-index:2000;">
-    <div class="modal" style="max-width:360px;">
-      <div class="modal-header">
-        <h3>📞 Contactar Cliente</h3>
-        <button class="close-btn" onclick="closeModal('contactoClienteModal')">×</button>
-      </div>
-      <div style="padding:4px 0 8px;">
-        <div id="contactoClienteInfo" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:18px;font-size:.9rem;color:#1e40af;font-weight:600;"></div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <button id="btnLlamarCliente" style="padding:14px;border:none;border-radius:10px;background:#3b82f6;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="llamarCliente()">
-            📞 Llamar por Teléfono
-          </button>
-          <button id="btnWhatsappCliente" style="padding:14px;border:none;border-radius:10px;background:#25d366;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;" onclick="mensajeWhatsappCliente()">
-            💬 Enviar Mensaje por WhatsApp
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- MODAL FINALIZAR TRABAJO -->
   <div class="modal-overlay" id="finalizarModal" style="z-index:2000;">
     <div class="modal" style="max-width:420px;">
@@ -1166,7 +1145,8 @@
       <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;">
         <button id="pvBtnContrato" onclick="" style="flex:1; min-width:140px; background:#25d366; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;">📲 Enviar Contrato</button>
         <button id="pvBtnEditar" onclick="" style="flex:1; min-width:140px; background:#f59e0b; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;">✏️ Editar Vehículo</button>
-        <button id="pvBtnContactar" style="flex:1; min-width:140px; background:#3b82f6; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer; display:none;" onclick="abrirContactoCliente()">📞 Contactar Cliente</button>
+        <button id="pvBtnLlamar" style="display:none; flex:1; min-width:130px; background:#3b82f6; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;" onclick="llamarCliente()">📞 Llamar</button>
+        <button id="pvBtnWhatsapp" style="display:none; flex:1; min-width:130px; background:#25d366; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;" onclick="mensajeWhatsappCliente()">💬 WhatsApp</button>
         <button id="pvBtnFinalizar" style="display:none; flex:1; min-width:140px; background:#16a34a; color:#fff; border:none; border-radius:10px; padding:14px; font-size:.9rem; font-weight:700; cursor:pointer;" onclick="abrirModalFinalizar()">🏁 Finalizar Trabajo</button>
       </div>
 
@@ -1603,15 +1583,20 @@
           ${cliente.telefono ? `<div style="font-size:.85rem; color:#93c5fd;">📞 ${cliente.telefono}</div>` : ''}
           ${cliente.email||cliente.correo ? `<div style="font-size:.85rem; color:#93c5fd;">✉️ ${cliente.email||cliente.correo}</div>` : ''}
           ${cliente.direccion ? `<div style="font-size:.85rem; color:#93c5fd;">📍 ${cliente.direccion}</div>` : ''}`;
-        // Botón contactar
+        // Botones contactar
         window._pvClienteContacto = { nombre: cliente.nombre, telefono: cliente.telefono || '' };
-        const btnC = document.getElementById('pvBtnContactar');
-        if (btnC) btnC.style.display = cliente.telefono ? '' : 'none';
+        const hasTel = !!cliente.telefono;
+        const bLlamar = document.getElementById('pvBtnLlamar');
+        const bWa    = document.getElementById('pvBtnWhatsapp');
+        if (bLlamar) bLlamar.style.display = hasTel ? '' : 'none';
+        if (bWa)     bWa.style.display     = hasTel ? '' : 'none';
       } else {
         clienteCard.style.display = 'none';
         window._pvClienteContacto = null;
-        const btnC = document.getElementById('pvBtnContactar');
-        if (btnC) btnC.style.display = 'none';
+        const bLlamar = document.getElementById('pvBtnLlamar');
+        const bWa    = document.getElementById('pvBtnWhatsapp');
+        if (bLlamar) bLlamar.style.display = 'none';
+        if (bWa)     bWa.style.display     = 'none';
       }
 
       // Testigos
@@ -3075,22 +3060,9 @@
     // ══════════════════════════════════════════════════════
     //  CONTACTAR CLIENTE
     // ══════════════════════════════════════════════════════
-    function abrirContactoCliente() {
-      const c = window._pvClienteContacto;
-      if (!c) return;
-      const tel = (c.telefono || '').replace(/\D/g, '');
-      document.getElementById('contactoClienteInfo').innerHTML =
-        `👤 <strong>${c.nombre}</strong><br>📞 ${c.telefono || 'Sin teléfono'}`;
-      document.getElementById('btnLlamarCliente').onclick   = () => { window.open(`tel:${c.telefono}`); };
-      document.getElementById('btnWhatsappCliente').onclick = () => {
-        window.open(`https://api.whatsapp.com/send?phone=504${tel}&text=${encodeURIComponent(`Hola ${c.nombre}, le contactamos de YONKER EL TRIANGULO en relación a su vehículo que tenemos en el taller.`)}`);
-      };
-      document.getElementById('contactoClienteModal').classList.add('active');
-    }
-
     function llamarCliente() {
       const c = window._pvClienteContacto;
-      if (c?.telefono) window.open(`tel:${c.telefono}`);
+      if (c?.telefono) window.location.href = 'tel:' + c.telefono;
     }
 
     function mensajeWhatsappCliente() {
