@@ -564,12 +564,26 @@
   <div id="ingresoPerfilScreen" class="profile-screen">
     <div class="profile-header">
       <div><h2 id="perfilTitulo">Ingreso #0</h2></div>
-      <div style="display:flex;gap:10px;">
-        <button class="print-btn-main" onclick="imprimirRecibo()" style="background:#10b981;border:none;color:white;padding:10px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">🖨️ Imprimir Recibo</button>
-        <button onclick="closeIngresoProfile()">Cerrar</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+        <button id="pvBtnContactarComp" onclick="abrirContactoClienteComp()" style="display:none;background:#3b82f6;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">📞 Contactar Cliente</button>
+        <button class="print-btn-main" onclick="imprimirRecibo()" style="background:#10b981;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">🖨️ Imprimir Recibo</button>
+        <button onclick="closeIngresoProfile()" style="background:#475569;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">✕ Cerrar</button>
       </div>
     </div>
     <div class="profile-content" id="perfilContent"></div>
+  </div>
+
+  <!-- MODAL CONTACTAR CLIENTE (COMPUTADORAS) -->
+  <div id="contactoClienteCompModal" class="modal" style="z-index:1400;">
+    <div class="modal-content" style="max-width:360px;">
+      <div class="modal-header">📞 Contactar Cliente</div>
+      <div id="contactoClienteCompInfo" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:14px;margin-bottom:18px;font-size:.9rem;color:#1e40af;font-weight:600;"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+        <button id="btnLlamarComp" style="padding:14px;border:none;border-radius:10px;background:#3b82f6;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">📞 Llamar por Teléfono</button>
+        <button id="btnWaComp" style="padding:14px;border:none;border-radius:10px;background:#25d366;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;">💬 Enviar Mensaje por WhatsApp</button>
+      </div>
+      <button onclick="document.getElementById('contactoClienteCompModal').classList.remove('active')" style="width:100%;padding:10px;border:none;border-radius:9px;background:#f3f4f6;color:#374151;font-weight:600;cursor:pointer;">Cerrar</button>
+    </div>
   </div>
 
   <div id="lightbox" class="lightbox">
@@ -1336,11 +1350,28 @@
         // guardar referencia para recibo
         window._reciboIngreso = ing;
         window._reciboCliente = cliente;
+        // Botón contactar
+        window._pvClienteContactoComp = cliente ? { nombre: cliente.nombre, telefono: cliente.telefono || '' } : null;
+        const btnC = document.getElementById('pvBtnContactarComp');
+        if (btnC) btnC.style.display = (cliente?.telefono) ? '' : 'none';
       });
     }
 
     function closeIngresoProfile() {
       document.getElementById('ingresoPerfilScreen').classList.remove('active');
+    }
+
+    function abrirContactoClienteComp() {
+      const c = window._pvClienteContactoComp;
+      if (!c) return;
+      const tel = (c.telefono || '').replace(/\D/g, '');
+      document.getElementById('contactoClienteCompInfo').innerHTML =
+        `👤 <strong>${c.nombre}</strong><br>📞 ${c.telefono || 'Sin teléfono'}`;
+      document.getElementById('btnLlamarComp').onclick = () => { window.open(`tel:${c.telefono}`); };
+      document.getElementById('btnWaComp').onclick = () => {
+        window.open(`https://api.whatsapp.com/send?phone=504${tel}&text=${encodeURIComponent(`Hola ${c.nombre}, le contactamos de YONKER EL TRIANGULO en relación a su equipo electrónico que tenemos en reparación.`)}`);
+      };
+      document.getElementById('contactoClienteCompModal').classList.add('active');
     }
 
     function imprimirReciboById(id) {
