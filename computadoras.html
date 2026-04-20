@@ -421,11 +421,20 @@
 
       <div class="form-group full">
         <label>¿Viene Abierta? *</label>
-        <div class="toggle-group">
-          <button type="button" class="toggle-btn" onclick="setToggle('vienAbierta', 'SI')">✓ SI</button>
-          <button type="button" class="toggle-btn active" onclick="setToggle('vienAbierta', 'NO')">✗ NO</button>
+        <div class="toggle-group" id="toggleGrpVienAbierta">
+          <button type="button" class="toggle-btn" onclick="setToggle('vienAbierta','SI','toggleGrpVienAbierta')">✓ SI</button>
+          <button type="button" class="toggle-btn active" onclick="setToggle('vienAbierta','NO','toggleGrpVienAbierta')">✗ NO</button>
         </div>
         <input type="hidden" id="vienAbierta" value="NO">
+      </div>
+
+      <div class="form-group full">
+        <label>¿La computadora comunica? *</label>
+        <div class="toggle-group" id="toggleGrpComunica">
+          <button type="button" class="toggle-btn" onclick="setToggle('comunica','SI','toggleGrpComunica')">✓ SI</button>
+          <button type="button" class="toggle-btn active" onclick="setToggle('comunica','NO','toggleGrpComunica')">✗ NO</button>
+        </div>
+        <input type="hidden" id="comunica" value="NO">
       </div>
 
       <div class="form-group full">
@@ -970,7 +979,9 @@
       set('observaciones', '');
       set('estado', 'En diagnóstico');
       set('vienAbierta', 'NO');
-      setToggle('vienAbierta', 'NO');
+      setToggle('vienAbierta', 'NO', 'toggleGrpVienAbierta');
+      set('comunica', 'NO');
+      setToggle('comunica', 'NO', 'toggleGrpComunica');
       set('precioEstimado', '');
       document.getElementById('fotoGrid').innerHTML = '';
       document.getElementById('quienRegistro').textContent = currentUser.nombre;
@@ -1007,7 +1018,9 @@
       set('observaciones', ing.observaciones);
       set('estado', ing.estado);
       set('vienAbierta', ing.vienAbierta);
-      setToggle('vienAbierta', ing.vienAbierta);
+      setToggle('vienAbierta', ing.vienAbierta, 'toggleGrpVienAbierta');
+      set('comunica', ing.comunica || 'NO');
+      setToggle('comunica', ing.comunica || 'NO', 'toggleGrpComunica');
       set('precioEstimado', ing.precioEstimado);
       set('totalCobradoComp', ing.totalCobrado || '');
       document.getElementById('clienteSelect').value = ing.clienteId || '';
@@ -1049,6 +1062,7 @@
         descripcionFalla: v('descripcionFalla'),
         observaciones: v('observaciones'),
         vienAbierta: v('vienAbierta'),
+        comunica: v('comunica'),
         estado: v('estado'),
         clienteId,
         precioEstimado: v('precioEstimado') ? parseFloat(v('precioEstimado')) : null,
@@ -1320,6 +1334,10 @@
             <div class="profile-field">
               <div class="profile-label">¿Viene Abierta?:</div>
               <div class="profile-value">${ing.vienAbierta === 'SI' ? '✅ Sí' : '❌ No'}</div>
+            </div>
+            <div class="profile-field">
+              <div class="profile-label">¿Comunica?:</div>
+              <div class="profile-value">${ing.comunica === 'SI' ? '✅ Sí' : '❌ No'}</div>
             </div>
             <div class="profile-field">
               <div class="profile-label">Observaciones:</div>
@@ -1650,14 +1668,15 @@ ${ing.observaciones ? `<div class="section-title">Observaciones</div><div class=
       showLightboxImage();
     }
 
-    function setToggle(id, val) {
+    function setToggle(id, val, grpId) {
       set(id, val);
-      document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
-      event?.target?.classList?.add('active');
+      const grp = grpId ? document.getElementById(grpId) : null;
+      const btns = grp ? grp.querySelectorAll('.toggle-btn') : document.querySelectorAll('.toggle-btn');
+      btns.forEach(btn => btn.classList.remove('active'));
       if (val === 'SI') {
-        document.querySelectorAll('.toggle-btn')[0]?.classList.add('active');
+        btns[0]?.classList.add('active');
       } else {
-        document.querySelectorAll('.toggle-btn')[1]?.classList.add('active');
+        btns[1]?.classList.add('active');
       }
     }
 
