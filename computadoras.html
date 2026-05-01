@@ -210,8 +210,12 @@
           <span>Trabajos Pendientes</span>
         </div>
         <div class="nav-item" onclick="switchSection('finalizados', this)">
-          <div class="nav-icon">✅</div>
-          <span>Trabajos Finalizados</span>
+          <div class="nav-icon">🔧</div>
+          <span>Diagnóstico Finalizado</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('entregados', this)">
+          <div class="nav-icon">📦</div>
+          <span>Entregados</span>
         </div>
         <div class="nav-item" onclick="switchSection('clientes', this)">
           <div class="nav-icon">👥</div>
@@ -280,9 +284,16 @@
 
         <div class="section" id="finalizados">
           <div class="section-header">
-            <h2>✅ Trabajos Finalizados</h2>
+            <h2>🔧 Diagnóstico Finalizado</h2>
           </div>
           <div id="finalizadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:8px 0;"></div>
+        </div>
+
+        <div class="section" id="entregados">
+          <div class="section-header">
+            <h2>📦 Entregados</h2>
+          </div>
+          <div id="entregadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:8px 0;"></div>
         </div>
 
         <div class="section" id="clientes">
@@ -598,6 +609,8 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
         <button id="pvBtnLlamarComp" style="display:none;background:#3b82f6;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;" onclick="llamarClienteComp()">📞 Llamar</button>
         <button id="pvBtnWaComp" style="display:none;background:#25d366;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;" onclick="waClienteComp()">💬 WhatsApp</button>
+        <button id="pvBtnFinalizarDiagComp" style="display:none;background:#f59e0b;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;" onclick="finalizarDiagnostico()">🔬 Finalizar Diagnóstico</button>
+        <button id="pvBtnEntregarComp" style="display:none;background:#7c3aed;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;" onclick="abrirModalEntregarComp()">📦 Entregar a Cliente</button>
         <button id="pvBtnFinalizarComp" style="display:none;background:#16a34a;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:700;" onclick="abrirModalFinalizarComp()">🏁 Finalizar Reparación</button>
         <button class="print-btn-main" onclick="imprimirRecibo()" style="background:#10b981;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">🖨️ Imprimir Recibo</button>
         <button onclick="closeIngresoProfile()" style="background:#475569;border:none;color:white;padding:10px 16px;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600;">✕ Cerrar</button>
@@ -641,6 +654,42 @@
       <div class="modal-footer" style="margin-top:0;">
         <button type="button" class="btn-secondary" onclick="document.getElementById('finalizarCompModal').classList.remove('active')">Cancelar</button>
         <button type="button" class="btn-primary" id="btnConfirmarFinalizarComp" onclick="confirmarFinalizarComp()" style="background:#16a34a;">🏁 Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ENTREGAR A CLIENTE -->
+  <div id="entregarCompModal" class="modal" style="z-index:1500;">
+    <div class="modal-content" style="max-width:420px;">
+      <div class="modal-header">📦 Entregar a Cliente</div>
+      <div id="entregarCompInfo" style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;padding:12px;margin-bottom:16px;font-size:.88rem;color:#6d28d9;font-weight:600;"></div>
+      <div class="form-group">
+        <label style="color:#7c3aed;font-weight:700;">💵 Total Cobrado al Cliente (L.) *</label>
+        <input type="number" id="entregarCompTotal" step="0.01" min="0" placeholder="0.00" style="border-color:#7c3aed;font-size:1.1rem;font-weight:700;">
+      </div>
+      <div class="form-group">
+        <label>Método de Pago</label>
+        <select id="entregarCompMetodo">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Tarjeta">Tarjeta</option>
+          <option value="Cheque">Cheque</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label style="font-weight:700;">🔧 ¿Qué se le hizo al equipo? *</label>
+        <textarea id="entregarCompReparacion" rows="3" placeholder="Describe el trabajo realizado..." style="resize:vertical;border-color:#7c3aed;"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Notas de Entrega (opcional)</label>
+        <textarea id="entregarCompNotas" rows="2" placeholder="Observaciones al entregar el equipo..." style="resize:vertical;"></textarea>
+      </div>
+      <div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:.8rem;color:#6d28d9;">
+        📦 El equipo pasará a estado <strong>Entregado</strong>. Esta acción registra la entrega al cliente.
+      </div>
+      <div class="modal-footer" style="margin-top:0;">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('entregarCompModal').classList.remove('active')">Cancelar</button>
+        <button type="button" class="btn-primary" id="btnConfirmarEntregarComp" onclick="confirmarEntregarComp()" style="background:#7c3aed;">📦 Confirmar Entrega</button>
       </div>
     </div>
   </div>
@@ -795,6 +844,7 @@
         if (currentSection === 'ingresos') renderIngresos();
         if (currentSection === 'pendientes') renderPendientes();
         if (currentSection === 'finalizados') renderFinalizados();
+        if (currentSection === 'entregados') renderEntregados();
         if (currentSection === 'dashboard') renderDashboard();
       });
       fdb.collection('clientes').onSnapshot(snap => {
@@ -814,13 +864,14 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '✅ Trabajos Finalizados', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
       if (section === 'ingresos') renderIngresos();
       if (section === 'pendientes') renderPendientes();
       if (section === 'finalizados') renderFinalizados();
+      if (section === 'entregados') renderEntregados();
       if (section === 'clientes') renderClientes();
       if (section === 'usuarios') renderUsuarios();
       if (section === 'respaldos') renderBackups();
@@ -832,6 +883,7 @@
       const enDiagnostico = ingresosData.filter(i => i.estado === 'En diagnóstico').length;
       const enReparacion = ingresosData.filter(i => i.estado === 'En reparación').length;
       const listos = ingresosData.filter(i => i.estado === 'Listo').length;
+      const diagFinalizados = ingresosData.filter(i => i.estado === 'Diagnóstico Finalizado').length;
       const entregados = ingresosData.filter(i => i.estado === 'Entregado').length;
       const esAdmin = currentUser?.role === 'admin' || currentUser?.role === 'gerente';
       const now = new Date();
@@ -855,8 +907,12 @@
           <div class="stat-label">Listos</div>
           <div class="stat-value">${listos}</div>
         </div>
+        <div class="stat-card" style="border-left:4px solid #f59e0b;">
+          <div class="stat-label">🔧 Diag. Finalizado</div>
+          <div class="stat-value" style="color:#d97706;">${diagFinalizados}</div>
+        </div>
         <div class="stat-card">
-          <div class="stat-label">Entregados</div>
+          <div class="stat-label">📦 Entregados</div>
           <div class="stat-value">${entregados}</div>
         </div>
         ${esAdmin ? `<div class="stat-card" style="border-left:4px solid #7c3aed;">
@@ -869,24 +925,18 @@
 
     function renderIngresos() {
       const grid = document.getElementById('ingresosGrid');
-      const activos = ingresosData.filter(i => i.estado !== 'Entregado');
+      const activos = ingresosData.filter(i => i.estado !== 'Entregado' && i.estado !== 'Diagnóstico Finalizado');
       if (!activos.length) {
         grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay ingresos activos.</p>';
         return;
       }
-      const estadoColor = {
-        'En diagnóstico': '#f59e0b',
-        'En reparación': '#3b82f6',
-        'Listo': '#16a34a',
-        'Entregado': '#6b7280'
-      };
       grid.innerHTML = renderIngresosCards(activos);
       loadFotosGrid(activos);
     }
 
     function renderPendientes() {
       const grid = document.getElementById('pendientesGrid');
-      const pendientes = ingresosData.filter(i => i.estado !== 'Entregado');
+      const pendientes = ingresosData.filter(i => i.estado !== 'Entregado' && i.estado !== 'Diagnóstico Finalizado');
       if (!pendientes.length) {
         grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay trabajos pendientes.</p>';
         return;
@@ -897,9 +947,9 @@
 
     function renderFinalizados() {
       const grid = document.getElementById('finalizadosGrid');
-      const finalizados = ingresosData.filter(i => i.estado === 'Entregado');
+      const finalizados = ingresosData.filter(i => i.estado === 'Diagnóstico Finalizado');
       if (!finalizados.length) {
-        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay trabajos finalizados.</p>';
+        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay equipos con diagnóstico finalizado.</p>';
         return;
       }
       let html = '';
@@ -907,27 +957,24 @@
         const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
         const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
         const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
-        const fecha = ing.fechaFinalizacion ? new Date(ing.fechaFinalizacion.seconds*1000).toLocaleDateString('es-HN') : '—';
-        const total = ing.totalCobrado ? 'L. ' + parseFloat(ing.totalCobrado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '—';
+        const fecha = ing.fechaDiagnosticoFinalizado ? new Date(ing.fechaDiagnosticoFinalizado.seconds*1000).toLocaleDateString('es-HN') : '—';
         html += `
-          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;transition:box-shadow .15s;border-top:3px solid #16a34a;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
-            <div id="img-fin-${ing.id}" style="width:100%;height:140px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;transition:box-shadow .15s;border-top:3px solid #f59e0b;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
+            <div id="img-fin-${ing.id}" style="width:100%;height:140px;background:#fffbeb;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#fcd34d" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
             </div>
             <div style="padding:12px 14px 14px;">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                 <span style="font-weight:700;font-size:.95rem;color:#1f2937;">${tipo}</span>
-                <span style="background:#dcfce7;color:#15803d;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">✅ Entregado</span>
+                <span style="background:#fef3c7;color:#92400e;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🔧 Diag. Finalizado</span>
               </div>
               <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🚗 ${vehiculo}</div>
               <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🔩 ${ing.numeroParte}</div>
               <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:4px;">👤 ${cliente}</div>
-              ${ing.reparacionRealizada ? `<div style="font-size:.78rem;color:#7c3aed;margin-top:4px;font-weight:600;">🔧 ${ing.reparacionRealizada.length > 50 ? ing.reparacionRealizada.slice(0,50)+'…' : ing.reparacionRealizada}</div>` : ''}
               <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;">
                 <span style="font-size:.75rem;color:#6b7280;">📅 ${fecha}</span>
-                <span style="font-size:.82rem;font-weight:700;color:#16a34a;">${total}</span>
               </div>
-              <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info Completa</button>
+              <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:#f59e0b;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info / Entregar</button>
             </div>
           </div>`;
       });
@@ -946,8 +993,59 @@
       });
     }
 
+    function renderEntregados() {
+      const grid = document.getElementById('entregadosGrid');
+      const entregados = ingresosData.filter(i => i.estado === 'Entregado');
+      if (!entregados.length) {
+        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay equipos entregados todavía.</p>';
+        return;
+      }
+      let html = '';
+      entregados.forEach(ing => {
+        const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
+        const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
+        const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
+        const fecha = ing.fechaFinalizacion ? new Date(ing.fechaFinalizacion.seconds*1000).toLocaleDateString('es-HN') : '—';
+        const total = ing.totalCobrado ? 'L. ' + parseFloat(ing.totalCobrado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '—';
+        html += `
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;transition:box-shadow .15s;border-top:3px solid #16a34a;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
+            <div id="img-ent-${ing.id}" style="width:100%;height:140px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div style="padding:12px 14px 14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:.95rem;color:#1f2937;">${tipo}</span>
+                <span style="background:#dcfce7;color:#15803d;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">📦 Entregado</span>
+              </div>
+              <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🚗 ${vehiculo}</div>
+              <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🔩 ${ing.numeroParte}</div>
+              <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:4px;">👤 ${cliente}</div>
+              ${ing.reparacionRealizada ? `<div style="font-size:.78rem;color:#7c3aed;margin-top:4px;font-weight:600;">🔧 ${ing.reparacionRealizada.length > 50 ? ing.reparacionRealizada.slice(0,50)+'…' : ing.reparacionRealizada}</div>` : ''}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;">
+                <span style="font-size:.75rem;color:#6b7280;">📅 ${fecha}</span>
+                <span style="font-size:.82rem;font-weight:700;color:#16a34a;">${total}</span>
+              </div>
+              <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:#16a34a;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info Completa</button>
+            </div>
+          </div>`;
+      });
+      grid.innerHTML = html;
+      entregados.forEach(ing => {
+        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
+          if (!snap.empty) {
+            const foto = snap.docs[0].data();
+            const src = foto.data || foto.dataUrl || '';
+            if (src) {
+              const el = document.getElementById('img-ent-' + ing.id);
+              if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
+            }
+          }
+        }).catch(() => {});
+      });
+    }
+
     function renderIngresosCards(lista) {
-      const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Entregado':'#6b7280'};
+      const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Diagnóstico Finalizado':'#d97706','Entregado':'#6b7280'};
       let html = '';
       lista.forEach(ing => {
         const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
@@ -1510,9 +1608,23 @@
         const bWa = document.getElementById('pvBtnWaComp');
         if (bLl) bLl.style.display = hasTelComp ? '' : 'none';
         if (bWa) bWa.style.display = hasTelComp ? '' : 'none';
-        // Botón finalizar (solo admin/gerente, solo si no está entregado)
-        const bFin = document.getElementById('pvBtnFinalizarComp');
-        if (bFin) bFin.style.display = (esAdminComp && ing.estado !== 'Entregado') ? '' : 'none';
+        // Botones según estado (solo admin/gerente)
+        const bDiag = document.getElementById('pvBtnFinalizarDiagComp');
+        const bEntr = document.getElementById('pvBtnEntregarComp');
+        const bFin  = document.getElementById('pvBtnFinalizarComp');
+        if (esAdminComp) {
+          // "Finalizar Diagnóstico" solo si está En diagnóstico o En reparación o Listo
+          const puedeFinalizarDiag = !['Diagnóstico Finalizado','Entregado'].includes(ing.estado);
+          if (bDiag) bDiag.style.display = puedeFinalizarDiag ? '' : 'none';
+          // "Entregar a Cliente" solo si está en Diagnóstico Finalizado
+          if (bEntr) bEntr.style.display = (ing.estado === 'Diagnóstico Finalizado') ? '' : 'none';
+          // "Finalizar Reparación" se oculta — reemplazado por el flujo nuevo
+          if (bFin) bFin.style.display = 'none';
+        } else {
+          if (bDiag) bDiag.style.display = 'none';
+          if (bEntr) bEntr.style.display = 'none';
+          if (bFin)  bFin.style.display  = 'none';
+        }
       });
     }
 
@@ -1530,6 +1642,81 @@
       if (!c?.telefono) return;
       const tel = c.telefono.replace(/\D/g, '');
       window.open('https://api.whatsapp.com/send?phone=504' + tel + '&text=' + encodeURIComponent('Hola ' + c.nombre + ', le contactamos de YONKER EL TRIANGULO en relación a su equipo electrónico que tenemos en reparación.'));
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  FINALIZAR DIAGNÓSTICO
+    // ══════════════════════════════════════════════════════
+    async function finalizarDiagnostico() {
+      const id = window._pvIngresoIdComp;
+      if (!id) return;
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      if (!confirm('¿Confirmar que el diagnóstico ha finalizado?\nEl equipo pasará a estado "Diagnóstico Finalizado".')) return;
+      try {
+        await fdb.collection('computadoras').doc(id).update({
+          estado: 'Diagnóstico Finalizado',
+          fechaDiagnosticoFinalizado: firebase.firestore.FieldValue.serverTimestamp(),
+          diagnosticadoPor: currentUser?.nombre || currentUser?.username || '—'
+        });
+        closeIngresoProfile();
+        alert('✅ Diagnóstico finalizado. El equipo ya aparece en la sección "Diagnóstico Finalizado".');
+      } catch(e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  ENTREGAR A CLIENTE
+    // ══════════════════════════════════════════════════════
+    function abrirModalEntregarComp() {
+      const id  = window._pvIngresoIdComp;
+      if (!id) return;
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      const cliente = clientesData.find(c => c.id === ing.clienteId);
+      const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
+      document.getElementById('entregarCompInfo').innerHTML =
+        '💻 <strong>' + tipo + '</strong> — ' + ing.numeroParte +
+        (cliente ? '<br>👤 ' + cliente.nombre : '');
+      document.getElementById('entregarCompTotal').value = ing.totalCobrado || '';
+      document.getElementById('entregarCompMetodo').value = ing.metodoPago || 'Efectivo';
+      document.getElementById('entregarCompReparacion').value = ing.reparacionRealizada || '';
+      document.getElementById('entregarCompNotas').value = '';
+      document.getElementById('entregarCompModal').classList.add('active');
+    }
+
+    let _entregandoComp = false;
+    async function confirmarEntregarComp() {
+      if (_entregandoComp) return;
+      const total = parseFloat(document.getElementById('entregarCompTotal').value);
+      if (!total || total <= 0) { alert('Ingresa el total cobrado al cliente'); return; }
+      const reparacion = document.getElementById('entregarCompReparacion').value.trim();
+      if (!reparacion) { alert('Por favor describe qué se hizo al equipo'); return; }
+      _entregandoComp = true;
+      const btn = document.getElementById('btnConfirmarEntregarComp');
+      btn.disabled = true; btn.textContent = '⏳ Registrando...';
+      try {
+        const metodo = document.getElementById('entregarCompMetodo').value;
+        const notas  = document.getElementById('entregarCompNotas').value.trim();
+        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
+          estado:              'Entregado',
+          totalCobrado:        total,
+          metodoPago:          metodo,
+          reparacionRealizada: reparacion,
+          notasCierre:         notas,
+          fechaFinalizacion:   firebase.firestore.FieldValue.serverTimestamp(),
+          finalizadoPor:       currentUser?.nombre || currentUser?.username || '—'
+        });
+        document.getElementById('entregarCompModal').classList.remove('active');
+        closeIngresoProfile();
+        alert('📦 Equipo entregado al cliente. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
+      } catch(e) {
+        alert('Error al registrar entrega: ' + e.message);
+        btn.disabled = false; btn.textContent = '📦 Confirmar Entrega';
+      } finally {
+        _entregandoComp = false;
+      }
     }
 
     // ══════════════════════════════════════════════════════
