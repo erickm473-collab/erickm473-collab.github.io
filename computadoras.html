@@ -658,6 +658,33 @@
     </div>
   </div>
 
+  <!-- MODAL FINALIZAR DIAGNÓSTICO -->
+  <div id="diagCompModal" class="modal" style="z-index:1500;">
+    <div class="modal-content" style="max-width:440px;">
+      <div class="modal-header">🔬 Finalizar Diagnóstico</div>
+      <div id="diagCompInfo" style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px;margin-bottom:16px;font-size:.88rem;color:#92400e;font-weight:600;"></div>
+      <div class="form-group">
+        <label style="color:#d97706;font-weight:700;">🔍 ¿Qué se encontró en el diagnóstico? *</label>
+        <textarea id="diagCompEncontrado" rows="3" placeholder="Ej: Disco duro dañado, placa base con falla en condensadores, virus..." style="resize:vertical;border-color:#f59e0b;"></textarea>
+      </div>
+      <div class="form-group">
+        <label style="font-weight:700;">🔧 ¿Qué se va a reparar? *</label>
+        <textarea id="diagCompReparar" rows="3" placeholder="Ej: Cambio de disco duro, limpieza de virus, soldadura de componente..." style="resize:vertical;border-color:#7c3aed;"></textarea>
+      </div>
+      <div class="form-group">
+        <label style="color:#16a34a;font-weight:700;">💵 Total a Cobrar (L.) *</label>
+        <input type="number" id="diagCompTotal" step="0.01" min="0" placeholder="0.00" style="border-color:#16a34a;font-size:1.1rem;font-weight:700;">
+      </div>
+      <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:10px 12px;margin-bottom:16px;font-size:.8rem;color:#92400e;">
+        🔬 El equipo pasará a estado <strong>Diagnóstico Finalizado</strong>. Esta información será visible para el cliente.
+      </div>
+      <div class="modal-footer" style="margin-top:0;">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('diagCompModal').classList.remove('active')">Cancelar</button>
+        <button type="button" class="btn-primary" id="btnConfirmarDiagComp" onclick="confirmarDiagnostico()" style="background:#f59e0b;color:white;">🔬 Confirmar Diagnóstico</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL ENTREGAR A CLIENTE -->
   <div id="entregarCompModal" class="modal" style="z-index:1500;">
     <div class="modal-content" style="max-width:420px;">
@@ -1554,6 +1581,30 @@
               <div class="profile-value">${ing.creadoPor || '-'}</div>
             </div>
           </div>
+          ${(ing.diagnosticoEncontrado || ing.diagnosticoReparar || ing.totalPresupuesto) ? `
+          <div class="profile-card" style="border:2px solid #f59e0b;margin-top:8px;">
+            <div class="profile-card-title" style="color:#d97706;">🔬 Resultado del Diagnóstico</div>
+            ${ing.diagnosticoEncontrado ? `<div class="profile-field">
+              <div class="profile-label">¿Qué se encontró?:</div>
+              <div class="profile-value" style="color:#e2e8f0;">${ing.diagnosticoEncontrado}</div>
+            </div>` : ''}
+            ${ing.diagnosticoReparar ? `<div class="profile-field">
+              <div class="profile-label">¿Qué se reparará?:</div>
+              <div class="profile-value" style="color:#e2e8f0;">${ing.diagnosticoReparar}</div>
+            </div>` : ''}
+            ${ing.totalPresupuesto ? `<div class="profile-field">
+              <div class="profile-label">Total a Cobrar:</div>
+              <div class="profile-value" style="color:#4ade80;font-weight:700;font-size:1.1rem;">L. ${parseFloat(ing.totalPresupuesto).toLocaleString('es-HN',{minimumFractionDigits:2})}</div>
+            </div>` : ''}
+            ${ing.diagnosticadoPor ? `<div class="profile-field">
+              <div class="profile-label">Diagnosticado por:</div>
+              <div class="profile-value" style="color:#86efac;">${ing.diagnosticadoPor}</div>
+            </div>` : ''}
+            ${ing.fechaDiagnosticoFinalizado ? `<div class="profile-field">
+              <div class="profile-label">Fecha diagnóstico:</div>
+              <div class="profile-value" style="color:#86efac;">${new Date(ing.fechaDiagnosticoFinalizado.seconds*1000).toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'})}</div>
+            </div>` : ''}
+          </div>` : ''}
           ${(esAdminComp && ing.totalCobrado) ? `
           <div class="profile-card" style="border:2px solid #16a34a;background:#0f2d1a;">
             <div class="profile-card-title" style="color:#4ade80;">💵 Total Cobrado al Cliente</div>
@@ -1647,22 +1698,51 @@
     // ══════════════════════════════════════════════════════
     //  FINALIZAR DIAGNÓSTICO
     // ══════════════════════════════════════════════════════
-    async function finalizarDiagnostico() {
+    function finalizarDiagnostico() {
       const id = window._pvIngresoIdComp;
       if (!id) return;
       const ing = ingresosData.find(i => i.id === id);
       if (!ing) return;
-      if (!confirm('¿Confirmar que el diagnóstico ha finalizado?\nEl equipo pasará a estado "Diagnóstico Finalizado".')) return;
+      const cliente = clientesData.find(c => c.id === ing.clienteId);
+      const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
+      document.getElementById('diagCompInfo').innerHTML =
+        '💻 <strong>' + tipo + '</strong> — ' + ing.numeroParte +
+        (cliente ? '<br>👤 ' + cliente.nombre : '');
+      document.getElementById('diagCompEncontrado').value = ing.diagnosticoEncontrado || '';
+      document.getElementById('diagCompReparar').value = ing.diagnosticoReparar || '';
+      document.getElementById('diagCompTotal').value = ing.totalPresupuesto || '';
+      document.getElementById('diagCompModal').classList.add('active');
+    }
+
+    let _confirmandoDiag = false;
+    async function confirmarDiagnostico() {
+      if (_confirmandoDiag) return;
+      const encontrado = document.getElementById('diagCompEncontrado').value.trim();
+      if (!encontrado) { alert('Por favor describe qué se encontró en el diagnóstico'); return; }
+      const reparar = document.getElementById('diagCompReparar').value.trim();
+      if (!reparar) { alert('Por favor describe qué se va a reparar'); return; }
+      const total = parseFloat(document.getElementById('diagCompTotal').value);
+      if (!total || total <= 0) { alert('Ingresa el total a cobrar al cliente'); return; }
+      _confirmandoDiag = true;
+      const btn = document.getElementById('btnConfirmarDiagComp');
+      btn.disabled = true; btn.textContent = '⏳ Guardando...';
       try {
-        await fdb.collection('computadoras').doc(id).update({
-          estado: 'Diagnóstico Finalizado',
+        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
+          estado:                    'Diagnóstico Finalizado',
+          diagnosticoEncontrado:     encontrado,
+          diagnosticoReparar:        reparar,
+          totalPresupuesto:          total,
           fechaDiagnosticoFinalizado: firebase.firestore.FieldValue.serverTimestamp(),
-          diagnosticadoPor: currentUser?.nombre || currentUser?.username || '—'
+          diagnosticadoPor:          currentUser?.nombre || currentUser?.username || '—'
         });
+        document.getElementById('diagCompModal').classList.remove('active');
         closeIngresoProfile();
-        alert('✅ Diagnóstico finalizado. El equipo ya aparece en la sección "Diagnóstico Finalizado".');
+        alert('✅ Diagnóstico finalizado. El equipo aparece ahora en "Diagnóstico Finalizado".');
       } catch(e) {
         alert('Error: ' + e.message);
+        btn.disabled = false; btn.textContent = '🔬 Confirmar Diagnóstico';
+      } finally {
+        _confirmandoDiag = false;
       }
     }
 
@@ -1679,9 +1759,9 @@
       document.getElementById('entregarCompInfo').innerHTML =
         '💻 <strong>' + tipo + '</strong> — ' + ing.numeroParte +
         (cliente ? '<br>👤 ' + cliente.nombre : '');
-      document.getElementById('entregarCompTotal').value = ing.totalCobrado || '';
+      document.getElementById('entregarCompTotal').value = ing.totalCobrado || ing.totalPresupuesto || '';
       document.getElementById('entregarCompMetodo').value = ing.metodoPago || 'Efectivo';
-      document.getElementById('entregarCompReparacion').value = ing.reparacionRealizada || '';
+      document.getElementById('entregarCompReparacion').value = ing.reparacionRealizada || ing.diagnosticoReparar || '';
       document.getElementById('entregarCompNotas').value = '';
       document.getElementById('entregarCompModal').classList.add('active');
     }
