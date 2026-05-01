@@ -205,6 +205,14 @@
           <div class="nav-icon">💻</div>
           <span>Ingresos</span>
         </div>
+        <div class="nav-item" onclick="switchSection('pendientes', this)">
+          <div class="nav-icon">⏳</div>
+          <span>Trabajos Pendientes</span>
+        </div>
+        <div class="nav-item" onclick="switchSection('finalizados', this)">
+          <div class="nav-icon">✅</div>
+          <span>Trabajos Finalizados</span>
+        </div>
         <div class="nav-item" onclick="switchSection('clientes', this)">
           <div class="nav-icon">👥</div>
           <span>Clientes</span>
@@ -261,6 +269,20 @@
             <button onclick="openIngresoModal()">➕ Nuevo Ingreso</button>
           </div>
           <div id="ingresosGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:18px; padding:8px 0;"></div>
+        </div>
+
+        <div class="section" id="pendientes">
+          <div class="section-header">
+            <h2>⏳ Trabajos Pendientes</h2>
+          </div>
+          <div id="pendientesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:8px 0;"></div>
+        </div>
+
+        <div class="section" id="finalizados">
+          <div class="section-header">
+            <h2>✅ Trabajos Finalizados</h2>
+          </div>
+          <div id="finalizadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:8px 0;"></div>
         </div>
 
         <div class="section" id="clientes">
@@ -605,6 +627,10 @@
         </select>
       </div>
       <div class="form-group">
+        <label style="font-weight:700;">🔧 ¿Qué se reparó? *</label>
+        <textarea id="finalizarCompReparacion" rows="3" placeholder="Describe el trabajo realizado: programación, sustitución de componente, etc..." style="resize:vertical;border-color:#7c3aed;"></textarea>
+      </div>
+      <div class="form-group">
         <label>Notas de Cierre (opcional)</label>
         <textarea id="finalizarCompNotas" rows="2" placeholder="Observaciones al entregar el equipo..." style="resize:vertical;"></textarea>
       </div>
@@ -767,6 +793,8 @@
       fdb.collection('computadoras').onSnapshot(snap => {
         ingresosData = snap.docs.map(d => ({id: d.id, ...d.data()}));
         if (currentSection === 'ingresos') renderIngresos();
+        if (currentSection === 'pendientes') renderPendientes();
+        if (currentSection === 'finalizados') renderFinalizados();
         if (currentSection === 'dashboard') renderDashboard();
       });
       fdb.collection('clientes').onSnapshot(snap => {
@@ -786,11 +814,13 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '✅ Trabajos Finalizados', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
       if (section === 'ingresos') renderIngresos();
+      if (section === 'pendientes') renderPendientes();
+      if (section === 'finalizados') renderFinalizados();
       if (section === 'clientes') renderClientes();
       if (section === 'usuarios') renderUsuarios();
       if (section === 'respaldos') renderBackups();
@@ -839,8 +869,9 @@
 
     function renderIngresos() {
       const grid = document.getElementById('ingresosGrid');
-      if (!ingresosData.length) {
-        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay ingresos registrados.</p>';
+      const activos = ingresosData.filter(i => i.estado !== 'Entregado');
+      if (!activos.length) {
+        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay ingresos activos.</p>';
         return;
       }
       const estadoColor = {
@@ -849,8 +880,76 @@
         'Listo': '#16a34a',
         'Entregado': '#6b7280'
       };
+      grid.innerHTML = renderIngresosCards(activos);
+      loadFotosGrid(activos);
+    }
+
+    function renderPendientes() {
+      const grid = document.getElementById('pendientesGrid');
+      const pendientes = ingresosData.filter(i => i.estado !== 'Entregado');
+      if (!pendientes.length) {
+        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay trabajos pendientes.</p>';
+        return;
+      }
+      grid.innerHTML = renderIngresosCards(pendientes);
+      loadFotosGrid(pendientes);
+    }
+
+    function renderFinalizados() {
+      const grid = document.getElementById('finalizadosGrid');
+      const finalizados = ingresosData.filter(i => i.estado === 'Entregado');
+      if (!finalizados.length) {
+        grid.innerHTML = '<p style="color:#6b7280;grid-column:1/-1;text-align:center;padding:40px;">No hay trabajos finalizados.</p>';
+        return;
+      }
       let html = '';
-      ingresosData.forEach(ing => {
+      finalizados.forEach(ing => {
+        const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
+        const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
+        const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
+        const fecha = ing.fechaFinalizacion ? new Date(ing.fechaFinalizacion.seconds*1000).toLocaleDateString('es-HN') : '—';
+        const total = ing.totalCobrado ? 'L. ' + parseFloat(ing.totalCobrado).toLocaleString('es-HN',{minimumFractionDigits:2}) : '—';
+        html += `
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;transition:box-shadow .15s;border-top:3px solid #16a34a;" onmouseover="this.style.boxShadow='0 6px 20px rgba(0,0,0,.13)'" onmouseout="this.style.boxShadow='0 2px 10px rgba(0,0,0,.08)'">
+            <div id="img-fin-${ing.id}" style="width:100%;height:140px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div style="padding:12px 14px 14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:.95rem;color:#1f2937;">${tipo}</span>
+                <span style="background:#dcfce7;color:#15803d;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">✅ Entregado</span>
+              </div>
+              <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🚗 ${vehiculo}</div>
+              <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🔩 ${ing.numeroParte}</div>
+              <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:4px;">👤 ${cliente}</div>
+              ${ing.reparacionRealizada ? `<div style="font-size:.78rem;color:#7c3aed;margin-top:4px;font-weight:600;">🔧 ${ing.reparacionRealizada.length > 50 ? ing.reparacionRealizada.slice(0,50)+'…' : ing.reparacionRealizada}</div>` : ''}
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;">
+                <span style="font-size:.75rem;color:#6b7280;">📅 ${fecha}</span>
+                <span style="font-size:.82rem;font-weight:700;color:#16a34a;">${total}</span>
+              </div>
+              <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info Completa</button>
+            </div>
+          </div>`;
+      });
+      grid.innerHTML = html;
+      finalizados.forEach(ing => {
+        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
+          if (!snap.empty) {
+            const foto = snap.docs[0].data();
+            const src = foto.data || foto.dataUrl || '';
+            if (src) {
+              const el = document.getElementById('img-fin-' + ing.id);
+              if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
+            }
+          }
+        }).catch(() => {});
+      });
+    }
+
+    function renderIngresosCards(lista) {
+      const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Entregado':'#6b7280'};
+      let html = '';
+      lista.forEach(ing => {
         const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
         const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
         const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
@@ -879,13 +978,14 @@
             </div>
           </div>`;
       });
-      grid.innerHTML = html;
-      // Cargar fotos asíncronamente
-      ingresosData.forEach(ing => {
+      return html;
+    }
+
+    function loadFotosGrid(lista) {
+      lista.forEach(ing => {
         fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
           if (!snap.empty) {
-            const foto = snap.docs[0].data();
-            const src = foto.data || foto.dataUrl || '';
+            const src = snap.docs[0].data().data || snap.docs[0].data().dataUrl || '';
             if (src) {
               const el = document.getElementById('img-' + ing.id);
               if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
@@ -1447,6 +1547,7 @@
         (cliente ? '<br>👤 ' + cliente.nombre : '');
       document.getElementById('finalizarCompTotal').value = ing.totalCobrado || '';
       document.getElementById('finalizarCompMetodo').value = ing.metodoPago || 'Efectivo';
+      document.getElementById('finalizarCompReparacion').value = ing.reparacionRealizada || '';
       document.getElementById('finalizarCompNotas').value = '';
       document.getElementById('finalizarCompModal').classList.add('active');
     }
@@ -1456,6 +1557,8 @@
       if (_finalizandoComp) return;
       const total = parseFloat(document.getElementById('finalizarCompTotal').value);
       if (!total || total <= 0) { alert('Ingresa el total cobrado al cliente'); return; }
+      const reparacion = document.getElementById('finalizarCompReparacion').value.trim();
+      if (!reparacion) { alert('Por favor describe qué se reparó'); return; }
       _finalizandoComp = true;
       const btn = document.getElementById('btnConfirmarFinalizarComp');
       btn.disabled = true; btn.textContent = '⏳ Finalizando...';
@@ -1466,6 +1569,7 @@
           estado:            'Entregado',
           totalCobrado:      total,
           metodoPago:        metodo,
+          reparacionRealizada: reparacion,
           notasCierre:       notas,
           fechaFinalizacion: firebase.firestore.FieldValue.serverTimestamp(),
           finalizadoPor:     currentUser?.nombre || currentUser?.username || '—'
