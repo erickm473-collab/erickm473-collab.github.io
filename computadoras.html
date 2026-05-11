@@ -1400,60 +1400,66 @@
       }
     }
 
+    // Guardar cliente usando REST API directamente (evita problemas del write stream del SDK)
+    const FIRESTORE_PROJECT = 'taller-mecanico-erick';
+    const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents';
+
+    function toFirestoreValue(val) {
+      if (val === null || val === undefined || val === '') return { nullValue: null };
+      if (typeof val === 'boolean') return { booleanValue: val };
+      if (typeof val === 'number') return { doubleValue: val };
+      return { stringValue: String(val) };
+    }
+
+    function objToFirestore(obj) {
+      const fields = {};
+      Object.entries(obj).forEach(([k, v]) => { fields[k] = toFirestoreValue(v); });
+      return { fields };
+    }
+
     let _savingCliente = false;
-    function saveCliente() {
+    async function saveCliente() {
       if (_savingCliente) return;
       const nombre = v('nombreCliente');
       if (!nombre) { alert('Ingrese el nombre del cliente'); return; }
-      const telefono   = v('telefonoCliente');
-      const email      = v('emailCliente');
-      const direccion  = v('direccionCliente');
+      const telefono  = v('telefonoCliente');
+      const email     = v('emailCliente');
+      const direccion = v('direccionCliente');
       _savingCliente = true;
       const btnGuardar = document.querySelector('#clienteModal .btn-primary');
       if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = '⏳ Guardando...'; }
-
       const reset = () => {
         _savingCliente = false;
         if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar'; }
       };
-
-      const data = { nombre, telefono, email, direccion };
-
-      // Verificar que fdb esté disponible
-      if (!fdb) { reset(); alert('Error: Base de datos no disponible. Recarga la página.'); return; }
-
-      console.log('[saveCliente] Iniciando guardado...', data);
-
-      if (editingCliente) {
-        fdb.collection('clientes').doc(editingCliente.id).update(data)
-          .then(() => {
-            console.log('[saveCliente] Cliente actualizado OK');
-            reset(); closeClienteModal();
-          })
-          .catch(e => {
-            console.error('[saveCliente] Error al actualizar:', e);
-            reset(); alert('Error al actualizar: ' + e.message + ' (código: ' + e.code + ')');
-          });
-      } else {
-        console.log('[saveCliente] Llamando fdb.collection(clientes).add()...');
-        fdb.collection('clientes').add({...data, creado: new Date().toISOString()})
-          .then(ref => {
-            console.log('[saveCliente] Cliente guardado OK, id:', ref.id);
-            reset();
-            closeClienteModal();
-            const ingresoModal = document.getElementById('ingresoModal');
-            if (ingresoModal && ingresoModal.classList.contains('active')) {
-              setTimeout(() => {
-                const sel = document.getElementById('clienteSelect');
-                if (sel) sel.value = ref.id;
-              }, 800);
-            }
-          })
-          .catch(e => {
-            console.error('[saveCliente] Error al guardar:', e);
-            reset();
-            alert('❌ Error al guardar cliente:\n\n' + e.message + '\n\nCódigo: ' + (e.code || 'desconocido') + '\n\nRevisa las reglas de Firestore o la conexión a internet.');
-          });
+      try {
+        const data = { nombre, telefono, email, direccion, creado: new Date().toISOString() };
+        if (editingCliente) {
+          // Actualizar: PATCH con updateMask
+          const mask = Object.keys(data).map(k => 'updateMask.fieldPaths=' + k).join('&');
+          const url = FIRESTORE_BASE + '/clientes/' + editingCliente.id + '?' + mask;
+          const res = await fetch(url, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(data)) });
+          if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+        } else {
+          // Crear nuevo documento
+          const res = await fetch(FIRESTORE_BASE + '/clientes', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(data)) });
+          if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+          const doc = await res.json();
+          const newId = doc.name.split('/').pop();
+          reset();
+          closeClienteModal();
+          // Pre-seleccionar el nuevo cliente si el modal de ingreso está abierto
+          const ingresoModal = document.getElementById('ingresoModal');
+          if (ingresoModal && ingresoModal.classList.contains('active')) {
+            setTimeout(() => { const sel = document.getElementById('clienteSelect'); if (sel) sel.value = newId; }, 800);
+          }
+          return;
+        }
+        reset();
+        closeClienteModal();
+      } catch(e) {
+        reset();
+        alert('❌ Error al guardar cliente: ' + e.message);
       }
     }
 
