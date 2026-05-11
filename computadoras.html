@@ -1401,40 +1401,59 @@
     }
 
     let _savingCliente = false;
-    async function saveCliente() {
+    function saveCliente() {
       if (_savingCliente) return;
       const nombre = v('nombreCliente');
       if (!nombre) { alert('Ingrese el nombre del cliente'); return; }
-      const data = {
-        nombre,
-        telefono: v('telefonoCliente'),
-        email: v('emailCliente'),
-        direccion: v('direccionCliente')
-      };
+      const telefono   = v('telefonoCliente');
+      const email      = v('emailCliente');
+      const direccion  = v('direccionCliente');
       _savingCliente = true;
       const btnGuardar = document.querySelector('#clienteModal .btn-primary');
       if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = '⏳ Guardando...'; }
-      try {
-        if (editingCliente) {
-          await fdb.collection('clientes').doc(editingCliente.id).update(data);
-          closeClienteModal();
-        } else {
-          const ref = await fdb.collection('clientes').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()});
-          closeClienteModal();
-          // Si estamos dentro del modal de ingreso, pre-seleccionar el cliente nuevo
-          const ingresoModal = document.getElementById('ingresoModal');
-          if (ingresoModal && ingresoModal.classList.contains('active')) {
-            setTimeout(() => {
-              const sel = document.getElementById('clienteSelect');
-              if (sel) sel.value = ref.id;
-            }, 600);
-          }
-        }
-      } catch(e) {
-        alert('Error al guardar cliente: ' + e.message);
-      } finally {
+
+      const reset = () => {
         _savingCliente = false;
         if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar'; }
+      };
+
+      const data = { nombre, telefono, email, direccion };
+
+      // Verificar que fdb esté disponible
+      if (!fdb) { reset(); alert('Error: Base de datos no disponible. Recarga la página.'); return; }
+
+      console.log('[saveCliente] Iniciando guardado...', data);
+
+      if (editingCliente) {
+        fdb.collection('clientes').doc(editingCliente.id).update(data)
+          .then(() => {
+            console.log('[saveCliente] Cliente actualizado OK');
+            reset(); closeClienteModal();
+          })
+          .catch(e => {
+            console.error('[saveCliente] Error al actualizar:', e);
+            reset(); alert('Error al actualizar: ' + e.message + ' (código: ' + e.code + ')');
+          });
+      } else {
+        console.log('[saveCliente] Llamando fdb.collection(clientes).add()...');
+        fdb.collection('clientes').add({...data, creado: new Date().toISOString()})
+          .then(ref => {
+            console.log('[saveCliente] Cliente guardado OK, id:', ref.id);
+            reset();
+            closeClienteModal();
+            const ingresoModal = document.getElementById('ingresoModal');
+            if (ingresoModal && ingresoModal.classList.contains('active')) {
+              setTimeout(() => {
+                const sel = document.getElementById('clienteSelect');
+                if (sel) sel.value = ref.id;
+              }, 800);
+            }
+          })
+          .catch(e => {
+            console.error('[saveCliente] Error al guardar:', e);
+            reset();
+            alert('❌ Error al guardar cliente:\n\n' + e.message + '\n\nCódigo: ' + (e.code || 'desconocido') + '\n\nRevisa las reglas de Firestore o la conexión a internet.');
+          });
       }
     }
 
@@ -2128,8 +2147,14 @@ ${ing.observaciones ? `<div class="section-title">Observaciones</div><div class=
     }
 
     async function initApp() {
-      const app = firebase.initializeApp(firebaseConfig);
+      firebase.initializeApp(firebaseConfig);
       fdb = firebase.firestore();
+      // Autenticación anónima para satisfacer reglas de Firestore que requieran request.auth
+      try {
+        await firebase.auth().signInAnonymously();
+      } catch(e) {
+        console.warn('Auth anónima no disponible:', e.message);
+      }
       const stored = localStorage.getItem('currentUser');
       if (stored) {
         try {
