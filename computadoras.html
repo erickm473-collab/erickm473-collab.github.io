@@ -526,7 +526,7 @@
     </div>
   </div>
 
-  <div id="clienteModal" class="modal" style="z-index:1100;">
+  <div id="clienteModal" class="modal" style="z-index:2000;">
     <div class="modal-content">
       <div class="modal-header" id="clienteModalTitle">Nuevo Cliente</div>
       <div class="form-group">
@@ -1400,22 +1400,41 @@
       }
     }
 
-    function saveCliente() {
+    let _savingCliente = false;
+    async function saveCliente() {
+      if (_savingCliente) return;
       const nombre = v('nombreCliente');
-      if (!nombre) {
-        alert('Ingrese nombre del cliente');
-        return;
-      }
+      if (!nombre) { alert('Ingrese el nombre del cliente'); return; }
       const data = {
         nombre,
         telefono: v('telefonoCliente'),
         email: v('emailCliente'),
         direccion: v('direccionCliente')
       };
-      if (editingCliente) {
-        fdb.collection('clientes').doc(editingCliente.id).update(data).then(() => closeClienteModal());
-      } else {
-        fdb.collection('clientes').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(() => closeClienteModal());
+      _savingCliente = true;
+      const btnGuardar = document.querySelector('#clienteModal .btn-primary');
+      if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = '⏳ Guardando...'; }
+      try {
+        if (editingCliente) {
+          await fdb.collection('clientes').doc(editingCliente.id).update(data);
+          closeClienteModal();
+        } else {
+          const ref = await fdb.collection('clientes').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()});
+          closeClienteModal();
+          // Si estamos dentro del modal de ingreso, pre-seleccionar el cliente nuevo
+          const ingresoModal = document.getElementById('ingresoModal');
+          if (ingresoModal && ingresoModal.classList.contains('active')) {
+            setTimeout(() => {
+              const sel = document.getElementById('clienteSelect');
+              if (sel) sel.value = ref.id;
+            }, 600);
+          }
+        }
+      } catch(e) {
+        alert('Error al guardar cliente: ' + e.message);
+      } finally {
+        _savingCliente = false;
+        if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar'; }
       }
     }
 
