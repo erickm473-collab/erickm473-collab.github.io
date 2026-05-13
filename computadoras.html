@@ -1264,7 +1264,7 @@
       }
     }
 
-    function saveIngreso() {
+    async function saveIngreso() {
       if (_savingIngreso) return;
       _savingIngreso = true;
       const tipoModulo = document.querySelector('input[name="tipoModulo"]:checked')?.value;
@@ -1275,6 +1275,12 @@
         _savingIngreso = false;
         return;
       }
+      const btnGuardar = document.querySelector('#ingresoModal .btn-primary');
+      if (btnGuardar) { btnGuardar.disabled = true; btnGuardar.textContent = '⏳ Guardando...'; }
+      const resetBtn = () => {
+        _savingIngreso = false;
+        if (btnGuardar) { btnGuardar.disabled = false; btnGuardar.textContent = 'Guardar'; }
+      };
       const data = {
         tipoModulo,
         tipoOtra: tipoModulo === 'Otra' ? v('tipoOtra') : '',
@@ -1294,19 +1300,28 @@
         totalCobrado: (currentUser?.role === 'admin' || currentUser?.role === 'gerente') && v('totalCobradoComp') ? parseFloat(v('totalCobradoComp')) : null,
         creadoPor: currentUser.nombre
       };
-      if (editingIngreso) {
-        fdb.collection('computadoras').doc(editingIngreso.id).update(data).then(() => {
-          _savingIngreso = false;
+      try {
+        if (editingIngreso) {
+          const mask = Object.keys(data).map(k => 'updateMask.fieldPaths=' + k).join('&');
+          const url = FIRESTORE_BASE + '/computadoras/' + editingIngreso.id + '?' + mask;
+          const res = await fetch(url, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(data)) });
+          if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+          resetBtn();
           closeIngresoModal();
-        });
-      } else {
-        fdb.collection('computadoras').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(docRef => {
-          uploadIngresoPhotos(docRef.id).then(() => {
-            _savingIngreso = false;
-            closeIngresoModal();
-            mostrarQrIngreso(data, docRef.id);
-          });
-        });
+        } else {
+          const dataConFecha = {...data, creado: new Date().toISOString()};
+          const res = await fetch(FIRESTORE_BASE + '/computadoras', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(dataConFecha)) });
+          if (!res.ok) throw new Error('HTTP ' + res.status + ': ' + await res.text());
+          const doc = await res.json();
+          const newId = doc.name.split('/').pop();
+          await uploadIngresoPhotos(newId);
+          resetBtn();
+          closeIngresoModal();
+          mostrarQrIngreso(data, newId);
+        }
+      } catch(e) {
+        resetBtn();
+        alert('❌ Error al guardar ingreso: ' + e.message);
       }
     }
 
@@ -1344,13 +1359,8 @@
     async function uploadIngresoPhotos(parentId) {
       for (let i = 0; i < ingresoPhotos.length; i++) {
         const dataUrl = ingresoPhotos[i];
-        await fdb.collection('fotos').add({
-          parentId,
-          parentType: 'computadora',
-          index: i,
-          dataUrl,
-          creado: firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const fotoData = { parentId, parentType: 'computadora', index: i, dataUrl, creado: new Date().toISOString() };
+        await fetch(FIRESTORE_BASE + '/fotos', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(fotoData)) });
       }
       ingresoPhotos = [];
     }
@@ -1405,9 +1415,10 @@
     const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents';
 
     function toFirestoreValue(val) {
-      if (val === null || val === undefined || val === '') return { nullValue: null };
+      if (val === null || val === undefined || val === '' || (typeof val === 'number' && isNaN(val))) return { nullValue: null };
       if (typeof val === 'boolean') return { booleanValue: val };
       if (typeof val === 'number') return { doubleValue: val };
+      if (Array.isArray(val)) return { arrayValue: { values: val.map(toFirestoreValue) } };
       return { stringValue: String(val) };
     }
 
@@ -1542,9 +1553,16 @@
           data.passwordHash = hashedPwd;
         }
         if (editingUser) {
-          fdb.collection('usuarios').doc(editingUser.id).update(data).then(() => closeUsuarioModal());
+          const mask = Object.keys(data).map(k => 'updateMask.fieldPaths=' + k).join('&');
+          const url = FIRESTORE_BASE + '/usuarios/' + editingUser.id + '?' + mask;
+          fetch(url, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(data)) })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); closeUsuarioModal(); })
+            .catch(e => alert('Error: ' + e.message));
         } else {
-          fdb.collection('usuarios').add({...data, creado: firebase.firestore.FieldValue.serverTimestamp()}).then(() => closeUsuarioModal());
+          const dataConFecha = {...data, creado: new Date().toISOString()};
+          fetch(FIRESTORE_BASE + '/usuarios', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(dataConFecha)) })
+            .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); closeUsuarioModal(); })
+            .catch(e => alert('Error: ' + e.message));
         }
       });
     }
@@ -1771,14 +1789,17 @@
       const btn = document.getElementById('btnConfirmarDiagComp');
       btn.disabled = true; btn.textContent = '⏳ Guardando...';
       try {
-        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
-          estado:                    'Diagnóstico Finalizado',
-          diagnosticoEncontrado:     encontrado,
-          diagnosticoReparar:        reparar,
-          totalPresupuesto:          total,
-          fechaDiagnosticoFinalizado: firebase.firestore.FieldValue.serverTimestamp(),
-          diagnosticadoPor:          currentUser?.nombre || currentUser?.username || '—'
-        });
+        const diagData = {
+          estado: 'Diagnóstico Finalizado',
+          diagnosticoEncontrado: encontrado,
+          diagnosticoReparar: reparar,
+          totalPresupuesto: total,
+          fechaDiagnosticoFinalizado: new Date().toISOString(),
+          diagnosticadoPor: currentUser?.nombre || currentUser?.username || '—'
+        };
+        const diagMask = Object.keys(diagData).map(k => 'updateMask.fieldPaths=' + k).join('&');
+        const diagRes = await fetch(FIRESTORE_BASE + '/computadoras/' + window._pvIngresoIdComp + '?' + diagMask, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(diagData)) });
+        if (!diagRes.ok) throw new Error('HTTP ' + diagRes.status + ': ' + await diagRes.text());
         document.getElementById('diagCompModal').classList.remove('active');
         closeIngresoProfile();
         alert('✅ Diagnóstico finalizado. El equipo aparece ahora en "Diagnóstico Finalizado".');
@@ -1823,15 +1844,18 @@
       try {
         const metodo = document.getElementById('entregarCompMetodo').value;
         const notas  = document.getElementById('entregarCompNotas').value.trim();
-        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
-          estado:              'Entregado',
-          totalCobrado:        total,
-          metodoPago:          metodo,
+        const entrData = {
+          estado: 'Entregado',
+          totalCobrado: total,
+          metodoPago: metodo,
           reparacionRealizada: reparacion,
-          notasCierre:         notas,
-          fechaFinalizacion:   firebase.firestore.FieldValue.serverTimestamp(),
-          finalizadoPor:       currentUser?.nombre || currentUser?.username || '—'
-        });
+          notasCierre: notas,
+          fechaFinalizacion: new Date().toISOString(),
+          finalizadoPor: currentUser?.nombre || currentUser?.username || '—'
+        };
+        const entrMask = Object.keys(entrData).map(k => 'updateMask.fieldPaths=' + k).join('&');
+        const entrRes = await fetch(FIRESTORE_BASE + '/computadoras/' + window._pvIngresoIdComp + '?' + entrMask, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(entrData)) });
+        if (!entrRes.ok) throw new Error('HTTP ' + entrRes.status + ': ' + await entrRes.text());
         document.getElementById('entregarCompModal').classList.remove('active');
         closeIngresoProfile();
         alert('📦 Equipo entregado al cliente. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
@@ -1876,15 +1900,18 @@
       try {
         const metodo = document.getElementById('finalizarCompMetodo').value;
         const notas  = document.getElementById('finalizarCompNotas').value.trim();
-        await fdb.collection('computadoras').doc(window._pvIngresoIdComp).update({
-          estado:            'Entregado',
-          totalCobrado:      total,
-          metodoPago:        metodo,
+        const finData = {
+          estado: 'Entregado',
+          totalCobrado: total,
+          metodoPago: metodo,
           reparacionRealizada: reparacion,
-          notasCierre:       notas,
-          fechaFinalizacion: firebase.firestore.FieldValue.serverTimestamp(),
-          finalizadoPor:     currentUser?.nombre || currentUser?.username || '—'
-        });
+          notasCierre: notas,
+          fechaFinalizacion: new Date().toISOString(),
+          finalizadoPor: currentUser?.nombre || currentUser?.username || '—'
+        };
+        const finMask = Object.keys(finData).map(k => 'updateMask.fieldPaths=' + k).join('&');
+        const finRes = await fetch(FIRESTORE_BASE + '/computadoras/' + window._pvIngresoIdComp + '?' + finMask, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(objToFirestore(finData)) });
+        if (!finRes.ok) throw new Error('HTTP ' + finRes.status + ': ' + await finRes.text());
         document.getElementById('finalizarCompModal').classList.remove('active');
         closeIngresoProfile();
         alert('✅ Reparación finalizada. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
