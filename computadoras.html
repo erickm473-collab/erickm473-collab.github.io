@@ -1321,7 +1321,7 @@
         }
       } catch(e) {
         resetBtn();
-        alert('❌ Error al guardar ingreso: ' + e.message);
+        showToast('❌ Error al guardar ingreso: ' + e.message, 'error');
       }
     }
 
@@ -1410,6 +1410,18 @@
       }
     }
 
+    // Toast no bloqueante — reemplaza alert() en operaciones de guardado
+    function showToast(msg, type = 'success') {
+      const colors = { success: '#16a34a', error: '#dc2626', info: '#2563eb', warning: '#d97706' };
+      const t = document.createElement('div');
+      t.style.cssText = 'position:fixed;top:22px;right:22px;padding:13px 18px;border-radius:10px;color:#fff;font-size:14px;font-weight:600;z-index:99999;max-width:360px;box-shadow:0 4px 20px rgba(0,0,0,0.35);transition:opacity .4s,transform .4s;opacity:0;transform:translateY(-8px);pointer-events:none;';
+      t.style.background = colors[type] || colors.success;
+      t.textContent = msg;
+      document.body.appendChild(t);
+      requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+      setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(-8px)'; setTimeout(() => t.remove(), 400); }, 3500);
+    }
+
     // Guardar cliente usando REST API directamente (evita problemas del write stream del SDK)
     const FIRESTORE_PROJECT = 'taller-mecanico-erick';
     const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents';
@@ -1470,7 +1482,7 @@
         closeClienteModal();
       } catch(e) {
         reset();
-        alert('❌ Error al guardar cliente: ' + e.message);
+        showToast('❌ Error al guardar cliente: ' + e.message, 'error');
       }
     }
 
@@ -1802,9 +1814,9 @@
         if (!diagRes.ok) throw new Error('HTTP ' + diagRes.status + ': ' + await diagRes.text());
         document.getElementById('diagCompModal').classList.remove('active');
         closeIngresoProfile();
-        alert('✅ Diagnóstico finalizado. El equipo aparece ahora en "Diagnóstico Finalizado".');
+        showToast('✅ Diagnóstico finalizado. Aparece en "Diagnóstico Finalizado".');
       } catch(e) {
-        alert('Error: ' + e.message);
+        showToast('❌ Error: ' + e.message, 'error');
         btn.disabled = false; btn.textContent = '🔬 Confirmar Diagnóstico';
       } finally {
         _confirmandoDiag = false;
@@ -1858,9 +1870,9 @@
         if (!entrRes.ok) throw new Error('HTTP ' + entrRes.status + ': ' + await entrRes.text());
         document.getElementById('entregarCompModal').classList.remove('active');
         closeIngresoProfile();
-        alert('📦 Equipo entregado al cliente. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
+        showToast('📦 Equipo entregado. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
       } catch(e) {
-        alert('Error al registrar entrega: ' + e.message);
+        showToast('❌ Error al registrar entrega: ' + e.message, 'error');
         btn.disabled = false; btn.textContent = '📦 Confirmar Entrega';
       } finally {
         _entregandoComp = false;
@@ -1914,9 +1926,9 @@
         if (!finRes.ok) throw new Error('HTTP ' + finRes.status + ': ' + await finRes.text());
         document.getElementById('finalizarCompModal').classList.remove('active');
         closeIngresoProfile();
-        alert('✅ Reparación finalizada. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
+        showToast('✅ Reparación finalizada. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
       } catch(e) {
-        alert('Error al finalizar: ' + e.message);
+        showToast('❌ Error al finalizar: ' + e.message, 'error');
         btn.disabled = false; btn.textContent = '🏁 Confirmar';
       } finally {
         _finalizandoComp = false;
