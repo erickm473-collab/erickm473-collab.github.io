@@ -1296,13 +1296,12 @@
               <div class="catalogo-toolbar">
                 <div class="catalogo-search">
                   <span class="catalogo-search-icon">🔍</span>
-                  <input type="text" id="cat-search" placeholder="Buscar por número, marca, modelo, motor, OEM...">
+                  <input type="text" id="cat-search" placeholder="Buscar por número, marca, OEM...">
                 </div>
                 <select class="catalogo-sort" id="cat-sort" onchange="renderCatalogo()">
                   <option value="nombre">Ordenar: Marca A-Z</option>
                   <option value="precio-asc">Precio ↑</option>
                   <option value="precio-desc">Precio ↓</option>
-                  <option value="ano-desc">Año más reciente</option>
                   <option value="estado">Estado</option>
                 </select>
               </div>
@@ -1378,21 +1377,6 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Modelo del Vehículo</label>
-                      <input type="text" id="partes-modelo" placeholder="ej: Murano">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Año del Vehículo</label>
-                      <input type="text" id="partes-ano" placeholder="ej: 2006 ó 2011-2019">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Motor</label>
-                      <input type="text" id="partes-motor" placeholder="ej: 3.5L VQ35DE">
-                    </div>
-
-                    <div class="form-group">
                       <label>Fabricante del Módulo</label>
                       <input type="text" id="partes-fabricante-modulo" placeholder="ej: Hitachi, Bosch, Denso">
                     </div>
@@ -1400,11 +1384,6 @@
                     <div class="form-group">
                       <label>Número OEM</label>
                       <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Número de Serie</label>
-                      <input type="text" id="partes-numero-serie" placeholder="ej: DB631423710">
                     </div>
 
                     <div class="form-group form-full">
@@ -1473,7 +1452,7 @@
 
               <div class="section-controls">
                 <div class="search-box">
-                  <input type="text" id="partes-search" placeholder="Buscar por número, marca, modelo...">
+                  <input type="text" id="partes-search" placeholder="Buscar por número, marca...">
                 </div>
               </div>
 
@@ -1483,8 +1462,7 @@
                     <tr>
                       <th>Foto</th>
                       <th>N° Parte</th>
-                      <th>Marca/Modelo</th>
-                      <th>Año</th>
+                      <th>Marca</th>
                       <th>Precio (L.)</th>
                       <th>Cantidad</th>
                       <th>Estante</th>
@@ -1555,21 +1533,6 @@
                     </div>
 
                     <div class="form-group">
-                      <label>Modelo del Vehículo</label>
-                      <input type="text" id="buenas-modelo" placeholder="ej: Murano">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Año del Vehículo</label>
-                      <input type="text" id="buenas-ano" placeholder="ej: 2006 ó 2011-2019">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Motor</label>
-                      <input type="text" id="buenas-motor" placeholder="ej: 3.5L VQ35DE">
-                    </div>
-
-                    <div class="form-group">
                       <label>Fabricante del Módulo</label>
                       <input type="text" id="buenas-fabricante-modulo" placeholder="ej: Hitachi, Bosch, Denso">
                     </div>
@@ -1577,11 +1540,6 @@
                     <div class="form-group">
                       <label>Número OEM</label>
                       <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C">
-                    </div>
-
-                    <div class="form-group">
-                      <label>Número de Serie</label>
-                      <input type="text" id="buenas-numero-serie" placeholder="ej: DB631423710">
                     </div>
 
                     <div class="form-group form-full">
@@ -1650,7 +1608,7 @@
 
               <div class="section-controls">
                 <div class="search-box">
-                  <input type="text" id="buenas-search" placeholder="Buscar por número, marca, modelo...">
+                  <input type="text" id="buenas-search" placeholder="Buscar por número, marca...">
                 </div>
               </div>
 
@@ -1660,8 +1618,7 @@
                     <tr>
                       <th>Foto</th>
                       <th>N° Computadora</th>
-                      <th>Marca/Modelo</th>
-                      <th>Año</th>
+                      <th>Marca</th>
                       <th>Precio (L.)</th>
                       <th>Cantidad</th>
                       <th>Estante</th>
@@ -2023,7 +1980,7 @@
       const dup = await checkDuplicateParte(numero, 'inventario_partes');
       if (dup) {
         _duplicateParteData = dup;
-        document.getElementById('dup-text-partes').textContent = `⚠️ Ya existe un artículo con este número de parte: ${dup.marca || ''} ${dup.modelo || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
+        document.getElementById('dup-text-partes').textContent = `⚠️ Ya existe un artículo con este número de parte: ${dup.marca || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
         document.getElementById('dup-warning-partes').classList.add('show');
       } else {
         document.getElementById('dup-warning-partes').classList.remove('show');
@@ -2041,7 +1998,7 @@
       const dup = await checkDuplicateParte(numero, 'inventario_buenas');
       if (dup) {
         _duplicateBuenaData = dup;
-        document.getElementById('dup-text-buenas').textContent = `⚠️ Ya existe un artículo con este número: ${dup.marca || ''} ${dup.modelo || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
+        document.getElementById('dup-text-buenas').textContent = `⚠️ Ya existe un artículo con este número: ${dup.marca || ''} (${dup.cantidad || 0} en stock). ¿Deseas actualizar la cantidad en lugar de crear uno nuevo?`;
         document.getElementById('dup-warning-buenas').classList.add('show');
       } else {
         document.getElementById('dup-warning-buenas').classList.remove('show');
@@ -2128,9 +2085,9 @@
         // Búsqueda de texto
         if (search) {
           const haystack = [
-            item.numeroParte, item.marca, item.modelo, item.motor,
+            item.numeroParte, item.marca,
             item.tipoModulo, item.fabricanteModulo, item.numeroOEM,
-            item.numeroSerie, item.descripcion, String(item.ano || '')
+            item.descripcion
           ].join(' ').toLowerCase();
           if (!haystack.includes(search)) return false;
         }
@@ -2141,9 +2098,8 @@
       items.sort((a, b) => {
         if (sort === 'precio-asc') return (a.precio || 0) - (b.precio || 0);
         if (sort === 'precio-desc') return (b.precio || 0) - (a.precio || 0);
-        if (sort === 'ano-desc') return (b.ano || 0) - (a.ano || 0);
         if (sort === 'estado') return (a.estado || '').localeCompare(b.estado || '');
-        return (`${a.marca} ${a.modelo}`).localeCompare(`${b.marca} ${b.modelo}`);
+        return (a.marca || '').localeCompare(b.marca || '');
       });
 
       const total = _catItems.length;
@@ -2174,7 +2130,7 @@
         const tipoBadge = item.tipoModulo
           ? `<span class="cat-badge cat-badge-tipo">${item.tipoModulo}</span>` : '';
         const origenBadge = `<span class="cat-badge cat-badge-origen">${item.origen === 'partes' ? '🔩' : '🖥️'}</span>`;
-        const sub = [item.motor, item.fabricanteModulo].filter(Boolean).join(' · ') || item.descripcion?.substring(0,50) || '';
+        const sub = item.fabricanteModulo || item.descripcion?.substring(0,50) || '';
 
         return `
           <div class="cat-card" onclick="window.abrirPerfilCatalogo('${item.id}','${item.origen}')">
@@ -2182,7 +2138,7 @@
               onerror="this.src='${placeholder}'">
             <div class="cat-card-body">
               <div class="cat-card-numero">${item.numeroParte}</div>
-              <div class="cat-card-nombre">${item.marca || ''} ${item.modelo || ''} ${item.ano ? item.ano : ''}</div>
+              <div class="cat-card-nombre">${item.marca || ''}</div>
               ${sub ? `<div class="cat-card-sub">${sub}</div>` : ''}
               <div class="cat-card-footer">
                 <div class="cat-card-precio">L. ${(item.precio || 0).toLocaleString('es-HN', {minimumFractionDigits:2})}</div>
@@ -2222,13 +2178,9 @@
       try {
         const numero = document.getElementById('partes-numero').value.trim();
         const marca = document.getElementById('partes-marca').value.trim();
-        const modelo = document.getElementById('partes-modelo').value.trim();
-        const ano = document.getElementById('partes-ano').value.trim() || null;
         const tipoModulo = document.getElementById('partes-tipo-modulo').value;
-        const motor = document.getElementById('partes-motor').value.trim();
         const fabricanteModulo = document.getElementById('partes-fabricante-modulo').value.trim();
         const numeroOEM = document.getElementById('partes-numero-oem').value.trim();
-        const numeroSerie = document.getElementById('partes-numero-serie').value.trim();
         const descripcion = document.getElementById('partes-descripcion').value.trim();
         const precio = parseFloat(document.getElementById('partes-precio').value) || 0;
         const cantidad = parseInt(document.getElementById('partes-cantidad').value) || 0;
@@ -2260,13 +2212,9 @@
         const data = {
           numeroParte: numero,
           marca,
-          modelo,
-          ano,
           tipoModulo,
-          motor,
           fabricanteModulo,
           numeroOEM,
-          numeroSerie,
           descripcion,
           precio,
           cantidad,
@@ -2344,12 +2292,8 @@
       document.getElementById('partes-numero').value = data.numeroParte || '';
       document.getElementById('partes-tipo-modulo').value = data.tipoModulo || '';
       document.getElementById('partes-marca').value = data.marca || '';
-      document.getElementById('partes-modelo').value = data.modelo || '';
-      document.getElementById('partes-ano').value = data.ano || '';
-      document.getElementById('partes-motor').value = data.motor || '';
       document.getElementById('partes-fabricante-modulo').value = data.fabricanteModulo || '';
       document.getElementById('partes-numero-oem').value = data.numeroOEM || '';
-      document.getElementById('partes-numero-serie').value = data.numeroSerie || '';
       document.getElementById('partes-descripcion').value = data.descripcion || '';
       document.getElementById('partes-precio').value = data.precio || '';
       document.getElementById('partes-total-cobrado').value = data.totalCobrado || '';
@@ -2399,13 +2343,9 @@
       try {
         const numero = document.getElementById('buenas-numero').value.trim();
         const marca = document.getElementById('buenas-marca').value.trim();
-        const modelo = document.getElementById('buenas-modelo').value.trim();
-        const ano = parseInt(document.getElementById('buenas-ano').value) || null;
         const tipoModulo = document.getElementById('buenas-tipo-modulo').value;
-        const motor = document.getElementById('buenas-motor').value.trim();
         const fabricanteModulo = document.getElementById('buenas-fabricante-modulo').value.trim();
         const numeroOEM = document.getElementById('buenas-numero-oem').value.trim();
-        const numeroSerie = document.getElementById('buenas-numero-serie').value.trim();
         const descripcion = document.getElementById('buenas-descripcion').value.trim();
         const precio = parseFloat(document.getElementById('buenas-precio').value) || 0;
         const cantidad = parseInt(document.getElementById('buenas-cantidad').value) || 0;
@@ -2437,13 +2377,9 @@
         const data = {
           numeroParte: numero,
           marca,
-          modelo,
-          ano,
           tipoModulo,
-          motor,
           fabricanteModulo,
           numeroOEM,
-          numeroSerie,
           descripcion,
           precio,
           cantidad,
@@ -2521,12 +2457,8 @@
       document.getElementById('buenas-numero').value = data.numeroParte || '';
       document.getElementById('buenas-tipo-modulo').value = data.tipoModulo || '';
       document.getElementById('buenas-marca').value = data.marca || '';
-      document.getElementById('buenas-modelo').value = data.modelo || '';
-      document.getElementById('buenas-ano').value = data.ano || '';
-      document.getElementById('buenas-motor').value = data.motor || '';
       document.getElementById('buenas-fabricante-modulo').value = data.fabricanteModulo || '';
       document.getElementById('buenas-numero-oem').value = data.numeroOEM || '';
-      document.getElementById('buenas-numero-serie').value = data.numeroSerie || '';
       document.getElementById('buenas-descripcion').value = data.descripcion || '';
       document.getElementById('buenas-precio').value = data.precio || '';
       document.getElementById('buenas-total-cobrado').value = data.totalCobrado || '';
@@ -2602,8 +2534,7 @@
         tr.innerHTML = `
           <td><img src="${photoSrc}" class="table-thumbnail" data-parte-id="${parte.id}"></td>
           <td>${parte.numeroParte}</td>
-          <td>${parte.marca} ${parte.modelo}${parte.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${parte.tipoModulo}</span>` : ''}</td>
-          <td>${parte.ano || '-'}</td>
+          <td>${parte.marca}${parte.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${parte.tipoModulo}</span>` : ''}</td>
           <td>L. ${(parte.precio||0).toFixed(2)}</td>
           <td>${parte.cantidad}</td>
           <td>${parte.estante}</td>
@@ -2637,18 +2568,8 @@
             <div class="profile-label">Marca del Vehículo</div>
             <div class="profile-value">${data.marca || '-'}</div>
           </div>
-          <div class="profile-field">
-            <div class="profile-label">Modelo del Vehículo</div>
-            <div class="profile-value">${data.modelo || '-'}</div>
-          </div>
-          <div class="profile-field">
-            <div class="profile-label">Año</div>
-            <div class="profile-value">${data.ano || '-'}</div>
-          </div>
-          ${data.motor ? `<div class="profile-field"><div class="profile-label">Motor</div><div class="profile-value">${data.motor}</div></div>` : ''}
           ${data.fabricanteModulo ? `<div class="profile-field"><div class="profile-label">Fabricante del Módulo</div><div class="profile-value">${data.fabricanteModulo}</div></div>` : ''}
           ${data.numeroOEM ? `<div class="profile-field"><div class="profile-label">Número OEM</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroOEM}</div></div>` : ''}
-          ${data.numeroSerie ? `<div class="profile-field"><div class="profile-label">Número de Serie</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroSerie}</div></div>` : ''}
           <div class="profile-field">
             <div class="profile-label">Precio</div>
             <div class="profile-value">L. ${(data.precio||0).toFixed(2)}</div>
@@ -2688,7 +2609,7 @@
         ` : ''}
       `;
 
-      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca} ${data.modelo||''}`;
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca||''}`;
       document.getElementById('profile-overlay').classList.add('show');
     };
 
@@ -2736,8 +2657,7 @@
         tr.innerHTML = `
           <td><img src="${photoSrc}" class="table-thumbnail" data-buena-id="${buena.id}"></td>
           <td>${buena.numeroParte}</td>
-          <td>${buena.marca} ${buena.modelo}${buena.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${buena.tipoModulo}</span>` : ''}</td>
-          <td>${buena.ano || '-'}</td>
+          <td>${buena.marca}${buena.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${buena.tipoModulo}</span>` : ''}</td>
           <td>L. ${(buena.precio||0).toFixed(2)}</td>
           <td>${buena.cantidad}</td>
           <td>${buena.estante}</td>
@@ -2771,18 +2691,8 @@
             <div class="profile-label">Marca del Vehículo</div>
             <div class="profile-value">${data.marca || '-'}</div>
           </div>
-          <div class="profile-field">
-            <div class="profile-label">Modelo del Vehículo</div>
-            <div class="profile-value">${data.modelo || '-'}</div>
-          </div>
-          <div class="profile-field">
-            <div class="profile-label">Año</div>
-            <div class="profile-value">${data.ano || '-'}</div>
-          </div>
-          ${data.motor ? `<div class="profile-field"><div class="profile-label">Motor</div><div class="profile-value">${data.motor}</div></div>` : ''}
           ${data.fabricanteModulo ? `<div class="profile-field"><div class="profile-label">Fabricante del Módulo</div><div class="profile-value">${data.fabricanteModulo}</div></div>` : ''}
           ${data.numeroOEM ? `<div class="profile-field"><div class="profile-label">Número OEM</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroOEM}</div></div>` : ''}
-          ${data.numeroSerie ? `<div class="profile-field"><div class="profile-label">Número de Serie</div><div class="profile-value" style="font-family:monospace;font-size:1rem;">${data.numeroSerie}</div></div>` : ''}
           <div class="profile-field">
             <div class="profile-label">Precio</div>
             <div class="profile-value">L. ${(data.precio||0).toFixed(2)}</div>
@@ -2822,7 +2732,7 @@
         ` : ''}
       `;
 
-      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca} ${data.modelo||''}`;
+      document.getElementById('profile-title').textContent = `${data.numeroParte} - ${data.marca||''}`;
       document.getElementById('profile-overlay').classList.add('show');
     };
 
@@ -2857,11 +2767,9 @@
       for (const row of rows) {
         const numero = row.cells[1]?.textContent || '';
         const marca = row.cells[2]?.textContent || '';
-        const modelo = row.cells[2]?.textContent || '';
 
         const matches = numero.toLowerCase().includes(query) ||
-                       marca.toLowerCase().includes(query) ||
-                       modelo.toLowerCase().includes(query);
+                       marca.toLowerCase().includes(query);
 
         row.style.display = matches ? '' : 'none';
       }
@@ -2874,11 +2782,9 @@
       for (const row of rows) {
         const numero = row.cells[1]?.textContent || '';
         const marca = row.cells[2]?.textContent || '';
-        const modelo = row.cells[2]?.textContent || '';
 
         const matches = numero.toLowerCase().includes(query) ||
-                       marca.toLowerCase().includes(query) ||
-                       modelo.toLowerCase().includes(query);
+                       marca.toLowerCase().includes(query);
 
         row.style.display = matches ? '' : 'none';
       }
@@ -3181,7 +3087,7 @@
           const total = parseFloat(i.totalCobrado)||0;
           return `<tr>
             <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:#e2e8f0;">${i.numeroParte||'—'}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:#e2e8f0;">${i.marca||''} ${i.modelo||''}</td>
+            <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;color:#e2e8f0;">${i.marca||''}</td>
             <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;"><span style="background:${i.tipo==='Buena'?'rgba(99,102,241,.2)':'rgba(245,158,11,.2)'};color:${i.tipo==='Buena'?'#a5b4fc':'#fbbf24'};padding:2px 8px;border-radius:8px;font-size:.72rem;font-weight:700;">${i.tipo}</span></td>
             <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;text-align:right;color:#94a3b8;">L. ${(parseFloat(i.precio)||0).toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
             <td style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem;text-align:right;font-weight:700;color:#16a34a;">L. ${total.toLocaleString('es-HN',{minimumFractionDigits:2})}</td>
@@ -3207,9 +3113,9 @@
         ]);
         const partes = partesSnap.docs.map(d => ({tipo:'Parte', ...d.data()}));
         const buenas = buenasSnap.docs.map(d => ({tipo:'Buena', ...d.data()}));
-        let csv = 'Tipo,Número de Parte,Marca,Modelo,Tipo Módulo,Precio Lista,Total Cobrado,Estado\n';
+        let csv = 'Tipo,Número de Parte,Marca,Tipo Módulo,Precio Lista,Total Cobrado,Estado\n';
         [...partes, ...buenas].filter(i => i.totalCobrado).forEach(i => {
-          csv += `"${i.tipo}","${i.numeroParte||''}","${i.marca||''}","${i.modelo||''}","${i.tipoModulo||''}","${i.precio||0}","${i.totalCobrado||0}","${i.estado||''}"\n`;
+          csv += `"${i.tipo}","${i.numeroParte||''}","${i.marca||''}","${i.tipoModulo||''}","${i.precio||0}","${i.totalCobrado||0}","${i.estado||''}"\n`;
         });
         const blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
         const url = URL.createObjectURL(blob);
