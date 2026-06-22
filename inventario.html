@@ -2242,30 +2242,32 @@
         }
 
         const photoPreview = document.getElementById('partes-photo-preview');
-        const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_parte');
 
-        for (const oldPhoto of oldPhotos) {
-          await fdb.collection('fotos').doc(oldPhoto.id).delete();
+        // Solo buscamos/borramos fotos viejas si es una edición (un registro nuevo no tiene)
+        if (_editingParteId) {
+          const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_parte');
+          await Promise.all(oldPhotos.map(op => fdb.collection('fotos').doc(op.id).delete()));
         }
 
+        // Agregar las nuevas fotos en paralelo
         let photoIndex = 0;
+        const nuevasFotos = [];
         for (const photoEl of photoPreview.children) {
-          const fullData = photoEl.dataset.full;
-          const thumbData = photoEl.dataset.thumb;
-
-          await fdb.collection('fotos').add({
+          nuevasFotos.push(fdb.collection('fotos').add({
             parentId: docId,
             parentType: 'inv_parte',
-            data: fullData,
-            thumbnail: thumbData,
+            data: photoEl.dataset.full,
+            thumbnail: photoEl.dataset.thumb,
             index: photoIndex++
-          });
+          }));
         }
+        await Promise.all(nuevasFotos);
 
-        alert('Parte guardada correctamente');
         resetParteForm();
-        await loadPartes();
-        await loadDashboard();
+        alert('Parte guardada correctamente');
+        // Refrescar lista y dashboard en segundo plano (no bloquea el botón Guardar)
+        loadPartes().catch(console.error);
+        loadDashboard().catch(console.error);
 
       } catch (err) {
         console.error(err);
@@ -2407,30 +2409,32 @@
         }
 
         const photoPreview = document.getElementById('buenas-photo-preview');
-        const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_buena');
 
-        for (const oldPhoto of oldPhotos) {
-          await fdb.collection('fotos').doc(oldPhoto.id).delete();
+        // Solo buscamos/borramos fotos viejas si es una edición (un registro nuevo no tiene)
+        if (_editingBuenaId) {
+          const oldPhotos = await loadPhotosFromFirestore(docId, 'inv_buena');
+          await Promise.all(oldPhotos.map(op => fdb.collection('fotos').doc(op.id).delete()));
         }
 
+        // Agregar las nuevas fotos en paralelo
         let photoIndex = 0;
+        const nuevasFotos = [];
         for (const photoEl of photoPreview.children) {
-          const fullData = photoEl.dataset.full;
-          const thumbData = photoEl.dataset.thumb;
-
-          await fdb.collection('fotos').add({
+          nuevasFotos.push(fdb.collection('fotos').add({
             parentId: docId,
             parentType: 'inv_buena',
-            data: fullData,
-            thumbnail: thumbData,
+            data: photoEl.dataset.full,
+            thumbnail: photoEl.dataset.thumb,
             index: photoIndex++
-          });
+          }));
         }
+        await Promise.all(nuevasFotos);
 
-        alert('Computadora guardada correctamente');
         resetBuenaForm();
-        await loadBuenas();
-        await loadDashboard();
+        alert('Computadora guardada correctamente');
+        // Refrescar lista y dashboard en segundo plano (no bloquea el botón Guardar)
+        loadBuenas().catch(console.error);
+        loadDashboard().catch(console.error);
 
       } catch (err) {
         console.error(err);
@@ -2533,9 +2537,14 @@
         return;
       }
 
-      for (const parte of partes) {
-        const photos = await loadPhotosFromFirestore(parte.id, 'inv_parte');
-        const photoSrc = photos.length > 0 ? (photos[0].data || photos[0].thumbnail) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
+      // Cargar todas las fotos en paralelo (evita N+1 secuencial)
+      const fotosPorParte = await Promise.all(
+        partes.map(p => loadPhotosFromFirestore(p.id, 'inv_parte').catch(() => []))
+      );
+
+      partes.forEach((parte, idx) => {
+        const photos = fotosPorParte[idx];
+        const photoSrc = photos.length > 0 ? (photos[0].thumbnail || photos[0].data) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -2555,7 +2564,7 @@
 
         tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewPartePerfil(parte.id));
         tbody.appendChild(tr);
-      }
+      });
     }
 
     window.viewPartePerfil = async (docId) => {
@@ -2657,9 +2666,14 @@
         return;
       }
 
-      for (const buena of buenas) {
-        const photos = await loadPhotosFromFirestore(buena.id, 'inv_buena');
-        const photoSrc = photos.length > 0 ? (photos[0].data || photos[0].thumbnail) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2020/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
+      // Cargar todas las fotos en paralelo (evita N+1 secuencial)
+      const fotosPorBuena = await Promise.all(
+        buenas.map(b => loadPhotosFromFirestore(b.id, 'inv_buena').catch(() => []))
+      );
+
+      buenas.forEach((buena, idx) => {
+        const photos = fotosPorBuena[idx];
+        const photoSrc = photos.length > 0 ? (photos[0].thumbnail || photos[0].data) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2020/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -2679,7 +2693,7 @@
 
         tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewBuenaPerfil(buena.id));
         tbody.appendChild(tr);
-      }
+      });
     }
 
     window.viewBuenaPerfil = async (docId) => {
