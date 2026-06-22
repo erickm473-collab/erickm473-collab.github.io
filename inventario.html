@@ -3186,12 +3186,15 @@
         return out;
       }
 
-      function rellenar(prefix, r){
+      // Guarda el último número autocompletado por prefijo (evita re-sobreescribir)
+      const lastAutofill = { partes: null, buenas: null };
+
+      function aplicar(prefix, r, incluirNumero){
         const set = (suf, val) => {
           const el = document.getElementById(prefix + '-' + suf);
           if (el && val != null && val !== '') el.value = val;
         };
-        set('numero', r.numeroParte);
+        if (incluirNumero) set('numero', r.numeroParte);
         set('tipo-modulo', r.tipoModulo);
         set('marca', r.marca);
         set('fabricante-modulo', r.fabricanteModulo);
@@ -3202,8 +3205,10 @@
         set('ubicacion', r.ubicacion);
         set('estado', r.estado);
         // La cantidad NO se sobreescribe (queda lo que el usuario tenga)
+        lastAutofill[prefix] = norm(r.numeroParte);
+        // Disparar el aviso de duplicado existente (listener en 'blur' del número)
         const numEl = document.getElementById(prefix + '-numero');
-        if (numEl) numEl.dispatchEvent(new Event('input', { bubbles: true }));
+        if (numEl) numEl.dispatchEvent(new Event('blur'));
       }
 
       function pintar(box, items, prefix){
@@ -3221,7 +3226,7 @@
           // mousedown evita perder el foco antes de procesar el click
           el.addEventListener('mousedown', ev => {
             ev.preventDefault();
-            rellenar(prefix, items[parseInt(el.dataset.i, 10)]);
+            aplicar(prefix, items[parseInt(el.dataset.i, 10)], true);
             box.style.display = 'none';
           });
         });
@@ -3239,10 +3244,32 @@
         group.appendChild(box);
 
         let records = [];
+        const esCampoNumero = (triggerSuffix === 'numero');
         input.addEventListener('focus', async () => { records = await getRecords(prefix); });
         input.addEventListener('input', async () => {
           if (!records.length) records = await getRecords(prefix);
-          pintar(box, buscar(records, input.value), prefix);
+          const val = input.value;
+          const n = norm(val);
+
+          // === AUTORRELLENO POR COINCIDENCIA EXACTA DEL NÚMERO ===
+          if (esCampoNumero) {
+            const editando = (prefix === 'buenas') ? (typeof _editingBuenaId !== 'undefined' && _editingBuenaId)
+                                                   : (typeof _editingParteId !== 'undefined' && _editingParteId);
+            if (!editando && n) {
+              const exacto = records.find(r => norm(r.numeroParte) === n);
+              if (exacto) {
+                if (lastAutofill[prefix] !== n) {
+                  aplicar(prefix, exacto, false); // no toca el número que el usuario escribió
+                }
+                box.style.display = 'none';
+                return; // ya coincide exacto: no mostrar sugerencias
+              }
+            }
+            // Si ya no coincide, libera el candado para permitir un futuro autorrelleno
+            if (lastAutofill[prefix] && lastAutofill[prefix] !== n) lastAutofill[prefix] = null;
+          }
+
+          pintar(box, buscar(records, val), prefix);
         });
         input.addEventListener('blur', () => { setTimeout(() => { box.style.display = 'none'; }, 150); });
       }
