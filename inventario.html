@@ -1298,8 +1298,6 @@
                   <span class="catalogo-search-icon">🔍</span>
                   <input type="text" id="cat-search" placeholder="Buscar por número, marca, OEM...">
                 </div>
-                <button type="button" onclick="abrirEscaner('cat-search')" title="Escanear código de barras para buscar"
-                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:10px; padding:11px 14px; font-size:.9rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
                 <select class="catalogo-sort" id="cat-sort" onchange="renderCatalogo()">
                   <option value="nombre">Ordenar: Marca A-Z</option>
                   <option value="precio-asc">Precio ↑</option>
@@ -1385,7 +1383,11 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C">
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('partes-numero-oem')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                      </div>
                     </div>
 
                     <div class="form-group form-full">
@@ -1456,8 +1458,6 @@
                 <div class="search-box">
                   <input type="text" id="partes-search" placeholder="Buscar por número, marca...">
                 </div>
-                <button type="button" onclick="abrirEscaner('partes-search')" title="Escanear código de barras para buscar"
-                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px 14px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
               </div>
 
               <div class="table-wrapper">
@@ -1543,7 +1543,11 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C">
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('buenas-numero-oem')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                      </div>
                     </div>
 
                     <div class="form-group form-full">
@@ -1614,8 +1618,6 @@
                 <div class="search-box">
                   <input type="text" id="buenas-search" placeholder="Buscar por número, marca...">
                 </div>
-                <button type="button" onclick="abrirEscaner('buenas-search')" title="Escanear código de barras para buscar"
-                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px 14px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
               </div>
 
               <div class="table-wrapper">
