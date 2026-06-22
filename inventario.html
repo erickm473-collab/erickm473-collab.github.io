@@ -1298,6 +1298,8 @@
                   <span class="catalogo-search-icon">🔍</span>
                   <input type="text" id="cat-search" placeholder="Buscar por número, marca, OEM...">
                 </div>
+                <button type="button" onclick="abrirEscaner('cat-search')" title="Escanear código de barras para buscar"
+                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:10px; padding:11px 14px; font-size:.9rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
                 <select class="catalogo-sort" id="cat-sort" onchange="renderCatalogo()">
                   <option value="nombre">Ordenar: Marca A-Z</option>
                   <option value="precio-asc">Precio ↑</option>
@@ -1383,11 +1385,7 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
-                        <button type="button" onclick="abrirEscaner('partes-numero-oem')" title="Escanear código de barras"
-                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
-                      </div>
+                      <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C">
                     </div>
 
                     <div class="form-group form-full">
@@ -1458,6 +1456,8 @@
                 <div class="search-box">
                   <input type="text" id="partes-search" placeholder="Buscar por número, marca...">
                 </div>
+                <button type="button" onclick="abrirEscaner('partes-search')" title="Escanear código de barras para buscar"
+                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px 14px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
               </div>
 
               <div class="table-wrapper">
@@ -1543,11 +1543,7 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <div style="display:flex; gap:8px; align-items:center;">
-                        <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
-                        <button type="button" onclick="abrirEscaner('buenas-numero-oem')" title="Escanear código de barras"
-                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
-                      </div>
+                      <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C">
                     </div>
 
                     <div class="form-group form-full">
@@ -1618,6 +1614,8 @@
                 <div class="search-box">
                   <input type="text" id="buenas-search" placeholder="Buscar por número, marca...">
                 </div>
+                <button type="button" onclick="abrirEscaner('buenas-search')" title="Escanear código de barras para buscar"
+                  style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:10px 14px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷 Escanear</button>
               </div>
 
               <div class="table-wrapper">
@@ -2525,6 +2523,7 @@
     async function loadPartes() {
       const snap = await fdb.collection('inventario_partes').get();
       const partes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      window._partesCache = partes;
 
       const tbody = document.getElementById('partes-table-body');
       tbody.innerHTML = '';
@@ -2648,6 +2647,7 @@
     async function loadBuenas() {
       const snap = await fdb.collection('inventario_buenas').get();
       const buenas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      window._buenasCache = buenas;
 
       const tbody = document.getElementById('buenas-table-body');
       tbody.innerHTML = '';
@@ -3132,6 +3132,127 @@
         a.click(); URL.revokeObjectURL(url);
       })();
     }
+    // ══════════════════════════════════════════════════════
+
+    // ══════════════════════════════════════════════════════
+    // AUTORELLENADO / PREDICCIÓN DESDE INVENTARIO EXISTENTE
+    // Al escribir el número de parte u OEM, sugiere registros que
+    // ya están en el inventario y autocompleta todos sus datos.
+    // ══════════════════════════════════════════════════════
+    (function(){
+      const style = document.createElement('style');
+      style.textContent = `
+        .pred-box { position:absolute; left:0; right:0; top:100%; z-index:140; background:#0f172a; border:1px solid #f59e0b; border-top:none; border-radius:0 0 10px 10px; max-height:300px; overflow-y:auto; box-shadow:0 12px 28px rgba(0,0,0,.5); margin-top:2px; }
+        .pred-hint { padding:7px 12px; font-size:.7rem; color:#fbbf24; background:#1c1408; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
+        .pred-item { padding:9px 12px; cursor:pointer; border-bottom:1px solid #1e293b; }
+        .pred-item:last-child { border-bottom:none; }
+        .pred-item:hover { background:#1e293b; }
+        .pred-num { font-weight:800; color:#fff; font-size:.92rem; word-break:break-all; }
+        .pred-tag { display:inline-block; background:rgba(99,102,241,.25); color:#a5b4fc; padding:0 7px; border-radius:10px; margin-left:6px; font-size:.72rem; font-weight:700; }
+        .pred-meta { font-size:.74rem; color:#94a3b8; margin-top:3px; }
+      `;
+      document.head.appendChild(style);
+
+      const norm = s => (s == null ? '' : String(s)).toLowerCase().trim();
+
+      async function getRecords(prefix){
+        const cacheKey = prefix === 'buenas' ? '_buenasCache' : '_partesCache';
+        const coll = prefix === 'buenas' ? 'inventario_buenas' : 'inventario_partes';
+        if (Array.isArray(window[cacheKey]) && window[cacheKey].length) return window[cacheKey];
+        try {
+          const snap = await fdb.collection(coll).get();
+          window[cacheKey] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch(e){ window[cacheKey] = window[cacheKey] || []; }
+        return window[cacheKey];
+      }
+
+      function buscar(records, q){
+        q = norm(q);
+        if (q.length < 2) return [];
+        const campos = r => [r.numeroParte, r.numeroOEM, r.marca, r.descripcion, r.fabricanteModulo];
+        const hits = records.filter(r => campos(r).some(c => norm(c).includes(q)));
+        hits.sort((a,b) => {
+          const sa = norm(a.numeroParte).startsWith(q) ? 0 : 1;
+          const sb = norm(b.numeroParte).startsWith(q) ? 0 : 1;
+          return sa - sb;
+        });
+        const seen = new Set(), out = [];
+        for (const r of hits){
+          const k = norm(r.numeroParte) + '|' + norm(r.numeroOEM);
+          if (seen.has(k)) continue;
+          seen.add(k); out.push(r);
+          if (out.length >= 8) break;
+        }
+        return out;
+      }
+
+      function rellenar(prefix, r){
+        const set = (suf, val) => {
+          const el = document.getElementById(prefix + '-' + suf);
+          if (el && val != null && val !== '') el.value = val;
+        };
+        set('numero', r.numeroParte);
+        set('tipo-modulo', r.tipoModulo);
+        set('marca', r.marca);
+        set('fabricante-modulo', r.fabricanteModulo);
+        set('numero-oem', r.numeroOEM);
+        set('descripcion', r.descripcion);
+        set('precio', r.precio);
+        set('estante', r.estante);
+        set('ubicacion', r.ubicacion);
+        set('estado', r.estado);
+        // La cantidad NO se sobreescribe (queda lo que el usuario tenga)
+        const numEl = document.getElementById(prefix + '-numero');
+        if (numEl) numEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      function pintar(box, items, prefix){
+        if (!items.length){ box.style.display = 'none'; box.innerHTML = ''; return; }
+        box.innerHTML = '<div class="pred-hint">📋 Ya en inventario — toca para autocompletar</div>' +
+          items.map((r,i) => {
+            const meta = [r.marca, r.numeroOEM, (r.precio != null && r.precio !== '' ? 'L. ' + Number(r.precio).toFixed(2) : '')].filter(Boolean).join(' · ');
+            return `<div class="pred-item" data-i="${i}">
+              <div class="pred-num">${r.numeroParte || '(sin número)'}${r.tipoModulo ? `<span class="pred-tag">${r.tipoModulo}</span>` : ''}</div>
+              ${meta ? `<div class="pred-meta">${meta}</div>` : ''}
+            </div>`;
+          }).join('');
+        box.style.display = 'block';
+        box.querySelectorAll('.pred-item').forEach(el => {
+          // mousedown evita perder el foco antes de procesar el click
+          el.addEventListener('mousedown', ev => {
+            ev.preventDefault();
+            rellenar(prefix, items[parseInt(el.dataset.i, 10)]);
+            box.style.display = 'none';
+          });
+        });
+      }
+
+      function montar(prefix, triggerSuffix){
+        const input = document.getElementById(prefix + '-' + triggerSuffix);
+        if (!input) return;
+        const group = input.closest('.form-group');
+        if (!group) return;
+        group.style.position = 'relative';
+        const box = document.createElement('div');
+        box.className = 'pred-box';
+        box.style.display = 'none';
+        group.appendChild(box);
+
+        let records = [];
+        input.addEventListener('focus', async () => { records = await getRecords(prefix); });
+        input.addEventListener('input', async () => {
+          if (!records.length) records = await getRecords(prefix);
+          pintar(box, buscar(records, input.value), prefix);
+        });
+        input.addEventListener('blur', () => { setTimeout(() => { box.style.display = 'none'; }, 150); });
+      }
+
+      function init(){
+        ['partes','buenas'].forEach(p => { montar(p, 'numero'); montar(p, 'numero-oem'); });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
     // ══════════════════════════════════════════════════════
   </script>
 
