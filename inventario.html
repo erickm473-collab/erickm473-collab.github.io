@@ -1306,6 +1306,8 @@
                   <option value="precio-desc">Precio ↓</option>
                   <option value="estado">Estado</option>
                 </select>
+                <button type="button" onclick="recargarCatalogo()" title="Recargar catálogo desde Firestore"
+                  style="background:rgba(99,102,241,.15); color:#a5b4fc; border:1px solid rgba(99,102,241,.3); border-radius:10px; padding:9px 13px; font-size:.85rem; cursor:pointer; flex-shrink:0; font-weight:600;">🔄 Recargar</button>
               </div>
 
               <div class="catalogo-filters" id="cat-filters" style="margin-bottom:16px;">
@@ -2047,8 +2049,15 @@
     let _catItems = [];           // todos los items cargados
     let _catFilter = 'all';       // filtro activo
     let _catSearch = '';          // texto de búsqueda
+    let _catLoaded = false;       // caché: ya se cargó al menos una vez
 
-    async function loadCatalogo() {
+    async function loadCatalogo(forceReload = false) {
+      // Si ya está cargado y no se fuerza recarga, solo renderizar
+      if (_catLoaded && !forceReload) {
+        renderCatalogo();
+        return;
+      }
+
       const grid = document.getElementById('cat-grid');
       grid.innerHTML = `<div class="catalogo-empty"><div class="catalogo-empty-icon" style="font-size:2rem;">⏳</div><div>Cargando catálogo...</div></div>`;
       document.getElementById('cat-stats').textContent = 'Cargando...';
@@ -2063,17 +2072,31 @@
         const buenas = buenasSnap.docs.map(d => ({ id: d.id, origen: 'buenas', ...d.data() }));
         _catItems = [...partes, ...buenas];
 
-        // Cargar primera foto de cada item
-        for (const item of _catItems) {
-          const fotos = await loadPhotosFromFirestore(item.id, item.origen === 'partes' ? 'inv_parte' : 'inv_buena');
-          item._thumb = fotos.length > 0 ? (fotos[0].data || fotos[0].thumbnail) : null;
+        // PASO 1: Mostrar artículos inmediatamente sin fotos
+        _catLoaded = true;
+        renderCatalogo();
+
+        // PASO 2: Cargar todas las fotos en PARALELO (no secuencial)
+        const thumbPromises = _catItems.map(item =>
+          loadPhotosFromFirestore(item.id, item.origen === 'partes' ? 'inv_parte' : 'inv_buena')
+            .then(fotos => { item._thumb = fotos.length > 0 ? (fotos[0].data || fotos[0].thumbnail) : null; })
+            .catch(() => { item._thumb = null; })
+        );
+
+        // Actualizar miniaturas en grupos de 10 para no saturar Firestore
+        const BATCH = 10;
+        for (let i = 0; i < thumbPromises.length; i += BATCH) {
+          await Promise.all(thumbPromises.slice(i, i + BATCH));
+          renderCatalogo(); // Actualizar grid con las fotos que ya llegaron
         }
 
-        renderCatalogo();
       } catch(e) {
         grid.innerHTML = `<div class="catalogo-empty"><div class="catalogo-empty-icon">❌</div><div>${e.message}</div></div>`;
       }
     }
+
+    // Botón para recargar catálogo forzado
+    window.recargarCatalogo = () => loadCatalogo(true);
 
     function setCatFilter(f, btn) {
       _catFilter = f;
