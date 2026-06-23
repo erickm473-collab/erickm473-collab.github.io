@@ -1844,14 +1844,61 @@
       });
     }
 
+    // ===== REST API (evita saturación del SDK de Firestore) =====
+    const FIRESTORE_PROJECT = 'taller-mecanico-erick';
+    const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/' + FIRESTORE_PROJECT + '/databases/(default)/documents';
+
+    function fromFirestoreValue(v) {
+      if (!v) return null;
+      if ('stringValue'  in v) return v.stringValue;
+      if ('integerValue' in v) return Number(v.integerValue);
+      if ('doubleValue'  in v) return v.doubleValue;
+      if ('booleanValue' in v) return v.booleanValue;
+      if ('nullValue'    in v) return null;
+      if ('arrayValue'   in v) return (v.arrayValue.values || []).map(fromFirestoreValue);
+      return null;
+    }
+
     async function loadPhotosFromFirestore(parentId, parentType) {
-      const snap = await fdb.collection('fotos')
-        .where('parentId', '==', parentId)
-        .where('parentType', '==', parentType)
-        .get();
-      const photos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      photos.sort((a, b) => (a.index || 0) - (b.index || 0));
-      return photos;
+      try {
+        const res = await fetch(FIRESTORE_BASE + ':runQuery', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId: 'fotos' }],
+              where: {
+                compositeFilter: {
+                  op: 'AND',
+                  filters: [
+                    { fieldFilter: { field: { fieldPath: 'parentId'   }, op: 'EQUAL', value: { stringValue: parentId   } } },
+                    { fieldFilter: { field: { fieldPath: 'parentType' }, op: 'EQUAL', value: { stringValue: parentType } } }
+                  ]
+                }
+              }
+            }
+          })
+        });
+        if (!res.ok) return [];
+        const results = await res.json();
+        const photos = results
+          .filter(r => r.document)
+          .map(r => {
+            const f = r.document.fields || {};
+            return {
+              id:         r.document.name.split('/').pop(),
+              parentId:   fromFirestoreValue(f.parentId)   || '',
+              parentType: fromFirestoreValue(f.parentType) || '',
+              index:      fromFirestoreValue(f.index)      || 0,
+              data:       fromFirestoreValue(f.dataUrl)    || fromFirestoreValue(f.data) || null,
+              thumbnail:  fromFirestoreValue(f.thumbnail)  || null
+            };
+          });
+        photos.sort((a, b) => (a.index || 0) - (b.index || 0));
+        return photos;
+      } catch(e) {
+        return [];
+      }
     }
 
     // ===== LOGIN =====
@@ -1929,9 +1976,18 @@
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.getElementById(tab + '-tab').classList.add('active');
 
-        // Cargar catálogo cuando se abre esa sección
+        // Cargar sección al abrirla (con caché para partes/buenas/catálogo)
         if (tab === 'catalogo') loadCatalogo();
         if (tab === 'contabilidad_inv') renderContabilidadInv();
+        // Si la tabla de partes o buenas está vacía al hacer click, recargar
+        if (tab === 'partes') {
+          const tbody = document.getElementById('partes-table-body');
+          if (!tbody || tbody.children.length === 0) loadPartes().catch(console.error);
+        }
+        if (tab === 'buenas') {
+          const tbody = document.getElementById('buenas-table-body');
+          if (!tbody || tbody.children.length === 0) loadBuenas().catch(console.error);
+        }
 
         // Cerrar sidebar en móvil al seleccionar sección
         closeSidebar();
@@ -2072,23 +2128,9 @@
         const buenas = buenasSnap.docs.map(d => ({ id: d.id, origen: 'buenas', ...d.data() }));
         _catItems = [...partes, ...buenas];
 
-        // PASO 1: Mostrar artículos inmediatamente sin fotos
+        // Mostrar artículos inmediatamente (fotos se ven al abrir el perfil de cada item)
         _catLoaded = true;
         renderCatalogo();
-
-        // PASO 2: Cargar todas las fotos en PARALELO (no secuencial)
-        const thumbPromises = _catItems.map(item =>
-          loadPhotosFromFirestore(item.id, item.origen === 'partes' ? 'inv_parte' : 'inv_buena')
-            .then(fotos => { item._thumb = fotos.length > 0 ? (fotos[0].data || fotos[0].thumbnail) : null; })
-            .catch(() => { item._thumb = null; })
-        );
-
-        // Actualizar miniaturas en grupos de 10 para no saturar Firestore
-        const BATCH = 10;
-        for (let i = 0; i < thumbPromises.length; i += BATCH) {
-          await Promise.all(thumbPromises.slice(i, i + BATCH));
-          renderCatalogo(); // Actualizar grid con las fotos que ya llegaron
-        }
 
       } catch(e) {
         grid.innerHTML = `<div class="catalogo-empty"><div class="catalogo-empty-icon">❌</div><div>${e.message}</div></div>`;
@@ -2555,6 +2597,9 @@
     }
 
     // ===== PARTES TABLE =====
+    const _THUMB_PARTE = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23334155' width='100' height='100'/%3E%3Ctext x='50' y='52' font-size='38' fill='%2364748b' text-anchor='middle' dy='.3em'%3E📦%3C/text%3E%3C/svg%3E`;
+    const _THUMB_BUENA = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23334155' width='100' height='100'/%3E%3Ctext x='50' y='52' font-size='38' fill='%2364748b' text-anchor='middle' dy='.3em'%3E💻%3C/text%3E%3C/svg%3E`;
+
     async function loadPartes() {
       const snap = await fdb.collection('inventario_partes').get();
       const partes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2568,23 +2613,16 @@
         return;
       }
 
-      // Cargar todas las fotos en paralelo (evita N+1 secuencial)
-      const fotosPorParte = await Promise.all(
-        partes.map(p => loadPhotosFromFirestore(p.id, 'inv_parte').catch(() => []))
-      );
-
-      partes.forEach((parte, idx) => {
-        const photos = fotosPorParte[idx];
-        const photoSrc = photos.length > 0 ? (photos[0].thumbnail || photos[0].data) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E📦%3C/text%3E%3C/svg%3E';
-
+      // Mostrar tabla inmediatamente sin esperar fotos (fotos solo se ven en perfil)
+      partes.forEach((parte) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><img src="${photoSrc}" class="table-thumbnail" data-parte-id="${parte.id}"></td>
+          <td><img src="${_THUMB_PARTE}" class="table-thumbnail" style="cursor:pointer;" title="Click para ver perfil"></td>
           <td>${parte.numeroParte}</td>
-          <td>${parte.marca}${parte.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${parte.tipoModulo}</span>` : ''}</td>
+          <td>${parte.marca || '-'}${parte.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${parte.tipoModulo}</span>` : ''}</td>
           <td>L. ${(parte.precio||0).toFixed(2)}</td>
           <td>${parte.cantidad}</td>
-          <td>${parte.estante}</td>
+          <td>${parte.estante || '-'}</td>
           <td><span style="color: ${parte.estado === 'Disponible' ? '#10b981' : parte.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${parte.estado}</span></td>
           <td class="table-actions">
             <button class="action-btn" onclick="window.viewPartePerfil('${parte.id}')">Ver</button>
@@ -2592,7 +2630,6 @@
             <button class="action-btn delete" onclick="window.deleteParte('${parte.id}')">Eliminar</button>
           </td>
         `;
-
         tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewPartePerfil(parte.id));
         tbody.appendChild(tr);
       });
@@ -2697,23 +2734,16 @@
         return;
       }
 
-      // Cargar todas las fotos en paralelo (evita N+1 secuencial)
-      const fotosPorBuena = await Promise.all(
-        buenas.map(b => loadPhotosFromFirestore(b.id, 'inv_buena').catch(() => []))
-      );
-
-      buenas.forEach((buena, idx) => {
-        const photos = fotosPorBuena[idx];
-        const photoSrc = photos.length > 0 ? (photos[0].thumbnail || photos[0].data) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2020/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" font-size="40" fill="%2364748b" text-anchor="middle" dy=".3em"%3E💻%3C/text%3E%3C/svg%3E';
-
+      // Mostrar tabla inmediatamente sin esperar fotos (fotos solo se ven en perfil)
+      buenas.forEach((buena) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td><img src="${photoSrc}" class="table-thumbnail" data-buena-id="${buena.id}"></td>
+          <td><img src="${_THUMB_BUENA}" class="table-thumbnail" style="cursor:pointer;" title="Click para ver perfil"></td>
           <td>${buena.numeroParte}</td>
-          <td>${buena.marca}${buena.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${buena.tipoModulo}</span>` : ''}</td>
+          <td>${buena.marca || '-'}${buena.tipoModulo ? `<br><span style="font-size:.72rem;background:rgba(99,102,241,.2);padding:1px 6px;border-radius:10px;color:#a5b4fc;">${buena.tipoModulo}</span>` : ''}</td>
           <td>L. ${(buena.precio||0).toFixed(2)}</td>
           <td>${buena.cantidad}</td>
-          <td>${buena.estante}</td>
+          <td>${buena.estante || '-'}</td>
           <td><span style="color: ${buena.estado === 'Disponible' ? '#10b981' : buena.estado === 'Agotado' ? '#ef4444' : '#f59e0b'}">${buena.estado}</span></td>
           <td class="table-actions">
             <button class="action-btn" onclick="window.viewBuenaPerfil('${buena.id}')">Ver</button>
@@ -2721,7 +2751,6 @@
             <button class="action-btn delete" onclick="window.deleteBuena('${buena.id}')">Eliminar</button>
           </td>
         `;
-
         tr.querySelector('.table-thumbnail').addEventListener('click', () => window.viewBuenaPerfil(buena.id));
         tbody.appendChild(tr);
       });
