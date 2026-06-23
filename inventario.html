@@ -1385,7 +1385,11 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C">
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="partes-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('partes-numero-oem')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                      </div>
                     </div>
 
                     <div class="form-group form-full">
@@ -1543,7 +1547,11 @@
 
                     <div class="form-group">
                       <label>Número OEM</label>
-                      <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C">
+                      <div style="display:flex; gap:8px; align-items:center;">
+                        <input type="text" id="buenas-numero-oem" placeholder="ej: 23710-CC20C" style="flex:1;">
+                        <button type="button" onclick="abrirEscaner('buenas-numero-oem')" title="Escanear código de barras"
+                          style="background:#f59e0b; color:#1c1008; border:none; border-radius:8px; padding:9px 12px; font-size:1rem; cursor:pointer; flex-shrink:0; font-weight:700;">📷</button>
+                      </div>
                     </div>
 
                     <div class="form-group form-full">
