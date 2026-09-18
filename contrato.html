@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Contrato de Ingreso — YONKER EL TRIANGULO</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; color: #1e293b; line-height: 1.6; }
@@ -225,22 +223,30 @@
 </div>
 
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyBW_BIFxoAjsppToJ-MyC8F4_LaoA6dVJM",
-    authDomain: "taller-mecanico-erick.firebaseapp.com",
-    projectId: "taller-mecanico-erick",
-    storageBucket: "taller-mecanico-erick.firebasestorage.app",
-    messagingSenderId: "925938033085",
-    appId: "1:925938033085:web:fb9f085c290067a22c32d4"
-  };
+  // ── Firestore REST (SIN SDK: el SDK usa un stream que iPhone/Safari/WebView bloquea) ──
+  const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/taller-mecanico-erick/databases/(default)/documents';
 
-  let fdb, vehiculoData, vehiculoId;
+  let vehiculoData, vehiculoId;
   let hasSigned = false; // simple flag — no pixel scanning
 
-  firebase.initializeApp(firebaseConfig);
-  fdb = firebase.firestore();
+  // ── REST: parseo de valores Firestore ─────────────────
+  function fsVal(v) {
+    if (!v) return null;
+    if (v.stringValue    !== undefined) return v.stringValue;
+    if (v.booleanValue   !== undefined) return v.booleanValue;
+    if (v.integerValue   !== undefined) return Number(v.integerValue);
+    if (v.doubleValue    !== undefined) return v.doubleValue;
+    if (v.timestampValue !== undefined) return v.timestampValue;
+    if (v.nullValue      !== undefined) return null;
+    if (v.arrayValue     !== undefined) return (v.arrayValue.values || []).map(fsVal);
+    if (v.mapValue       !== undefined) return fsFields(v.mapValue.fields || {});
+    return null;
+  }
+  function fsFields(fields) {
+    const o = {}; for (const k in fields) o[k] = fsVal(fields[k]); return o;
+  }
 
-  // ── Helpers ──────────────────────────────────────────
+  // ── Helpers UI ────────────────────────────────────────
   function show(id, flex) {
     document.getElementById(id).style.display = flex ? 'flex' : 'block';
   }
@@ -257,7 +263,7 @@
     document.getElementById('errorMsg').classList.remove('show');
   }
 
-  // ── Date ─────────────────────────────────────────────
+  // ── Fecha ─────────────────────────────────────────────
   function setContractDate() {
     const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const now = new Date();
@@ -270,12 +276,11 @@
     return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   }
 
-  // ── Canvas signature ──────────────────────────────────
+  // ── Canvas de firma (sin cambios) ─────────────────────
   function setupCanvas() {
     const canvas = document.getElementById('sigCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Size canvas to actual CSS pixels (simple, no DPI scaling to avoid freezes)
     function resizeCanvas() {
       const w = canvas.offsetWidth;
       const h = 160;
@@ -340,7 +345,7 @@
     return canvas;
   }
 
-  // ── Submit ────────────────────────────────────────────
+  // ── Enviar firma (REST) ───────────────────────────────
   async function submitSignature(canvas) {
     if (!hasSigned) {
       showError('Por favor, dibuje su firma en el cuadro de arriba');
@@ -359,26 +364,41 @@
 
     try {
       const dateStr = nowStr();
+      const isoNow  = new Date().toISOString();
       const sigImage = canvas.toDataURL('image/png');
 
-      await fdb.collection('firmas').add({
-        vehiculoId,
-        placa: vehiculoData.placa,
-        marca: vehiculoData.marca,
-        modelo: vehiculoData.modelo,
-        clienteNombre: name,
-        firma: sigImage,
-        firmado: true,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        fechaTexto: dateStr
+      // 1) Crear documento en 'firmas' (REST POST)
+      const postRes = await fetch(FIRESTORE_BASE + '/firmas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: {
+          vehiculoId:    { stringValue: vehiculoId },
+          placa:         { stringValue: vehiculoData.placa  || '' },
+          marca:         { stringValue: vehiculoData.marca  || '' },
+          modelo:        { stringValue: vehiculoData.modelo || '' },
+          clienteNombre: { stringValue: name },
+          firma:         { stringValue: sigImage },
+          firmado:       { booleanValue: true },
+          timestamp:     { timestampValue: isoNow },
+          fechaTexto:    { stringValue: dateStr }
+        }})
       });
+      if (!postRes.ok) throw new Error('HTTP ' + postRes.status + ' al guardar firma');
 
-      await fdb.collection('vehiculos').doc(vehiculoId).update({
-        firmaEstado: 'firmado',
-        firmaFecha: firebase.firestore.FieldValue.serverTimestamp()
+      // 2) Marcar el vehículo como firmado (REST PATCH con updateMask)
+      const patchUrl = FIRESTORE_BASE + '/vehiculos/' + encodeURIComponent(vehiculoId)
+        + '?updateMask.fieldPaths=firmaEstado&updateMask.fieldPaths=firmaFecha';
+      const patchRes = await fetch(patchUrl, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: {
+          firmaEstado: { stringValue: 'firmado' },
+          firmaFecha:  { timestampValue: isoNow }
+        }})
       });
+      if (!patchRes.ok) throw new Error('HTTP ' + patchRes.status + ' al actualizar vehiculo');
 
-      // Show success
+      // Éxito
       hide('mainScreen');
       document.getElementById('successMsg').textContent = `Gracias, ${name}. Su firma fue registrada exitosamente.`;
       document.getElementById('successClientName').textContent = name;
@@ -393,20 +413,30 @@
     }
   }
 
-  // ── Load page ─────────────────────────────────────────
+  // ── Cargar página (REST) ──────────────────────────────
   async function loadPage() {
     vehiculoId = new URLSearchParams(window.location.search).get('id');
     if (!vehiculoId) { hide('loadingScreen'); show('errorScreen', true); return; }
 
     try {
-      // Check already signed
-      const firmaSnap = await fdb.collection('firmas')
-        .where('vehiculoId', '==', vehiculoId)
-        .where('firmado', '==', true)
-        .limit(1).get();
+      // ¿Ya firmado? (REST runQuery)
+      const qRes = await fetch(FIRESTORE_BASE + ':runQuery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: {
+          from: [{ collectionId: 'firmas' }],
+          where: { compositeFilter: { op: 'AND', filters: [
+            { fieldFilter: { field: { fieldPath: 'vehiculoId' }, op: 'EQUAL', value: { stringValue: vehiculoId } } },
+            { fieldFilter: { field: { fieldPath: 'firmado' },    op: 'EQUAL', value: { booleanValue: true } } }
+          ]}},
+          limit: 1
+        }})
+      });
+      const qData = await qRes.json();
+      const firmaRow = Array.isArray(qData) ? qData.find(x => x && x.document) : null;
 
-      if (!firmaSnap.empty) {
-        const f = firmaSnap.docs[0].data();
+      if (firmaRow) {
+        const f = fsFields(firmaRow.document.fields || {});
         hide('loadingScreen');
         document.getElementById('alreadyMsg').textContent = `Este documento ya fue firmado el ${f.fechaTexto}`;
         document.getElementById('prevClientName').textContent = f.clienteNombre;
@@ -416,11 +446,12 @@
         return;
       }
 
-      // Load vehicle
-      const vSnap = await fdb.collection('vehiculos').doc(vehiculoId).get();
-      if (!vSnap.exists) { hide('loadingScreen'); show('errorScreen', true); return; }
+      // Cargar vehículo (REST GET)
+      const vRes = await fetch(FIRESTORE_BASE + '/vehiculos/' + encodeURIComponent(vehiculoId));
+      if (!vRes.ok) { hide('loadingScreen'); show('errorScreen', true); return; }
+      const vDoc = await vRes.json();
+      vehiculoData = fsFields(vDoc.fields || {});
 
-      vehiculoData = vSnap.data();
       document.getElementById('vPlaca').textContent  = vehiculoData.placa  || '—';
       document.getElementById('vMarca').textContent  = vehiculoData.marca  || '—';
       document.getElementById('vModelo').textContent = vehiculoData.modelo || '—';
@@ -432,7 +463,7 @@
       hide('loadingScreen');
       show('mainScreen', false);
 
-      // Setup canvas AFTER the screen is visible so offsetWidth works
+      // Canvas DESPUÉS de que la pantalla es visible (para que offsetWidth funcione)
       const canvas = setupCanvas();
 
       document.getElementById('submitBtn').addEventListener('click', () => {
