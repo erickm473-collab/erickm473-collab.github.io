@@ -1817,8 +1817,8 @@
         showToast('✅ Diagnóstico finalizado. Aparece en "Diagnóstico Finalizado".');
       } catch(e) {
         showToast('❌ Error: ' + e.message, 'error');
-        btn.disabled = false; btn.textContent = '🔬 Confirmar Diagnóstico';
       } finally {
+        btn.disabled = false; btn.textContent = '🔬 Confirmar Diagnóstico';
         _confirmandoDiag = false;
       }
     }
@@ -1873,8 +1873,8 @@
         showToast('📦 Equipo entregado. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
       } catch(e) {
         showToast('❌ Error al registrar entrega: ' + e.message, 'error');
-        btn.disabled = false; btn.textContent = '📦 Confirmar Entrega';
       } finally {
+        btn.disabled = false; btn.textContent = '📦 Confirmar Entrega';
         _entregandoComp = false;
       }
     }
@@ -1929,8 +1929,8 @@
         showToast('✅ Reparación finalizada. Total cobrado: L. ' + total.toLocaleString('es-HN', {minimumFractionDigits:2}));
       } catch(e) {
         showToast('❌ Error al finalizar: ' + e.message, 'error');
-        btn.disabled = false; btn.textContent = '🏁 Confirmar';
       } finally {
+        btn.disabled = false; btn.textContent = '🏁 Confirmar';
         _finalizandoComp = false;
       }
     }
