@@ -217,6 +217,10 @@
           <div class="nav-icon">📦</div>
           <span>Entregados</span>
         </div>
+        <div class="nav-item" onclick="switchSection('noreclamadas', this)">
+          <div class="nav-icon">🚨</div>
+          <span>No Reclamadas</span>
+        </div>
         <div class="nav-item" onclick="switchSection('clientes', this)">
           <div class="nav-icon">👥</div>
           <span>Clientes</span>
@@ -294,6 +298,23 @@
             <h2>📦 Entregados</h2>
           </div>
           <div id="entregadosGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:18px;padding:8px 0;"></div>
+        </div>
+
+        <div class="section" id="noreclamadas">
+          <div class="section-header">
+            <h2>🚨 Computadoras No Reclamadas</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <label style="font-size:13px;color:#6b7280;">Sin reclamar hace más de</label>
+              <select id="noReclamadasDias" onchange="renderNoReclamadas()" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;">
+                <option value="30">30 días</option>
+                <option value="60" selected>60 días</option>
+                <option value="90">90 días</option>
+                <option value="180">180 días</option>
+              </select>
+            </div>
+          </div>
+          <div id="noreclamadasInfo" style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem;"></div>
+          <div id="noreclamadasGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;padding:8px 0;"></div>
         </div>
 
         <div class="section" id="clientes">
@@ -872,6 +893,7 @@
         if (currentSection === 'pendientes') renderPendientes();
         if (currentSection === 'finalizados') renderFinalizados();
         if (currentSection === 'entregados') renderEntregados();
+        if (currentSection === 'noreclamadas') renderNoReclamadas();
         if (currentSection === 'dashboard') renderDashboard();
       });
       fdb.collection('clientes').onSnapshot(snap => {
@@ -891,7 +913,7 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', noreclamadas: '🚨 No Reclamadas', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
@@ -899,6 +921,7 @@
       if (section === 'pendientes') renderPendientes();
       if (section === 'finalizados') renderFinalizados();
       if (section === 'entregados') renderEntregados();
+      if (section === 'noreclamadas') renderNoReclamadas();
       if (section === 'clientes') renderClientes();
       if (section === 'usuarios') renderUsuarios();
       if (section === 'respaldos') renderBackups();
@@ -1934,6 +1957,199 @@
         _finalizandoComp = false;
       }
     }
+
+    // ══════════════════════════════════════════════════════
+    //  COMPUTADORAS NO RECLAMADAS  +  AVISO DE DESTRUCCIÓN
+    // ══════════════════════════════════════════════════════
+    function _toDate(v){
+      if(!v) return null;
+      if(typeof v === 'string') return new Date(v);
+      if(typeof v === 'number') return new Date(v);
+      if(v.seconds != null) return new Date(v.seconds*1000);
+      return null;
+    }
+
+    function renderNoReclamadas() {
+      const grid = document.getElementById('noreclamadasGrid');
+      const info = document.getElementById('noreclamadasInfo');
+      if(!grid) return;
+      const dias = parseInt(document.getElementById('noReclamadasDias')?.value || '60');
+      const ahora = Date.now();
+      const lista = ingresosData.filter(i => {
+        if (i.estado === 'Entregado') return false;
+        const d = _toDate(i.creado);
+        if (!d || isNaN(d.getTime())) return false;
+        return (ahora - d.getTime())/86400000 >= dias;
+      }).sort((a,b) => (_toDate(a.creado)?.getTime()||0) - (_toDate(b.creado)?.getTime()||0));
+
+      if (info) info.innerHTML = lista.length
+        ? `⚠️ <strong>${lista.length}</strong> equipo(s) sin reclamar hace más de <strong>${dias} días</strong>. Genera el aviso de destrucción para notificar al cliente.`
+        : `✅ No hay computadoras sin reclamar hace más de ${dias} días.`;
+
+      if (!lista.length) { grid.innerHTML = ''; return; }
+
+      let html = '';
+      lista.forEach(ing => {
+        const cliente = clientesData.find(c => c.id === ing.clienteId)?.nombre || 'Sin cliente';
+        const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
+        const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
+        const d = _toDate(ing.creado);
+        const dd = d ? Math.floor((ahora - d.getTime())/86400000) : '—';
+        const fecha = d ? d.toLocaleDateString('es-HN') : '—';
+        html += `
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);overflow:hidden;border-top:3px solid #dc2626;">
+            <div id="img-nr-${ing.id}" style="width:100%;height:130px;background:#fef2f2;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;" onclick="viewIngresoProfile('${ing.id}')">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" stroke-width="1.5"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            </div>
+            <div style="padding:12px 14px 14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:700;font-size:.95rem;color:#1f2937;">${tipo}</span>
+                <span style="background:#fee2e2;color:#b91c1c;font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🚨 ${dd} días</span>
+              </div>
+              <div style="font-size:.82rem;color:#6b7280;">🚗 ${vehiculo}</div>
+              <div style="font-size:.82rem;color:#6b7280;">🔩 ${ing.numeroParte || '—'}</div>
+              <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:4px;">👤 ${cliente}</div>
+              <div style="font-size:.75rem;color:#6b7280;margin-top:4px;">📅 Ingresó: ${fecha} · Estado: ${ing.estado || '—'}</div>
+              <button onclick="avisoDestruccion('${ing.id}')" style="width:100%;margin-top:8px;padding:9px;border:none;border-radius:8px;background:#dc2626;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📄 Aviso de destrucción</button>
+              <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:6px;padding:8px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font-size:.76rem;font-weight:600;cursor:pointer;">📋 Ver info</button>
+            </div>
+          </div>`;
+      });
+      grid.innerHTML = html;
+      lista.forEach(ing => {
+        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
+          if (!snap.empty) {
+            const foto = snap.docs[0].data();
+            const src = foto.data || foto.dataUrl || '';
+            if (src) { const el = document.getElementById('img-nr-' + ing.id); if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`; }
+          }
+        }).catch(()=>{});
+      });
+    }
+
+    function avisoDestruccion(id) {
+      const ing = ingresosData.find(i => i.id === id);
+      if (!ing) return;
+      const esc = s => String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const cli = clientesData.find(c => c.id === ing.clienteId);
+      const nombre = cli?.nombre || 'Cliente';
+      const tel = cli?.telefono || '';
+      const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || 'equipo electrónico');
+      const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '';
+      const dIng = _toDate(ing.creado);
+      const fIngreso = dIng ? dIng.toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'}) : '—';
+      const dias = dIng ? Math.floor((Date.now()-dIng.getTime())/86400000) : '—';
+      const hoy = new Date();
+      const fHoy = hoy.toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'});
+      const limite = new Date(hoy.getTime() + 15*86400000);
+      const fLimite = limite.toLocaleDateString('es-HN',{year:'numeric',month:'long',day:'numeric'});
+      const folio = Date.now().toString(36).toUpperCase();
+      const parte = ing.numeroParte ? ' (N° de parte ' + ing.numeroParte + ')' : '';
+      const vehTxt = vehiculo ? ', correspondiente al vehículo ' + vehiculo : '';
+
+      const textoWA =
+`*YONKER EL TRIANGULO*
+*AVISO DE DESTRUCCIÓN DE EQUIPO NO RECLAMADO*
+Aviso N° ${folio} — ${fHoy}
+
+Estimado/a ${nombre}:
+
+Le informamos que su equipo ${tipo}${parte}${vehTxt}, ingresado a nuestro taller el ${fIngreso}, permanece SIN RECLAMAR desde hace ${dias} días.
+
+Le hemos notificado en repetidas ocasiones para que se presente a retirar su equipo, sin obtener respuesta de su parte.
+
+Por este medio se le concede un PLAZO FINAL de 15 días calendario, hasta el ${fLimite}, para presentarse a retirar su dispositivo y cancelar el saldo pendiente.
+
+De no presentarse dentro de dicho plazo, o ante su negativa, se procederá con la DESTRUCCIÓN Y DISPOSICIÓN FINAL del dispositivo, sin responsabilidad alguna para el taller y sin derecho a reclamo posterior.
+
+Atentamente,
+YONKER EL TRIANGULO — Reparación de Computadoras`;
+
+      const html = `<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aviso de Destrucción — ${folio}</title>
+<style>
+  @page { margin: 16mm 14mm; size: A4; }
+  @media print { .no-print { display:none !important; } }
+  * { box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; background:#f3f4f6; color:#111; padding:20px; }
+  .sheet { background:#fff; max-width:680px; margin:0 auto; padding:34px 40px; box-shadow:0 2px 12px rgba(0,0,0,.12); }
+  .header { text-align:center; border-bottom:3px double #b91c1c; padding-bottom:12px; margin-bottom:6px; }
+  .header h1 { font-size:22px; margin:0; letter-spacing:1px; color:#111; }
+  .header h2 { font-size:13px; font-weight:normal; margin:4px 0 0; color:#b91c1c; text-transform:uppercase; letter-spacing:.5px; font-weight:700; }
+  .folio { text-align:right; font-size:11px; color:#666; margin:8px 0 18px; }
+  .aviso-title { text-align:center; font-size:15px; font-weight:800; color:#b91c1c; margin:10px 0 18px; text-transform:uppercase; }
+  p { line-height:1.7; font-size:13.5px; margin:0 0 12px; text-align:justify; }
+  .datos { background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:12px 16px; margin:14px 0; font-size:13px; }
+  .datos div { padding:2px 0; }
+  .datos b { color:#7f1d1d; }
+  .destaca { color:#b91c1c; font-weight:800; }
+  .plazo { border:2px solid #b91c1c; border-radius:6px; padding:12px 16px; margin:16px 0; text-align:center; font-weight:700; color:#7f1d1d; }
+  .firma-box { margin-top:46px; display:flex; justify-content:space-between; }
+  .firma { text-align:center; flex:0 0 44%; }
+  .firma .linea { border-top:1px solid #000; margin-bottom:5px; }
+  .firma .label { font-size:11px; color:#555; }
+  .footer { margin-top:26px; text-align:center; font-size:10px; color:#777; border-top:1px solid #eee; padding-top:10px; }
+  .toolbar { max-width:680px; margin:0 auto 14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+  .toolbar button { padding:11px 20px; border:none; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; color:#fff; }
+  .b-print { background:#7c3aed; } .b-wa { background:#16a34a; } .b-close { background:#6b7280; }
+</style></head>
+<body>
+<div class="toolbar no-print">
+  <button class="b-print" onclick="window.print()">🖨️ Imprimir</button>
+  <button class="b-wa" onclick="copiarWA()">📋 Copiar para WhatsApp</button>
+  <button class="b-close" onclick="window.close()">✖ Cerrar</button>
+</div>
+<div class="sheet">
+  <div class="header">
+    <h1>⚡ YONKER EL TRIANGULO</h1>
+    <h2>Reparación de Computadoras Automotrices</h2>
+  </div>
+  <div class="folio">Aviso N° ${folio}<br>Fecha: ${fHoy}</div>
+  <div class="aviso-title">Aviso de destrucción de equipo no reclamado</div>
+
+  <p>Estimado/a <b>${esc(nombre)}</b>${tel ? ' (Tel. ' + esc(tel) + ')' : ''}:</p>
+
+  <p>Por medio de la presente se le notifica formalmente que el siguiente equipo, entregado bajo su responsabilidad a nuestro taller, permanece <span class="destaca">SIN RECLAMAR</span>:</p>
+
+  <div class="datos">
+    <div><b>Equipo:</b> ${esc(tipo)}${ing.numeroParte ? ' — N° de parte ' + esc(ing.numeroParte) : ''}</div>
+    ${vehiculo ? `<div><b>Vehículo:</b> ${esc(vehiculo)}</div>` : ''}
+    <div><b>Fecha de ingreso:</b> ${fIngreso}</div>
+    <div><b>Tiempo sin reclamar:</b> ${dias} días</div>
+  </div>
+
+  <p>Le hemos notificado en <span class="destaca">repetidas ocasiones</span> para que se presente a retirar su equipo y cancelar el saldo pendiente, sin haber obtenido respuesta de su parte.</p>
+
+  <div class="plazo">Se le concede un PLAZO FINAL de 15 días calendario,<br>hasta el <span class="destaca">${fLimite}</span>,<br>para retirar su dispositivo.</div>
+
+  <p>Transcurrido dicho plazo sin que usted se presente, o ante su negativa a retirarlo, <span class="destaca">se procederá con la DESTRUCCIÓN Y DISPOSICIÓN FINAL del dispositivo</span>, sin responsabilidad alguna para el taller y sin derecho a reclamo posterior por parte del cliente, quien con la presente queda debidamente enterado y notificado.</p>
+
+  <div class="firma-box">
+    <div class="firma"><div class="linea"></div><div class="label">YONKER EL TRIANGULO</div></div>
+    <div class="firma"><div class="linea"></div><div class="label">Recibido / Notificado — ${esc(nombre)}</div></div>
+  </div>
+
+  <div class="footer">Este documento constituye notificación formal de destrucción de equipo no reclamado.</div>
+</div>
+<textarea id="waText" style="position:absolute;left:-9999px;top:-9999px;"></textarea>
+<script>
+  var WA = ${JSON.stringify(textoWA)};
+  document.getElementById('waText').value = WA;
+  function copiarWA(){
+    var done = function(){ alert('✅ Texto copiado. Ábrelo en WhatsApp y pégalo.'); };
+    var fb = function(){ var a=document.getElementById('waText'); a.style.left='0'; a.style.top='0'; a.style.position='static'; a.style.width='100%'; a.style.height='160px'; a.focus(); a.select(); try{document.execCommand('copy'); done();}catch(e){ alert('Selecciona y copia el texto manualmente.'); } };
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(WA).then(done, fb); } else { fb(); }
+  }
+<\/script>
+</body></html>`;
+
+      const win = window.open('', '_blank', 'width=760,height=980,left=80,top=40');
+      if (!win) { alert('El navegador bloqueó la ventana emergente. Permite las ventanas emergentes de este sitio e intenta de nuevo.'); return; }
+      win.document.write(html);
+      win.document.close();
+    }
+
 
     function imprimirReciboById(id) {
       const ing = ingresosData.find(i => i.id === id);
