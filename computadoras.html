@@ -205,6 +205,10 @@
           <div class="nav-icon">💻</div>
           <span>Ingresos</span>
         </div>
+        <div class="nav-item" onclick="switchSection('buscarparte', this)">
+          <div class="nav-icon">🔍</div>
+          <span>Buscar N° Parte</span>
+        </div>
         <div class="nav-item" onclick="switchSection('pendientes', this)">
           <div class="nav-icon">⏳</div>
           <span>Trabajos Pendientes</span>
@@ -277,6 +281,23 @@
             <button onclick="openIngresoModal()">➕ Nuevo Ingreso</button>
           </div>
           <div id="ingresosGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:18px; padding:8px 0;"></div>
+        </div>
+
+        <div class="section" id="buscarparte">
+          <div class="section-header">
+            <h2>🔍 Buscar por Número de Parte</h2>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+            <input type="search" id="buscarParteInput" oninput="renderBuscarParte()" placeholder="Escriba el número de parte (ej. 23710 o MEC32-040)" autocomplete="off" style="flex:1 1 260px;min-width:0;padding:12px 14px;border:2px solid #c4b5fd;border-radius:10px;font-size:15px;">
+            <select id="buscarParteEstado" onchange="renderBuscarParte()" style="padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px;">
+              <option value="">Todos los estados</option>
+              <option value="activos">Pendientes / en trabajo</option>
+              <option value="Diagnóstico Finalizado">Diagnóstico Finalizado</option>
+              <option value="Entregado">Entregados</option>
+            </select>
+          </div>
+          <div id="buscarParteInfo" style="font-size:.85rem;color:#6b7280;margin-bottom:12px;"></div>
+          <div id="buscarParteGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:18px;padding:8px 0;"></div>
         </div>
 
         <div class="section" id="pendientes">
@@ -894,6 +915,7 @@
         if (currentSection === 'finalizados') renderFinalizados();
         if (currentSection === 'entregados') renderEntregados();
         if (currentSection === 'noreclamadas') renderNoReclamadas();
+        if (currentSection === 'buscarparte') renderBuscarParte();
         if (currentSection === 'dashboard') renderDashboard();
       });
       fdb.collection('clientes').onSnapshot(snap => {
@@ -913,7 +935,7 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', noreclamadas: '🚨 No Reclamadas', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', noreclamadas: '🚨 No Reclamadas', buscarparte: '🔍 Buscar N° Parte', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
@@ -922,6 +944,7 @@
       if (section === 'finalizados') renderFinalizados();
       if (section === 'entregados') renderEntregados();
       if (section === 'noreclamadas') renderNoReclamadas();
+      if (section === 'buscarparte') { renderBuscarParte(); setTimeout(() => document.getElementById('buscarParteInput')?.focus(), 50); }
       if (section === 'clientes') renderClientes();
       if (section === 'usuarios') renderUsuarios();
       if (section === 'respaldos') renderBackups();
@@ -1967,6 +1990,61 @@
       if(typeof v === 'number') return new Date(v);
       if(v.seconds != null) return new Date(v.seconds*1000);
       return null;
+    }
+
+    // Normaliza un número de parte: sin espacios, guiones, puntos ni barras, en mayúsculas
+    function _normParte(v) {
+      return String(v || '').toUpperCase().replace(/[\s\-_.\/]/g, '');
+    }
+    function _escHtml(v) {
+      return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function renderBuscarParte() {
+      const grid = document.getElementById('buscarParteGrid');
+      const info = document.getElementById('buscarParteInfo');
+      const texto = document.getElementById('buscarParteInput').value.trim();
+      const q = _normParte(texto);
+      const filtroEstado = document.getElementById('buscarParteEstado').value;
+      if (!q) {
+        info.textContent = 'Busca entre los ' + ingresosData.length + ' ingresos registrados (todos los estados). No importan guiones, espacios ni mayúsculas.';
+        grid.innerHTML = '';
+        return;
+      }
+      let lista = ingresosData.filter(i => _normParte(i.numeroParte).includes(q));
+      if (filtroEstado === 'activos') lista = lista.filter(i => i.estado !== 'Entregado' && i.estado !== 'Diagnóstico Finalizado');
+      else if (filtroEstado) lista = lista.filter(i => i.estado === filtroEstado);
+      // Coincidencia exacta primero, luego los más recientes
+      lista.sort((a, b) => {
+        const ea = _normParte(a.numeroParte) === q ? 0 : 1, eb = _normParte(b.numeroParte) === q ? 0 : 1;
+        if (ea !== eb) return ea - eb;
+        return (_toDate(b.creado) || 0) - (_toDate(a.creado) || 0);
+      });
+      info.innerHTML = lista.length
+        ? '<strong>' + lista.length + '</strong> resultado' + (lista.length === 1 ? '' : 's') + ' para "' + _escHtml(texto) + '"'
+        : 'No se encontró ningún ingreso con ese número de parte.';
+      const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Diagnóstico Finalizado':'#d97706','Entregado':'#6b7280'};
+      grid.innerHTML = lista.map(ing => {
+        const cliente = clientesData.find(c => c.id === ing.clienteId);
+        const tipo = ing.tipoModulo === 'Otra' ? (ing.tipoOtra || 'Otra') : (ing.tipoModulo || '—');
+        const vehiculo = [ing.marcaVehiculo, ing.modeloVehiculo, ing.anoVehiculo].filter(Boolean).join(' ') || '—';
+        const color = estadoColor[ing.estado] || '#6b7280';
+        const f = _toDate(ing.creado);
+        const fecha = f && !isNaN(f) ? f.toLocaleDateString('es-HN') : '—';
+        return `
+          <div style="background:#fff;border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.08);padding:12px 14px 14px;border-top:3px solid ${color};">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:6px;">
+              <span style="font-weight:700;font-size:.95rem;color:#1f2937;">${_escHtml(tipo)}</span>
+              <span style="background:${color}20;color:${color};font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;">${_escHtml(ing.estado || '—')}</span>
+            </div>
+            <div style="font-size:.9rem;color:#5b21b6;font-weight:700;margin-bottom:4px;word-break:break-all;">🔩 ${_escHtml(ing.numeroParte || '—')}</div>
+            <div style="font-size:.82rem;color:#6b7280;margin-bottom:2px;">🚗 ${_escHtml(vehiculo)}</div>
+            <div style="font-size:.82rem;color:#374151;font-weight:600;margin-top:4px;">👤 ${_escHtml(cliente?.nombre || 'Sin cliente')}${cliente?.telefono ? ' · 📞 ' + _escHtml(cliente.telefono) : ''}</div>
+            ${ing.descripcionFalla ? `<div style="font-size:.78rem;color:#6b7280;margin-top:4px;">⚠️ ${_escHtml(ing.descripcionFalla.length > 60 ? ing.descripcionFalla.slice(0,60) + '…' : ing.descripcionFalla)}</div>` : ''}
+            <div style="font-size:.75rem;color:#6b7280;margin-top:6px;padding-top:6px;border-top:1px dashed #e5e7eb;">📅 Ingresó: ${fecha}</div>
+            <button onclick="viewIngresoProfile('${ing.id}')" style="width:100%;margin-top:8px;padding:8px;border:none;border-radius:8px;background:#7c3aed;color:#fff;font-size:.78rem;font-weight:700;cursor:pointer;">📋 Ver Info</button>
+          </div>`;
+      }).join('');
     }
 
     function renderNoReclamadas() {
