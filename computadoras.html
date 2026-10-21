@@ -207,7 +207,7 @@
         </div>
         <div class="nav-item" onclick="switchSection('buscarparte', this)">
           <div class="nav-icon">🔍</div>
-          <span>Buscar N° Parte</span>
+          <span>Buscar</span>
         </div>
         <div class="nav-item" onclick="switchSection('pendientes', this)">
           <div class="nav-icon">⏳</div>
@@ -285,10 +285,10 @@
 
         <div class="section" id="buscarparte">
           <div class="section-header">
-            <h2>🔍 Buscar por Número de Parte</h2>
+            <h2>🔍 Buscar por N° de Parte, Marca o Modelo</h2>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <input type="search" id="buscarParteInput" oninput="renderBuscarParte()" placeholder="Escriba el número de parte (ej. 23710 o MEC32-040)" autocomplete="off" style="flex:1 1 260px;min-width:0;padding:12px 14px;border:2px solid #c4b5fd;border-radius:10px;font-size:15px;">
+            <input type="search" id="buscarParteInput" oninput="renderBuscarParte()" placeholder="N° de parte, marca o modelo (ej. MEC32-040, Nissan Sentra, Toyota 2015)" autocomplete="off" style="flex:1 1 260px;min-width:0;padding:12px 14px;border:2px solid #c4b5fd;border-radius:10px;font-size:15px;">
             <select id="buscarParteEstado" onchange="renderBuscarParte()" style="padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px;">
               <option value="">Todos los estados</option>
               <option value="activos">Pendientes / en trabajo</option>
@@ -935,7 +935,7 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(section).classList.add('active');
       currentSection = section;
-      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', noreclamadas: '🚨 No Reclamadas', buscarparte: '🔍 Buscar N° Parte', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
+      const titles = {dashboard: 'Dashboard', ingresos: 'Ingresos', pendientes: '⏳ Trabajos Pendientes', finalizados: '🔧 Diagnóstico Finalizado', entregados: '📦 Entregados', noreclamadas: '🚨 No Reclamadas', buscarparte: '🔍 Buscar', clientes: 'Clientes', usuarios: 'Usuarios', respaldos: '💾 Respaldos', contabilidad_comp: '💵 Contabilidad'};
       document.getElementById('topbarTitle').textContent = titles[section] || section;
       closeSidebar();
       if (section === 'dashboard') renderDashboard();
@@ -1996,6 +1996,10 @@
     function _normParte(v) {
       return String(v || '').toUpperCase().replace(/[\s\-_.\/]/g, '');
     }
+    // Texto del vehículo en minúsculas y sin acentos, para comparar marca/modelo/año
+    function _normTexto(v) {
+      return String(v || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
     function _escHtml(v) {
       return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     }
@@ -2005,13 +2009,20 @@
       const info = document.getElementById('buscarParteInfo');
       const texto = document.getElementById('buscarParteInput').value.trim();
       const q = _normParte(texto);
+      // Cada palabra debe aparecer en el N° de parte o en marca/modelo/año del vehículo
+      const palabras = _normTexto(texto).split(/\s+/).filter(Boolean);
       const filtroEstado = document.getElementById('buscarParteEstado').value;
       if (!q) {
-        info.textContent = 'Busca entre los ' + ingresosData.length + ' ingresos registrados (todos los estados). No importan guiones, espacios ni mayúsculas.';
+        info.textContent = 'Busca entre los ' + ingresosData.length + ' ingresos registrados (todos los estados) por N° de parte, marca, modelo o año del carro. No importan guiones, espacios, acentos ni mayúsculas.';
         grid.innerHTML = '';
         return;
       }
-      let lista = ingresosData.filter(i => _normParte(i.numeroParte).includes(q));
+      let lista = ingresosData.filter(i => {
+        const parte = _normParte(i.numeroParte);
+        if (parte.includes(q)) return true;
+        const veh = _normTexto([i.marcaVehiculo, i.modeloVehiculo, i.anoVehiculo].filter(Boolean).join(' '));
+        return palabras.every(w => veh.includes(w) || parte.includes(_normParte(w)));
+      });
       if (filtroEstado === 'activos') lista = lista.filter(i => i.estado !== 'Entregado' && i.estado !== 'Diagnóstico Finalizado');
       else if (filtroEstado) lista = lista.filter(i => i.estado === filtroEstado);
       // Coincidencia exacta primero, luego los más recientes
@@ -2022,7 +2033,7 @@
       });
       info.innerHTML = lista.length
         ? '<strong>' + lista.length + '</strong> resultado' + (lista.length === 1 ? '' : 's') + ' para "' + _escHtml(texto) + '"'
-        : 'No se encontró ningún ingreso con ese número de parte.';
+        : 'No se encontró ningún ingreso con ese N° de parte, marca o modelo.';
       const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Diagnóstico Finalizado':'#d97706','Entregado':'#6b7280'};
       grid.innerHTML = lista.map(ing => {
         const cliente = clientesData.find(c => c.id === ing.clienteId);
