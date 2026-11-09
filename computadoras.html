@@ -285,10 +285,10 @@
 
         <div class="section" id="buscarparte">
           <div class="section-header">
-            <h2>🔍 Buscar por N° de Parte, Marca o Modelo</h2>
+            <h2>🔍 Buscar por Cliente, N° de Parte, Marca o Modelo</h2>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-            <input type="search" id="buscarParteInput" oninput="renderBuscarParte()" placeholder="N° de parte, marca o modelo (ej. MEC32-040, Nissan Sentra, Toyota 2015)" autocomplete="off" style="flex:1 1 260px;min-width:0;padding:12px 14px;border:2px solid #c4b5fd;border-radius:10px;font-size:15px;">
+            <input type="search" id="buscarParteInput" oninput="renderBuscarParte()" placeholder="Nombre del cliente, N° de parte, marca o modelo (ej. Juan Pérez, MEC32-040, Nissan Sentra)" autocomplete="off" style="flex:1 1 260px;min-width:0;padding:12px 14px;border:2px solid #c4b5fd;border-radius:10px;font-size:15px;">
             <select id="buscarParteEstado" onchange="renderBuscarParte()" style="padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px;">
               <option value="">Todos los estados</option>
               <option value="activos">Pendientes / en trabajo</option>
@@ -2009,18 +2009,20 @@
       const info = document.getElementById('buscarParteInfo');
       const texto = document.getElementById('buscarParteInput').value.trim();
       const q = _normParte(texto);
-      // Cada palabra debe aparecer en el N° de parte o en marca/modelo/año del vehículo
+      // Cada palabra debe aparecer en el N° de parte, en marca/modelo/año del vehículo o en el nombre/teléfono del cliente
       const palabras = _normTexto(texto).split(/\s+/).filter(Boolean);
       const filtroEstado = document.getElementById('buscarParteEstado').value;
       if (!q) {
-        info.textContent = 'Busca entre los ' + ingresosData.length + ' ingresos registrados (todos los estados) por N° de parte, marca, modelo o año del carro. No importan guiones, espacios, acentos ni mayúsculas.';
+        info.textContent = 'Busca entre los ' + ingresosData.length + ' ingresos registrados (todos los estados) por nombre del cliente, N° de parte, marca, modelo o año del carro. No importan guiones, espacios, acentos ni mayúsculas.';
         grid.innerHTML = '';
         return;
       }
       let lista = ingresosData.filter(i => {
         const parte = _normParte(i.numeroParte);
         if (parte.includes(q)) return true;
-        const veh = _normTexto([i.marcaVehiculo, i.modeloVehiculo, i.anoVehiculo].filter(Boolean).join(' '));
+        const cli = clientesData.find(c => c.id === i.clienteId);
+        const veh = _normTexto([i.marcaVehiculo, i.modeloVehiculo, i.anoVehiculo,
+          cli?.nombre, i.cliente, i.nombreCliente, cli?.telefono, i.telefono].filter(Boolean).join(' '));
         return palabras.every(w => veh.includes(w) || parte.includes(_normParte(w)));
       });
       if (filtroEstado === 'activos') lista = lista.filter(i => i.estado !== 'Entregado' && i.estado !== 'Diagnóstico Finalizado');
@@ -2033,7 +2035,7 @@
       });
       info.innerHTML = lista.length
         ? '<strong>' + lista.length + '</strong> resultado' + (lista.length === 1 ? '' : 's') + ' para "' + _escHtml(texto) + '"'
-        : 'No se encontró ningún ingreso con ese N° de parte, marca o modelo.';
+        : 'No se encontró ningún ingreso con ese cliente, N° de parte, marca o modelo.';
       const estadoColor = {'En diagnóstico':'#f59e0b','En reparación':'#3b82f6','Listo':'#16a34a','Diagnóstico Finalizado':'#d97706','Entregado':'#6b7280'};
       grid.innerHTML = lista.map(ing => {
         const cliente = clientesData.find(c => c.id === ing.clienteId);
