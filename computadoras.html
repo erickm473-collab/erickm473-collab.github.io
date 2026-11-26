@@ -1052,18 +1052,7 @@
           </div>`;
       });
       grid.innerHTML = html;
-      finalizados.forEach(ing => {
-        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
-          if (!snap.empty) {
-            const foto = snap.docs[0].data();
-            const src = foto.data || foto.dataUrl || '';
-            if (src) {
-              const el = document.getElementById('img-fin-' + ing.id);
-              if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
-            }
-          }
-        }).catch(() => {});
-      });
+      lazyThumbs(finalizados, 'img-fin-');
     }
 
     function renderEntregados() {
@@ -1103,18 +1092,7 @@
           </div>`;
       });
       grid.innerHTML = html;
-      entregados.forEach(ing => {
-        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
-          if (!snap.empty) {
-            const foto = snap.docs[0].data();
-            const src = foto.data || foto.dataUrl || '';
-            if (src) {
-              const el = document.getElementById('img-ent-' + ing.id);
-              if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
-            }
-          }
-        }).catch(() => {});
-      });
+      lazyThumbs(entregados, 'img-ent-');
     }
 
     function renderIngresosCards(lista) {
@@ -1153,17 +1131,7 @@
     }
 
     function loadFotosGrid(lista) {
-      lista.forEach(ing => {
-        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
-          if (!snap.empty) {
-            const src = snap.docs[0].data().data || snap.docs[0].data().dataUrl || '';
-            if (src) {
-              const el = document.getElementById('img-' + ing.id);
-              if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`;
-            }
-          }
-        }).catch(() => {});
-      });
+      lazyThumbs(lista, 'img-');
     }
 
     function renderClientes() {
@@ -1403,6 +1371,7 @@
     }
 
     async function uploadIngresoPhotos(parentId) {
+      thumbCache.delete(parentId);
       for (let i = 0; i < ingresoPhotos.length; i++) {
         const dataUrl = ingresoPhotos[i];
         const fotoData = { parentId, parentType: 'computadora', index: i, dataUrl, creado: new Date().toISOString() };
@@ -1411,9 +1380,83 @@
       ingresoPhotos = [];
     }
 
+    // ── Fotos por REST (sin SDK: no se hacen fila detrás de otras consultas) ──
+    async function fetchFotosREST(parentId, limit) {
+      const q = { structuredQuery: {
+        from: [{ collectionId: 'fotos' }],
+        where: { compositeFilter: { op: 'AND', filters: [
+          { fieldFilter: { field: { fieldPath: 'parentId' },   op: 'EQUAL', value: { stringValue: parentId } } },
+          { fieldFilter: { field: { fieldPath: 'parentType' }, op: 'EQUAL', value: { stringValue: 'computadora' } } }
+        ]}}
+      }};
+      if (limit) q.structuredQuery.limit = limit;
+      const res = await fetch(FIRESTORE_BASE + ':runQuery', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(q) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const rows = await res.json();
+      return rows.filter(r => r.document).map(r => {
+        const f = r.document.fields || {};
+        const sv = k => (f[k] && f[k].stringValue) || '';
+        let idx = 0;
+        if (f.index) idx = Number(f.index.integerValue != null ? f.index.integerValue : (f.index.doubleValue || 0));
+        return { dataUrl: sv('dataUrl') || sv('data'), index: idx };
+      });
+    }
+
+    // Miniaturas: se cargan solo cuando la tarjeta aparece en pantalla, de 3 en 3,
+    // se reducen a ~240px y se guardan en memoria para no volver a descargarlas.
+    const thumbCache = new Map();      // id -> dataURL chico ('' = sin foto)
+    const thumbQueue = []; let thumbActivas = 0;
+    function _ponerThumb(el, src) { if (el && src) el.innerHTML = '<img src="' + src + '" style="width:100%;height:100%;object-fit:cover;">'; }
+    function _reducirImg(src) {
+      return new Promise(resolve => {
+        const im = new Image();
+        im.onload = () => {
+          try {
+            const w = 240, h = Math.round(im.height * w / im.width) || 240;
+            const c = document.createElement('canvas'); c.width = w; c.height = h;
+            c.getContext('2d').drawImage(im, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', 0.7));
+          } catch (e) { resolve(src); }
+        };
+        im.onerror = () => resolve('');
+        im.src = src;
+      });
+    }
+    function _siguienteThumb() {
+      while (thumbActivas < 3 && thumbQueue.length) {
+        const item = thumbQueue.shift();
+        const id = item.id, prefijo = item.prefijo;
+        if (thumbCache.has(id)) { _ponerThumb(document.getElementById(prefijo + id), thumbCache.get(id)); continue; }
+        thumbActivas++;
+        fetchFotosREST(id, 1)
+          .then(f => (f.length && f[0].dataUrl) ? _reducirImg(f[0].dataUrl) : '')
+          .then(small => { thumbCache.set(id, small); _ponerThumb(document.getElementById(prefijo + id), small); })
+          .catch(() => {})
+          .finally(() => { thumbActivas--; _siguienteThumb(); });
+      }
+    }
+    const thumbObserver = ('IntersectionObserver' in window) ? new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        thumbObserver.unobserve(e.target);
+        thumbQueue.push({ id: e.target.dataset.thumbId, prefijo: e.target.dataset.thumbPrefijo });
+      });
+      _siguienteThumb();
+    }, { rootMargin: '300px' }) : null;
+    function lazyThumbs(lista, prefijo) {
+      lista.forEach(ing => {
+        const el = document.getElementById(prefijo + ing.id);
+        if (!el) return;
+        if (thumbCache.has(ing.id)) { _ponerThumb(el, thumbCache.get(ing.id)); return; }
+        el.dataset.thumbId = ing.id; el.dataset.thumbPrefijo = prefijo;
+        if (thumbObserver) thumbObserver.observe(el);
+        else thumbQueue.push({ id: ing.id, prefijo: prefijo });
+      });
+      if (!thumbObserver) _siguienteThumb();
+    }
+
     async function loadPhotosFromFirestore(parentId) {
-      const snap = await fdb.collection('fotos').where('parentId', '==', parentId).where('parentType', '==', 'computadora').get();
-      const fotos = snap.docs.map(d => d.data());
+      const fotos = await fetchFotosREST(parentId);
       fotos.sort((a, b) => (a.index || 0) - (b.index || 0));
       ingresoPhotos = fotos.map(f => f.dataUrl);
       renderPhotoGrid();
@@ -1629,8 +1672,8 @@
       const ing = ingresosData.find(i => i.id === id);
       if (!ing) return;
       const esAdminComp = currentUser?.role === 'admin' || currentUser?.role === 'gerente';
-      loadPhotosFromFirestore(id).then(() => {
-        lightboxImages = ingresoPhotos.slice();
+      {
+        ingresoPhotos = []; lightboxImages = [];
         const cliente = clientesData.find(c => c.id === ing.clienteId);
         const tipo = ing.tipoModulo === 'Otra' ? ing.tipoOtra : ing.tipoModulo;
         let fotosHtml = '';
@@ -1641,6 +1684,7 @@
           });
           fotosHtml += '</div>';
         }
+        fotosHtml = '<div id="pvFotosComp" style="color:#94a3b8;font-size:.85rem;">⏳ Cargando fotos...</div>';
         const html = `
           <div class="profile-card">
             <div class="profile-card-title">Información del Ingreso</div>
@@ -1753,7 +1797,7 @@
               <div class="profile-value">${cliente?.direccion || '-'}</div>
             </div>
           </div>
-          ${fotosHtml ? `<div class="profile-card"><div class="profile-card-title">Fotos</div>${fotosHtml}</div>` : ''}
+          <div class="profile-card" id="pvFotosCardComp"><div class="profile-card-title">Fotos</div>${fotosHtml}</div>
           ${ing.firmaAceptada ? `
           <div class="profile-card" style="border:2px solid #16a34a;">
             <div class="profile-card-title" style="color:#16a34a;">✅ Términos Aceptados y Firmados</div>
@@ -1796,6 +1840,20 @@
           if (bEntr) bEntr.style.display = 'none';
           if (bFin)  bFin.style.display  = 'none';
         }
+      }
+      // Fotos en segundo plano: la ficha ya está abierta
+      loadPhotosFromFirestore(id).then(() => {
+        if (window._pvIngresoIdComp !== id) return;   // ya abrieron otra ficha
+        lightboxImages = ingresoPhotos.slice();
+        const cont = document.getElementById('pvFotosComp');
+        if (!cont) return;
+        if (!ingresoPhotos.length) { document.getElementById('pvFotosCardComp').style.display = 'none'; return; }
+        cont.removeAttribute('style');
+        cont.className = 'profile-gallery';
+        cont.innerHTML = ingresoPhotos.map((img, idx) => '<div class="gallery-item" onclick="viewLightboxProfile(' + idx + ')"><img src="' + img + '" alt="Foto"></div>').join('');
+      }).catch(() => {
+        const cont = document.getElementById('pvFotosComp');
+        if (cont && window._pvIngresoIdComp === id) cont.textContent = '❌ No se pudieron cargar las fotos';
       });
     }
 
@@ -2107,15 +2165,7 @@
           </div>`;
       });
       grid.innerHTML = html;
-      lista.forEach(ing => {
-        fdb.collection('fotos').where('parentId','==',ing.id).where('parentType','==','computadora').limit(1).get().then(snap => {
-          if (!snap.empty) {
-            const foto = snap.docs[0].data();
-            const src = foto.data || foto.dataUrl || '';
-            if (src) { const el = document.getElementById('img-nr-' + ing.id); if (el) el.innerHTML = `<img src="${src}" style="width:100%;height:100%;object-fit:cover;">`; }
-          }
-        }).catch(()=>{});
-      });
+      lazyThumbs(lista, 'img-nr-');
     }
 
     function avisoDestruccion(id) {

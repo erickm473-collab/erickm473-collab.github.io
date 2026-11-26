@@ -176,7 +176,14 @@
       if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando...'; }
 
       try {
-        const sigData = sigCanvas.toDataURL('image/png');
+        // Firma reducida (max. 500px de ancho, fondo blanco) para que pese poco
+        const escala = Math.min(1, 500 / sigCanvas.width);
+        const sc = document.createElement('canvas');
+        sc.width = Math.round(sigCanvas.width * escala); sc.height = Math.round(sigCanvas.height * escala);
+        const sx = sc.getContext('2d');
+        sx.fillStyle = '#fff'; sx.fillRect(0, 0, sc.width, sc.height);
+        sx.drawImage(sigCanvas, 0, 0, sc.width, sc.height);
+        const sigData = sc.toDataURL('image/jpeg', 0.6);
         const url = FIRESTORE_BASE + '/computadoras/' + encodeURIComponent(docId)
           + '?updateMask.fieldPaths=firmaCliente&updateMask.fieldPaths=firmaAceptada&updateMask.fieldPaths=firmaFecha'
           + '&currentDocument.exists=true';
