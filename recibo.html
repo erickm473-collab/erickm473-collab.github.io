@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Recibo — YONKER EL TRIANGULO</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: Arial, sans-serif; background: #f1f5f9; min-height: 100vh; padding: 16px; }
@@ -98,20 +96,8 @@
   <div class="toast" id="toast"></div>
 
   <script>
-    // ── Firebase ────────────────────────────────────────────────
-    const firebaseConfig = {
-      apiKey: "AIzaSyBW_BIFxoAjsppToJ-MyC8F4_LaoA6dVJM",
-      authDomain: "taller-mecanico-erick.firebaseapp.com",
-      projectId: "taller-mecanico-erick",
-      storageBucket: "taller-mecanico-erick.firebasestorage.app",
-      messagingSenderId: "925938033085",
-      appId: "1:925938033085:web:fb9f085c290067a22c32d4"
-    };
-    let fdb;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      fdb = firebase.firestore();
-    } catch(e) {}
+    // ── Firestore REST (sin SDK: el SDK se cuelga en iPhone/Safari/WebView de WhatsApp) ──
+    const FIRESTORE_BASE = 'https://firestore.googleapis.com/v1/projects/taller-mecanico-erick/databases/(default)/documents';
 
     // ── Helpers ─────────────────────────────────────────────────
     function showToast(msg, duration = 3000) {
@@ -191,11 +177,19 @@
 
       try {
         const sigData = sigCanvas.toDataURL('image/png');
-        await fdb.collection('computadoras').doc(docId).update({
-          firmaCliente:  sigData,
-          firmaAceptada: true,
-          firmaFecha:    firebase.firestore.FieldValue.serverTimestamp()
+        const url = FIRESTORE_BASE + '/computadoras/' + encodeURIComponent(docId)
+          + '?updateMask.fieldPaths=firmaCliente&updateMask.fieldPaths=firmaAceptada&updateMask.fieldPaths=firmaFecha'
+          + '&currentDocument.exists=true';
+        const res = await fetch(url, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {
+            firmaCliente:  { stringValue: sigData },
+            firmaAceptada: { booleanValue: true },
+            firmaFecha:    { timestampValue: new Date().toISOString() }
+          }})
         });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
 
         // Show signed state
         document.getElementById('firmaArea').innerHTML = `
@@ -322,10 +316,11 @@
       initCanvas();
 
       // If already signed, check Firestore for the signature
-      if (docId && fdb) {
-        fdb.collection('computadoras').doc(docId).get().then(doc => {
-          if (doc.exists && doc.data().firmaAceptada) {
-            const firma = doc.data().firmaCliente || '';
+      if (docId) {
+        fetch(FIRESTORE_BASE + '/computadoras/' + encodeURIComponent(docId)).then(r => r.ok ? r.json() : null).then(doc => {
+          const f = (doc && doc.fields) || {};
+          if (f.firmaAceptada && f.firmaAceptada.booleanValue) {
+            const firma = (f.firmaCliente && f.firmaCliente.stringValue) || '';
             document.getElementById('firmaArea').innerHTML = `
               <div class="signed-badge">
                 <div class="icon">✅</div>
