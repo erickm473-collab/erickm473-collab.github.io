@@ -220,6 +220,7 @@
     function render(d) {
       const precio    = d.precio ? `L. ${parseFloat(d.precio).toLocaleString('es-HN', {minimumFractionDigits:2})}` : 'Por definir';
       const vehiculo  = [d.marca, d.modelo, d.ano].filter(Boolean).join(' ') || '—';
+      const mitad     = d.precio ? ` (L. ${(parseFloat(d.precio)/2).toLocaleString('es-HN', {minimumFractionDigits:2})})` : '';
       const docId     = d.id || '';
 
       document.getElementById('mainContent').innerHTML = `
@@ -288,6 +289,10 @@
           <div class="clausula">
             <div class="num">6</div>
             <div>Una vez emitido este recibo, el <strong>pago del diagnóstico es obligatorio</strong>, independientemente de que el cliente decida no reparar el equipo.</div>
+          </div>
+          <div class="clausula">
+            <div class="num">7</div>
+            <div>Una vez <strong>ingresado el equipo y firmado este recibo</strong>, si el cliente decide <strong>retirarlo antes de que se complete el diagnóstico</strong>, deberá pagar el <strong>50% del precio del diagnóstico${mitad}</strong> por concepto de recepción, revisión inicial y reserva de turno. <strong>El equipo no se entregará hasta cubrir este pago.</strong></div>
           </div>
         </div>
 
