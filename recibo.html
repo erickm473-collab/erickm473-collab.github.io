@@ -42,6 +42,10 @@
     .clausulas-title { font-size: .82rem; font-weight: 800; color: #92400e; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
     .clausula { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; font-size: .8rem; color: #78350f; line-height: 1.5; }
     .clausula:last-child { margin-bottom: 0; }
+    .clausula-roja { background: #fef2f2; border: 2px solid #dc2626; border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 1rem; color: #b91c1c; font-weight: 600; line-height: 1.55; }
+    .clausula-roja .num { background: #dc2626; width: 24px; height: 24px; font-size: .85rem; }
+    .clausula-roja strong { color: #991b1b; font-weight: 900; }
+    @media print { .clausula-roja { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
     .clausula .num { background: #f59e0b; color: #fff; font-weight: 800; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: .68rem; flex-shrink: 0; margin-top: 1px; }
 
     /* ── FIRMA DIGITAL ── */
@@ -261,24 +265,28 @@
         <!-- CLÁUSULAS -->
         <div class="clausulas">
           <div class="clausulas-title">⚠️ Términos y Condiciones del Servicio</div>
-          <div class="clausula">
+          <div class="clausula clausula-roja">
             <div class="num">1</div>
-            <div>El <strong>costo del diagnóstico NO se descuenta</strong> del precio final de reparación. Son cobros independientes.</div>
+            <div>El pago del diagnóstico cubre la <strong>evaluación del equipo</strong>, no la entrega de información técnica. El diagnóstico es <strong>propiedad de YONKER EL TRIANGULO</strong>, y el taller <strong>no está obligado a informar</strong> la falla encontrada, los componentes dañados ni el procedimiento de reparación, <strong>aunque el cliente decida no reparar</strong> o retirar el equipo.</div>
           </div>
           <div class="clausula">
             <div class="num">2</div>
-            <div>El <strong>diagnóstico es obligatorio</strong> para todo equipo ingresado. No se puede omitir ni negociar.</div>
+            <div>El <strong>costo del diagnóstico NO se descuenta</strong> del precio final de reparación. Son cobros independientes.</div>
           </div>
           <div class="clausula">
             <div class="num">3</div>
-            <div>Los equipos se <strong>atienden por orden de llegada</strong>. No existen preferencias ni saltos de turno.</div>
+            <div>El <strong>diagnóstico es obligatorio</strong> para todo equipo ingresado. No se puede omitir ni negociar.</div>
           </div>
           <div class="clausula">
             <div class="num">4</div>
-            <div><strong>No existe fecha fija de entrega.</strong> El tiempo depende del diagnóstico, disponibilidad de repuestos y carga de trabajo.</div>
+            <div>Los equipos se <strong>atienden por orden de llegada</strong>. No existen preferencias ni saltos de turno.</div>
           </div>
           <div class="clausula">
             <div class="num">5</div>
+            <div><strong>No existe fecha fija de entrega.</strong> El tiempo depende del diagnóstico, disponibilidad de repuestos y carga de trabajo.</div>
+          </div>
+          <div class="clausula">
+            <div class="num">6</div>
             <div>Una vez emitido este recibo, el <strong>pago del diagnóstico es obligatorio</strong>, independientemente de que el cliente decida no reparar el equipo.</div>
           </div>
         </div>
